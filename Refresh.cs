@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
 using AmblOn.State.API.Users.Harness;
+using Microsoft.WindowsAzure.Storage;
 
 namespace AmblOn.State.API.Users
 {

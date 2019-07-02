@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using AmblOn.State.API.Users.Graphs;
 using AmblOn.State.API.Users.Models;
 using Fathym;
 using Fathym.Design.Singleton;
@@ -17,6 +18,7 @@ namespace AmblOn.State.API.Users.Harness
     public class UsersStateHarness : LCUStateHarness<UsersState>
     {
         #region Fields
+        protected readonly AmblOnGraph amblGraph;
         #endregion
 
         #region Properties
@@ -26,12 +28,15 @@ namespace AmblOn.State.API.Users.Harness
         public UsersStateHarness(HttpRequest req, ILogger log, UsersState state)
             : base(req, log, state)
         {
+            amblGraph = req.LoadGraph<AmblOnGraph>();
         }
         #endregion
 
         #region API Methods
         public virtual async Task<UsersState> Ensure()
         {
+            state.DefaultLocations = await amblGraph.ListDefaultLocations();
+            
             return state;
         }
         #endregion
