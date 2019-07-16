@@ -6,13 +6,11 @@ using Fathym.Business.Models;
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class Location : BusinessModel<Guid>
+    public class Map : BusinessModel<Guid>
     {
+
         [DataMember]
-        public virtual string Address { get; set; }
-        
-        [DataMember]
-        public virtual string Icon { get; set; }
+        public string Lookup { get; set; }
         
         [DataMember]
         public virtual float Latitude { get; set; }
@@ -22,5 +20,8 @@ namespace AmblOn.State.API.Users.Models
         
         [DataMember]
         public virtual string Title { get; set; }
+        
+        [DataMember]
+        public int Zoom { get; internal set; }
     }
 }

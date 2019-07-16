@@ -15,9 +15,13 @@ namespace AmblOn.State.API.Users.Graphs
     {
 		public const string AmblOnDefaultsVertexName = "AmblOnDefaults";
         
+		public const string AmblOnUserVertexName = "AmblOnUser";
+        
 		public const string ConsumesEdgeName = "Consumes";
         
 		public const string LocationVertexName = "Location";
+        
+		public const string MapVertexName = "Map";
         
 		public const string ManagesEdgeName = "Manages";
         

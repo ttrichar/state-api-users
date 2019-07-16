@@ -33,15 +33,75 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region API Methods
+        public virtual async Task<UsersState> AddMap(Map map, List<Location> locations)
+        {
+            var createdMapResult = await amblGraph.AddMap(details.Username, map, locations.Select(loc => loc.ID).ToList());
+
+            if (createdMapResult.Status)
+            {
+                await ListMaps();
+
+                return await SetSelectedMap(createdMapResult.Model);
+            }
+
+            //  TODO:  Add error to User Interface via State.AddMapError = createdMapResult.Status.Message
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> AddCuratedMap()
+        {
+            var defaultLocations = await amblGraph.ListDefaultLocations();
+
+            var layer = createDefaultLayer();
+
+            return await AddMap(layer, defaultLocations);
+        }
+
         public virtual async Task<UsersState> Ensure()
         {
-            state.DefaultLocations = await amblGraph.ListDefaultLocations();
-            
+            await WhenAll(
+                ListMaps()
+            );
+
+            if (state.UserMaps.IsNullOrEmpty())
+                await AddCuratedMap();
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> ListMaps()
+        {
+            state.UserMaps = await amblGraph.ListMaps(details.Username);
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> SetSelectedMap(Guid mapId)
+        {
+            if (!mapId.IsEmpty() && state.UserMaps.Any(um => um.ID == mapId))
+            {
+                state.SelectedMapID = mapId;
+
+                state.SelectedMapLocations = await amblGraph.ListMapLocations(details.Username, state.SelectedMapID);
+            }
+
             return state;
         }
         #endregion
 
         #region Helpers
+        protected virtual Map createDefaultLayer()
+        {
+            return new Map()
+            {
+                Lookup = "TheSpecialCuratedMap",
+                Title = "Default Map",
+                Latitude = 40,
+                Longitude = -105,
+                Zoom = 5
+            };
+        }
         #endregion
     }
 }
