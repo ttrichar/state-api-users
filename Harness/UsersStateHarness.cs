@@ -72,6 +72,8 @@ namespace AmblOn.State.API.Users.Harness
 
         public virtual async Task<UsersState> ListMaps()
         {
+            log.LogInformation($"Listing maps for {details.Username}");
+            
             state.UserMaps = await amblGraph.ListMaps(details.Username);
 
             return state;
