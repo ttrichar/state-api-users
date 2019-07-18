@@ -67,6 +67,11 @@ namespace AmblOn.State.API.Users.Harness
             if (state.UserMaps.IsNullOrEmpty())
                 await AddCuratedMap();
 
+            if (state.SelectedMapID.IsEmpty())
+                state.SelectedMapID = state.UserMaps.First().ID;
+
+            state.SelectedMapLocations = await amblGraph.ListMapLocations(details.Username, state.SelectedMapID);
+
             return state;
         }
 
