@@ -26,6 +26,60 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region API Methods
+        public virtual async Task<BaseResponse<Guid>> AddLocation(Location location, string consumerId = "")
+        {
+            return await withG(async (client, g) =>
+            {
+                var existingLocationQuery = g.V()
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                    .Has("Latitude", location.Latitude)
+                    .Has("Longitude", location.Longitude);
+                
+                var existingLocations = await Submit<Location>(existingLocationQuery);
+
+                var existingLocation = existingLocations?.FirstOrDefault();
+
+                if (existingLocation == null)
+                {
+                    var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(location.Latitude).ToString() + Convert.ToInt32(location.Longitude).ToString())
+                        .Property("Address", location.Address)
+                        .Property("Country", location.Title)
+                        .Property("Icon", location.Icon)
+                        .Property("Instagram", location.Instagram)
+                        .Property("Latitude", location.Latitude)
+                        .Property("Longitude", location.Longitude)
+                        .Property("State", location.State)
+                        .Property("Telephone", location.Telephone)
+                        .Property("Title", location.Title)
+                        .Property("Town", location.Town)
+                        .Property("Website", location.Website)
+                        .Property("ZipCode", location.ZipCode);
+
+                    var createLocationResults = await Submit<Map>(createQuery);
+
+                    var createdLocation = createLocationResults?.FirstOrDefault();
+
+                    if (!consumerId.IsNullOrEmpty())
+                    {
+                        var consumerGuid = Guid.Parse(consumerId);
+                        
+                        var locationEdgeQuery =  g.V(consumerGuid).AddE(AmblOnGraphConstants.ConsumesEdgeName).To(g.V(createdLocation.ID));
+
+                        await Submit(locationEdgeQuery);
+                    }
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdLocation.ID,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A location by that lat/long already exists.")};
+            });
+        }
+
         public virtual async Task<BaseResponse<Guid>> AddMap(string email, Map map, List<Guid> locationIds)
         {
             return await withG(async (client, g) =>

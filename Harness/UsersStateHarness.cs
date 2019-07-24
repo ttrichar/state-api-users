@@ -84,6 +84,36 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task LoadCuratedLocationsIntoDB(string json)
+        {
+            var list = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(json);
+            float testFloat = 0;
+
+            list.Where(x => x.Latitude != null && float.TryParse(x.Latitude.ToString(), out testFloat)
+                && x.Longitude != null && float.TryParse(x.Longitude.ToString(), out testFloat)).ToList()
+                .ForEach(
+               async (jsonLocation) =>
+                {
+                    var location = new Location()
+                    {
+                        Address = jsonLocation.Address,
+                        Country = jsonLocation.Country,
+                        Icon = jsonLocation.Icon,
+                        Instagram = jsonLocation.Instagram,
+                        Latitude = jsonLocation.Latitude,
+                        Longitude = jsonLocation.Longitude,
+                        State = jsonLocation.State,
+                        Telephone = jsonLocation.Telephone,
+                        Title = jsonLocation.Title,
+                        Town = jsonLocation.Town,
+                        Website = jsonLocation.Website,
+                        ZipCode = jsonLocation.Zipcode
+                    };
+
+                    var resp = await amblGraph.AddLocation(location, "0eb58bc9-01cc-4238-b23b-9f564993a368");
+                });
+        }
+
         public virtual async Task<UsersState> SetSelectedMap(Guid mapId)
         {
             if (!mapId.IsEmpty() && state.UserMaps.Any(um => um.ID == mapId))
