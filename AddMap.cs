@@ -26,7 +26,7 @@ namespace AmblOn.State.API.Users
     }
     public static class AddMap
     {
-        [FunctionName("AddMapp")]
+        [FunctionName("AddMap")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
