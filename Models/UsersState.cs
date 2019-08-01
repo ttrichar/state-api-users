@@ -10,6 +10,9 @@ namespace AmblOn.State.API.Users.Models
     public class UsersState
     {
         [DataMember]
+        public virtual string AddMapError { get; set; }
+
+        [DataMember]
         public virtual bool Loading { get; set; }
 
         [DataMember]

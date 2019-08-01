@@ -41,11 +41,13 @@ namespace AmblOn.State.API.Users.Harness
             {
                 await ListMaps();
 
+                state.AddMapError = "";
+
                 return await SetSelectedMap(createdMapResult.Model);
             }
-
-            //  TODO:  Add error to User Interface via State.AddMapError = createdMapResult.Status.Message
-
+            else
+                state.AddMapError = createdMapResult.Status.Message;
+            
             return state;
         }
 
