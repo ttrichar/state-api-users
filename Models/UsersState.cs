@@ -16,10 +16,13 @@ namespace AmblOn.State.API.Users.Models
         public virtual bool Loading { get; set; }
 
         [DataMember]
-        public virtual Guid SelectedMapID { get; set; }
+        public virtual Guid PrimaryMapID {get; set;}
 
         [DataMember]
-        public virtual List<Location> SelectedMapLocations { get; set; }
+        public virtual List<Guid> SelectedMapIDs { get; set; }
+
+        [DataMember]
+        public virtual List<SelectedLocation> SelectedMapLocations { get; set; }
 
         [DataMember]
         public virtual List<Map> UserMaps { get; set; }
