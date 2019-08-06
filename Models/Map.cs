@@ -17,6 +17,9 @@ namespace AmblOn.State.API.Users.Models
         
         [DataMember]
         public virtual float Longitude { get; set; }
+
+        [DataMember]
+        public virtual bool Primary { get; set; }
         
         [DataMember]
         public virtual string Title { get; set; }

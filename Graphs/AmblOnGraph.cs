@@ -60,7 +60,15 @@ namespace AmblOn.State.API.Users.Graphs
 
                     var createdLocation = createLocationResults?.FirstOrDefault();
 
-                    if (!consumerId.IsNullOrEmpty())
+                    if (consumerId.Contains("@"))
+                    {
+                        var userId = ensureAmblOnUser(g, consumerId);
+
+                        var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.ConsumesEdgeName).To(g.V(createdLocation.ID));
+
+                        await Submit(userEdgeQuery);
+                    }
+                    else if (!consumerId.IsNullOrEmpty())
                     {
                         var consumerGuid = Guid.Parse(consumerId);
                         
@@ -103,11 +111,14 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Title", map.Title)
                         .Property("Zoom", map.Zoom)
                         .Property("Latitude", map.Latitude)
-                        .Property("Longitude", map.Longitude);
+                        .Property("Longitude", map.Longitude)
+                        .Property("Primary", true);
 
                     var createMapResults = await Submit<Map>(createQuery);
 
                     var createdMap = createMapResults?.FirstOrDefault();
+
+                    await SetPrimaryMap(email, createdMap.ID);
 
                     var mapEdgeQueries = new[] {
                         g.V(userId).AddE(AmblOnGraphConstants.ConsumesEdgeName).To(g.V(createdMap.ID)),
@@ -161,6 +172,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var query = g.V(userId)
                     .Out(AmblOnGraphConstants.ConsumesEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
+                    .Has("id", mapId)
                     .Out(AmblOnGraphConstants.ConsumesEdgeName)
                     .HasLabel(AmblOnGraphConstants.LocationVertexName);
 
@@ -185,6 +197,33 @@ namespace AmblOn.State.API.Users.Graphs
                 return maps.ToList();
             });
         }
+
+         public virtual async Task<Status> SetPrimaryMap(string email, Guid mapId)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email);
+
+                var oldMapsQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.MapVertexName)
+                    .Property("Primary", false);
+
+                await Submit(oldMapsQuery);
+
+                var primaryMapQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.MapVertexName)
+                    .Has("id", mapId)
+                    .Property("Primary", true);
+
+                await Submit(primaryMapQuery);
+
+                return Status.Success;
+            });
+        }
+
+        
         #endregion
 
         #region Helpers

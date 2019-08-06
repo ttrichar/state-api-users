@@ -35,17 +35,39 @@ namespace AmblOn.State.API.Users.Harness
         #region API Methods
         public virtual async Task<UsersState> AddMap(Map map, List<Location> locations)
         {
+            locations.Where(x => x.ID == Guid.Empty).ToList().ForEach(
+                async (location) => {
+                    var addLocationStatus = await amblGraph.AddLocation(location, details.Username);
+
+                    if (addLocationStatus.Status)
+                        location.ID = addLocationStatus.Model;
+                });
+
             var createdMapResult = await amblGraph.AddMap(details.Username, map, locations.Select(loc => loc.ID).ToList());
 
             if (createdMapResult.Status)
             {
                 await ListMaps();
 
-                return await SetSelectedMap(createdMapResult.Model);
+                await SetPrimaryMap(createdMapResult.Model);
+
+                state.PrimaryMapID = createdMapResult.Model;
+
+                state.AddMapError = "";
+
+                state.SelectedMapIDs.ForEach(
+                    async (mapId) =>
+                    {
+                        await this.RemoveSelectedMapLocations(mapId);
+                    });
+                
+                state.SelectedMapIDs = new List<Guid>();
+
+                await AddSelectedMap(createdMapResult.Model);
             }
-
-            //  TODO:  Add error to User Interface via State.AddMapError = createdMapResult.Status.Message
-
+            else
+                state.AddMapError = createdMapResult.Status.Message;
+            
             return state;
         }
 
@@ -60,6 +82,9 @@ namespace AmblOn.State.API.Users.Harness
 
         public virtual async Task<UsersState> Ensure()
         {
+            if (state.SelectedMapIDs == null)
+                state.SelectedMapIDs = new List<Guid>();
+
             await WhenAll(
                 ListMaps()
             );
@@ -67,10 +92,23 @@ namespace AmblOn.State.API.Users.Harness
             if (state.UserMaps.IsNullOrEmpty())
                 await AddCuratedMap();
 
-            if (state.SelectedMapID.IsEmpty() || !state.UserMaps.Any(x => x.ID == state.SelectedMapID))
-                state.SelectedMapID = state.UserMaps.First().ID;
+            var primary = state.UserMaps.FirstOrDefault(x => x.Primary == true);
 
-            state.SelectedMapLocations = await amblGraph.ListMapLocations(details.Username, state.SelectedMapID);
+            if (primary != null)
+                state.PrimaryMapID = primary.ID;
+            else if (state.UserMaps.Count > 0)
+            {
+                state.PrimaryMapID = state.UserMaps.First().ID;
+
+                await amblGraph.SetPrimaryMap(details.Username, state.PrimaryMapID);
+            }
+
+            if (state.SelectedMapIDs.Count == 0 && state.PrimaryMapID != Guid.Empty)
+            {
+                state.SelectedMapIDs = new List<Guid>();
+
+                await this.AddSelectedMap(state.PrimaryMapID);
+            }
 
             return state;
         }
@@ -114,14 +152,72 @@ namespace AmblOn.State.API.Users.Harness
                 });
         }
 
-        public virtual async Task<UsersState> SetSelectedMap(Guid mapId)
+        public virtual async Task<UsersState> AddSelectedMap(Guid mapId)
         {
             if (!mapId.IsEmpty() && state.UserMaps.Any(um => um.ID == mapId))
             {
-                state.SelectedMapID = mapId;
+                if (state.SelectedMapIDs.IndexOf(mapId) == -1)
+                    state.SelectedMapIDs.Add(mapId);
 
-                state.SelectedMapLocations = await amblGraph.ListMapLocations(details.Username, state.SelectedMapID);
+                var mapLocations = await amblGraph.ListMapLocations(details.Username, mapId);
+
+                mapLocations.ForEach(
+                    (location) =>
+                    {
+                        if (!state.SelectedMapLocations.Any(x => x.ID == location.ID))
+                        {
+                            state.SelectedMapLocations.Add(new SelectedLocation()
+                                {
+                                    ID = location.ID,
+                                    Address = location.Address,
+                                    Country = location.Country,
+                                    Icon = location.Icon,
+                                    Instagram = location.Instagram,
+                                    Latitude = location.Latitude,
+                                    Longitude = location.Longitude,
+                                    State = location.State,
+                                    Telephone = location.Telephone,
+                                    Title = location.Title,
+                                    Town = location.Town,
+                                    Website = location.Website,
+                                    ZipCode = location.ZipCode,
+                                    MapID = mapId
+                                });
+                        }
+                    });
             }
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> RemoveSelectedMap(Guid mapId)
+        {
+            if (!mapId.IsEmpty() && state.UserMaps.Any(um => um.ID == mapId))
+            {
+                state.SelectedMapIDs = state.SelectedMapIDs.Where(x => x != mapId).ToList();
+            }
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> RemoveSelectedMapLocations(Guid mapId)
+        {
+            if (!mapId.IsEmpty() && state.UserMaps.Any(um => um.ID == mapId))
+            {
+                state.SelectedMapLocations = state.SelectedMapLocations.Where(x => x.MapID != mapId).ToList();
+            }
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> SetPrimaryMap(Guid mapId)
+        {
+            log.LogInformation($"Setting primary map to {mapId.ToString()} for {details.Username}");
+            
+            var status = await amblGraph.SetPrimaryMap(details.Username, mapId);
+
+            if (status)
+                state.PrimaryMapID = mapId;
 
             return state;
         }
