@@ -119,6 +119,12 @@ namespace AmblOn.State.API.Users.Harness
             
             state.UserMaps = await amblGraph.ListMaps(details.Username);
 
+            state.UserMaps.ForEach(
+                async (map) =>
+                {
+                    map.Locations = await amblGraph.ListMapLocations(details.Username, map.ID);
+                });
+
             return state;
         }
 
@@ -196,6 +202,8 @@ namespace AmblOn.State.API.Users.Harness
             {
                 state.SelectedMapIDs = state.SelectedMapIDs.Where(x => x != mapId).ToList();
             }
+
+            await RemoveSelectedMapLocations(mapId);
 
             return state;
         }
