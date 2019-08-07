@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Fathym.Business.Models;
 
@@ -26,5 +27,9 @@ namespace AmblOn.State.API.Users.Models
         
         [DataMember]
         public int Zoom { get; internal set; }
+
+        [DataMember]
+
+        public List<Location> Locations {get; set;}
     }
 }
