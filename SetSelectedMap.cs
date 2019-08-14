@@ -7,33 +7,29 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Runtime.Serialization;
 using AmblOn.State.API.Users.Models;
 using AmblOn.State.API.Users.Harness;
-using Microsoft.WindowsAzure.Storage;
-using System.Runtime.Serialization;
-using System.Collections.Generic;
 
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class AddMapRequest
+    public class SetSelectedMapRequest
     {
         [DataMember]
-        public virtual UserMap Map { get; set; }
+        public virtual Guid MapID { get; set; }
     }
-    public static class AddMap
+
+    public static class SetSelectedMap
     {
-        [FunctionName("AddMap")]
+        [FunctionName("SetSelectedMap")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<AddMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<SetSelectedMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.AddMap(reqData.Map);
-
-                return await mgr.WhenAll(
-                );
+                return await mgr.SetSelectedMap(reqData.MapID);
             });
         }
     }

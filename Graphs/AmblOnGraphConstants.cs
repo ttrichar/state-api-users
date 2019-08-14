@@ -13,21 +13,33 @@ namespace AmblOn.State.API.Users.Graphs
 {
     public class AmblOnGraphConstants
     {
-		public const string AmblOnDefaultsVertexName = "AmblOnDefaults";
-        
 		public const string AmblOnUserVertexName = "AmblOnUser";
         
-		public const string ConsumesEdgeName = "Consumes";
+		public const string ContainsEdgeName = "Contains";
+
+		public const string DefaultUserEmail = "default@amblon.com";
+
+		public const string IDPropertyName = "id";
+
+		public const string InheritsEdgeName = "Inherits";
         
+		public const string LayerVertexName = "Layer";
+
 		public const string LocationVertexName = "Location";
+
+		public const string LookupPropertyName = "Lookup";
         
 		public const string MapVertexName = "Map";
-        
-		public const string ManagesEdgeName = "Manages";
+
         
 		public const string OwnsEdgeName = "Owns";
+
    
 		public const string PartitionKeyName = "PartitionKey";
+
+		public const string SharedLayerVertexName = "SharedLayer";
+
+		public const string SharedMapVertexName = "SharedMap";
     }
 
 }

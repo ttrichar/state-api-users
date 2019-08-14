@@ -15,22 +15,16 @@ using System.Collections.Generic;
 
 namespace AmblOn.State.API.Users
 {
-    [DataContract]
-    public class AddMapRequest
+    public static class Load
     {
-        [DataMember]
-        public virtual UserMap Map { get; set; }
-    }
-    public static class AddMap
-    {
-        [FunctionName("AddMap")]
+        [FunctionName("Load")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<AddMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<dynamic, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.AddMap(reqData.Map);
+                await mgr.Load();
 
                 return await mgr.WhenAll(
                 );

@@ -8,11 +8,13 @@ namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
     public class Map : BusinessModel<Guid>
-    {
+    {   
+        [DataMember]
+        public virtual float[] Coordinates {get; set;}
 
         [DataMember]
-        public string Lookup { get; set; }
-        
+        public virtual Guid DefaultLayerID {get; set;}
+
         [DataMember]
         public virtual float Latitude { get; set; }
         
@@ -20,16 +22,15 @@ namespace AmblOn.State.API.Users.Models
         public virtual float Longitude { get; set; }
 
         [DataMember]
-        public virtual bool Primary { get; set; }
+        public virtual string Lookup { get; set; }
+
+        [DataMember]
+        public virtual bool Primary {get; set;}
         
         [DataMember]
         public virtual string Title { get; set; }
         
         [DataMember]
-        public int Zoom { get; internal set; }
-
-        [DataMember]
-
-        public List<Location> Locations {get; set;}
+        public virtual int Zoom { get; set; }
     }
 }

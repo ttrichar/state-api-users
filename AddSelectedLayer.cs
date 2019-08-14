@@ -16,21 +16,21 @@ using System.Collections.Generic;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class AddMapRequest
+    public class AddSelectedLayerRequest
     {
         [DataMember]
-        public virtual UserMap Map { get; set; }
+        public virtual Guid LayerID { get; set; }
     }
-    public static class AddMap
+    public static class AddSelectedLayer
     {
-        [FunctionName("AddMap")]
+        [FunctionName("AddSelectedLayer")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<AddMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<AddSelectedLayerRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.AddMap(reqData.Map);
+                await mgr.AddSelectedLayer(reqData.LayerID);
 
                 return await mgr.WhenAll(
                 );

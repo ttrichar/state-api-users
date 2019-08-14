@@ -14,22 +14,22 @@ using AmblOn.State.API.Users.Harness;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class SetPrimaryMapRequest
+    public class RemoveSelectedLayerRequest
     {
         [DataMember]
-        public virtual Guid MapID { get; set; }
+        public virtual Guid LayerID { get; set; }
     }
 
-    public static class SetPrimaryMap
+    public static class RemoveSelectedLayer
     {
-        [FunctionName("SetPrimaryMap")]
+        [FunctionName("RemoveSelectedLayer")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<SetPrimaryMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<RemoveSelectedLayerRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                return await mgr.SetPrimaryMap(reqData.MapID);
+                return await mgr.RemoveSelectedLayer(reqData.LayerID);
             });
         }
     }

@@ -27,6 +27,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual float Longitude { get; set; }
 
         [DataMember]
+        public virtual string Lookup { get; set; }
+
+        [DataMember]
         public virtual string State { get; set; }
 
         [DataMember]
