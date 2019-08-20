@@ -19,6 +19,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual string Lookup { get; set; }
 
         [DataMember]
+        public virtual bool Primary {get; set;}
+
+        [DataMember]
         public virtual string Title { get; set; }
     }
 }

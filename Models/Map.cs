@@ -10,7 +10,7 @@ namespace AmblOn.State.API.Users.Models
     public class Map : BusinessModel<Guid>
     {   
         [DataMember]
-        public virtual float[] Coordinates {get; set;}
+        public virtual string Coordinates {get; set;}
 
         [DataMember]
         public virtual Guid DefaultLayerID {get; set;}

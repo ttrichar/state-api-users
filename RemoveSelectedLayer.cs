@@ -24,7 +24,7 @@ namespace AmblOn.State.API.Users
     {
         [FunctionName("RemoveSelectedLayer")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             return await req.Manage<RemoveSelectedLayerRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>

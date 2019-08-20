@@ -848,7 +848,7 @@ namespace AmblOn.State.API.Users
                     "{ \"Icon\": \"Hotel\", \"Title\": \"Royal Park Hotel Lima\", \"Website\": \"http://www.royalparkhotel.pe/en/\", \"Instagram\": \"@royalparkhotellima\", \"Address\": \"Avenida Camino Real 1050\", \"Town\": \"San Isidro\", \"State\": \"Lima\", \"Zipcode\": \"\", \"Country\": \"Peru\", \"Telephone\": \"51-1-215-1616\", \"Latitude\": -12.1042, \"Longitude\": -77.03894 }," +
                     "{ \"Icon\": \"Restaurant\", \"Title\": \"Astrid y Gaston\", \"Website\": \"http://www.en.astridygaston.com/\", \"Instagram\": \"@astrid_y_gaston\", \"Address\": \"Avenida Paz Soldan 290\", \"Town\": \"San Isidro\", \"State\": \"Lima\", \"Zipcode\": \"15073\", \"Country\": \"Peru\", \"Telephone\": \"51-1-442-2777\", \"Latitude\": -12.09657, \"Longitude\": -77.03495 }]";
                 
-                await mgr.LoadCuratedLocationsIntoDB(json);
+                await mgr.LoadCuratedLocationsIntoDB(json, new Guid("4704a25b-049b-49a9-90b0-2551b40045c3"));
 
                 return await mgr.WhenAll(
                 );

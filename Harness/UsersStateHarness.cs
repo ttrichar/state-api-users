@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AmblOn.State.API.Users.Graphs;
 using AmblOn.State.API.Users.Models;
 using Fathym;
+using Fathym.API;
 using Fathym.Design.Singleton;
 using LCU.Graphs.Registry.Enterprises;
 using LCU.Runtime;
@@ -68,7 +69,12 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
-            var mapResp = await amblGraph.AddMap(details.Username, details.EnterpriseAPIKey, map);
+            BaseResponse<Guid> mapResp = new BaseResponse<Guid>() {Status = Status.Initialized};
+
+            if (!map.Shared)
+                mapResp = await amblGraph.AddMap(details.Username, details.EnterpriseAPIKey, map);
+            else
+                mapResp = await amblGraph.AddSharedMap(details.Username, details.EnterpriseAPIKey, map, (map.InheritedID.HasValue ? map.InheritedID.Value : Guid.Empty));
 
             if (mapResp.Status)
             {
@@ -78,7 +84,7 @@ namespace AmblOn.State.API.Users.Harness
 
                 state.UserMaps = state.UserMaps.Distinct().ToList();
 
-                state.SelectedUserMapID = map.ID;
+                state.SelectedUserMapID = map.ID.Value;
             }
 
             state.Loading = false;
@@ -158,9 +164,14 @@ namespace AmblOn.State.API.Users.Harness
 
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == mapID);
 
-            if (userMap != null && !userMap.Shared && userMap.Deletable)
+            if (userMap != null && userMap.Deletable)
             {
-                var mapResp = await amblGraph.DeleteMap(details.Username, details.EnterpriseAPIKey, mapID);
+                BaseResponse mapResp = new BaseResponse() {Status = Status.Initialized};
+
+                if (!userMap.Shared)
+                    mapResp = await amblGraph.DeleteMap(details.Username, details.EnterpriseAPIKey, mapID);
+                else
+                    mapResp = await amblGraph.DeleteSharedMap(details.Username, details.EnterpriseAPIKey, mapID);
 
                 if (mapResp.Status)
                 {
@@ -185,7 +196,7 @@ namespace AmblOn.State.API.Users.Harness
                     {
                         var primaryMap = state.UserMaps.First(x => x.Primary);
 
-                        state.SelectedUserMapID = primaryMap.ID;
+                        state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
                     
                         state.SelectedUserLayerIDs.Clear();
 
@@ -245,22 +256,24 @@ namespace AmblOn.State.API.Users.Harness
 
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == map.ID);
 
+            BaseResponse mapResp = new BaseResponse() {Status = Status.Initialized};
+
             if (userMap != null && !userMap.Shared)
+                mapResp = await amblGraph.EditMap(details.Username, details.EnterpriseAPIKey, map);
+            else if (userMap != null)
+                mapResp = await amblGraph.EditSharedMap(details.Username, details.EnterpriseAPIKey, map);
+
+            if (mapResp.Status)
             {
-                var mapResp = await amblGraph.EditMap(details.Username, details.EnterpriseAPIKey, map);
+                var existingMap = state.UserMaps.FirstOrDefault(x => x.ID == map.ID);
 
-                if (mapResp.Status)
+                if (existingMap != null)
                 {
-                    var existingMap = state.UserMaps.FirstOrDefault(x => x.ID == map.ID);
+                    state.UserMaps.Remove(existingMap);
 
-                    if (existingMap != null)
-                    {
-                        state.UserMaps.Remove(existingMap);
+                    state.UserMaps.Add(map);
 
-                        state.UserMaps.Add(map);
-
-                        state.UserMaps = state.UserMaps.Distinct().ToList();
-                    }
+                    state.UserMaps = state.UserMaps.Distinct().ToList();
                 }
             }
 
@@ -282,7 +295,7 @@ namespace AmblOn.State.API.Users.Harness
                 var primaryMap = state.UserMaps.FirstOrDefault(x => x.Primary == true);
 
                 if (primaryMap != null)
-                    state.SelectedUserMapID = primaryMap.ID;
+                    state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
             }
 
             var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
@@ -313,7 +326,7 @@ namespace AmblOn.State.API.Users.Harness
 
             if (primaryMap != null)
             {
-                state.SelectedUserMapID = primaryMap.ID;
+                state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
 
                 var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
@@ -321,7 +334,17 @@ namespace AmblOn.State.API.Users.Harness
                 {
                     state.SelectedUserLayerIDs.Clear();
 
-                    state.SelectedUserLayerIDs.Add(userMap.DefaultLayerID);
+                    var layerID = userMap.DefaultLayerID;
+
+                    var layer = state.UserLayers.FirstOrDefault(x => x.ID == layerID);
+
+                    if (layer == null)
+                        layer = state.UserLayers.FirstOrDefault(x => x.InheritedID == layerID);
+
+                    if (layer != null)
+                        layerID = layer.ID;
+
+                    state.SelectedUserLayerIDs.Add(layerID);
 
                     var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
                     
@@ -334,6 +357,38 @@ namespace AmblOn.State.API.Users.Harness
             state.Loading = false;
 
             return state;
+        }
+
+        public virtual async Task LoadCuratedLocationsIntoDB(string json, Guid layerID)
+        {
+            var list = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(json);
+
+            float testFloat = 0;
+
+            list.Where(x => x.Latitude != null && float.TryParse(x.Latitude.ToString(), out testFloat)
+                && x.Longitude != null && float.TryParse(x.Longitude.ToString(), out testFloat)).ToList()
+                .ForEach(
+               async (jsonLocation) =>
+               {
+                    var location = new UserLocation()
+                    {
+                        Address = jsonLocation.Address,
+                        Country = jsonLocation.Country,
+                        Icon = jsonLocation.Icon,
+                        Instagram = jsonLocation.Instagram,
+                        Latitude = jsonLocation.Latitude,
+                        LayerID = layerID,
+                        Longitude = jsonLocation.Longitude,
+                        State = jsonLocation.State,
+                        Telephone = jsonLocation.Telephone,
+                        Title = jsonLocation.Title,
+                        Town = jsonLocation.Town,
+                        Website = jsonLocation.Website,
+                        ZipCode = jsonLocation.Zipcode
+                    };
+
+                    var resp = amblGraph.AddLocation("default@amblon.com", details.EnterpriseAPIKey, location);
+               });
         }
 
         public virtual async Task<UsersState> RemoveSelectedLayer(Guid layerID)
@@ -455,7 +510,8 @@ namespace AmblOn.State.API.Users.Harness
                     locations.ForEach(
                         (location) =>
                         {
-                            userLocations.Add(mapUserLocation(location, layerID, state.UserLayers.Any(x => x.ID == layerID && !x.Shared)));
+                            var loc = mapUserLocation(location, layerID, state.UserLayers.Any(x => x.ID == layerID && !x.Shared));
+                            userLocations.Add(loc);
                         });
 
                     if (layer != null && layer.Coordinates != null)
@@ -467,10 +523,15 @@ namespace AmblOn.State.API.Users.Harness
 
         protected virtual List<UserLocation> limitUserLocationsGeographically(List<UserLocation> userLocations, float[] coordinates)
         {
-            return userLocations.Where(x => x.Latitude >= coordinates[0]
-                                    && x.Latitude <= coordinates[2]
-                                    && x.Longitude >= coordinates[1]
-                                    && x.Longitude <= coordinates[3]).ToList();
+            if (coordinates != null && coordinates.Count() == 4)
+            {
+                return userLocations.Where(x => x.Latitude <= coordinates[0]
+                                    && x.Latitude >= coordinates[2]
+                                    && x.Longitude <= coordinates[1]
+                                    && x.Longitude >= coordinates[3]).ToList();
+            }
+            else
+                return userLocations;
         }
 
         protected virtual UserLayer mapUserLayer(Layer layer)
@@ -517,15 +578,32 @@ namespace AmblOn.State.API.Users.Harness
                 Town = location.Town,
                 Website = location.Website,
                 ZipCode = location.ZipCode
-            }
+            };
         }
 
         protected virtual UserMap mapUserMap(Map map)
         {
+            bool hasCoords = false;
+            var coords = map.Coordinates.Split(",");
+            var fCoords = new float[4];
+
+            if (coords.Count() == 4)
+            {
+                hasCoords = true;
+                var count = 0;
+
+                coords.ToList().ForEach(
+                    (coord) =>
+                    {
+                        fCoords[count] = float.Parse(coord);
+                        count++;
+                    });
+            }
+
             return new UserMap()
             {
                 ID = map.ID,
-                Coordinates = map.Coordinates,
+                Coordinates = hasCoords ? fCoords : null,
                 DefaultLayerID = map.DefaultLayerID,
                 Deletable = true,
                 Latitude = map.Latitude,
@@ -540,18 +618,36 @@ namespace AmblOn.State.API.Users.Harness
 
         protected virtual UserMap mapUserMap(SharedMap map, Map parent)
         {
+            bool hasCoords = false;
+            var coords = parent.Coordinates.Split(",");
+            var fCoords = new float[4];
+
+            if (coords.Count() == 4)
+            {
+                hasCoords = true;
+                var count = 0;
+
+                coords.ToList().ForEach(
+                    (coord) =>
+                    {
+                        fCoords[count] = float.Parse(coord);
+                        count++;
+                    });
+            }
+
             return new UserMap()
             {
                 ID = map.ID,
-                Coordinates = parent.Coordinates,
+                Coordinates = hasCoords ? fCoords : null,
                 DefaultLayerID = parent.DefaultLayerID,
                 Deletable = map.Deletable,
                 Latitude = parent.Latitude,
                 Longitude = parent.Longitude,
-                Primary = false,
+                Primary = map.Primary,
                 Shared = true,
                 Title = map.Title,
-                Zoom = parent.Zoom
+                Zoom = parent.Zoom,
+                InheritedID = parent.ID
             };
         }
 

@@ -77,6 +77,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = location.LayerID.ToString() + "|" + location.Latitude.ToString() + "|" + location.Longitude.ToString();
 
                 var existingLocationQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.LayerVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, location.LayerID)
                     .Out(AmblOnGraphConstants.ContainsEdgeName)
@@ -115,7 +116,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                     var layerEdgeQuery = g.V(location.LayerID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdLocation.ID));
 
-                    await Submit(userEdgeQuery);
+                    await Submit(layerEdgeQuery);
 
                     return new BaseResponse<Guid>()
                     {
@@ -154,7 +155,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Latitude", map.Latitude)
                         .Property("Longitude", map.Longitude)
                         .Property("Primary", true)
-                        .Property("Coordinates", map.Coordinates)
+                        .Property("Coordinates", String.Join(",", map.Coordinates))
                         .Property("DefaultLayerID", map.DefaultLayerID);
 
                     var createMapResults = await Submit<Map>(createQuery);
@@ -165,7 +166,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                     await Submit(userEdgeQuery);
 
-                    await setPrimaryMap(email, createdMap.ID);
+                    await setPrimaryMap(email, entAPIKey, createdMap.ID);
 
                     return new BaseResponse<Guid>()
                     {
@@ -213,7 +214,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                     var parentEdgeQuery = g.V(createdLayer.ID).AddE(AmblOnGraphConstants.InheritsEdgeName).To(g.V(parentID));
 
-                    await Submit(userEdgeQuery);
+                    await Submit(parentEdgeQuery);
 
                     return new BaseResponse<Guid>()
                     {
@@ -223,6 +224,57 @@ namespace AmblOn.State.API.Users.Graphs
                 }
                 else
                     return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")};
+            });
+        }
+
+        public virtual async Task<BaseResponse<Guid>> AddSharedMap(string email, string entAPIKey, UserMap map, Guid parentID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
+
+                var existingMapQuery = g.V(userId)
+                    .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingMaps = await Submit<SharedMap>(existingMapQuery);
+
+                var existingMap = existingMaps?.FirstOrDefault();
+
+                if (existingMap == null)
+                {
+                    var createQuery = g.AddV(AmblOnGraphConstants.SharedMapVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
+                        .Property("Lookup", lookup)
+                        .Property("Title", map.Title)
+                        .Property("Deletable", true)
+                        .Property("Primary", true)
+                        .Property("DefaultLayerID", map.DefaultLayerID);
+
+                    var createMapResults = await Submit<SharedMap>(createQuery);
+
+                    var createdMap = createMapResults?.FirstOrDefault();
+
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdMap.ID));
+
+                    await Submit(userEdgeQuery);
+
+                    var parentEdgeQuery = g.V(createdMap.ID).AddE(AmblOnGraphConstants.InheritsEdgeName).To(g.V(parentID));
+
+                    await Submit(parentEdgeQuery);
+
+                    await setPrimaryMap(email, entAPIKey, createdMap.ID);
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdMap.ID,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A map by that name already exists for this user.")};
             });
         }
 
@@ -247,6 +299,7 @@ namespace AmblOn.State.API.Users.Graphs
                     var createQuery = g.AddV(AmblOnGraphConstants.SharedMapVertexName)
                         .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
                         .Property("Lookup", lookup)
+                        .Property("Primary", true)
                         .Property("Title", map.Title)
                         .Property("Deletable", deletable)
                         .Property("DefaultLayerID", map.DefaultLayerID);
@@ -259,9 +312,11 @@ namespace AmblOn.State.API.Users.Graphs
 
                     await Submit(userEdgeQuery);
 
-                    var parentEdgeQuery = g.V(createdMap.ID).AddE(AmblOnGraphConstants.InheritsEdgeName).To(g.V(ParentID));
+                    var parentEdgeQuery = g.V(createdMap.ID).AddE(AmblOnGraphConstants.InheritsEdgeName).To(g.V(parentID));
 
                     await Submit(parentEdgeQuery);
+
+                    await setPrimaryMap(email, entAPIKey, createdMap.ID);
 
                     return new BaseResponse<Guid>()
                     {
@@ -341,6 +396,39 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> DeleteSharedMap(string email, string entAPIKey, Guid mapID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var existingMapQuery = g.V(userId)
+                    .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, mapID);
+                
+                var existingMaps = await Submit<SharedMap>(existingMapQuery);
+
+                var existingMap = existingMaps?.FirstOrDefault();
+
+                if (existingMap != null)
+                {
+                    var deleteQuery = g.V(userId)
+                    .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, mapID)
+                    .Drop();
+
+                    await Submit(deleteQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This shared map does not exist for this user")};
+            });
+        }
+
         public virtual async Task<BaseResponse> EditLocation(string email, string entAPIKey, UserLocation location)
         {
             return await withG(async (client, g) =>
@@ -415,14 +503,14 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Zoom", map.Zoom)
                         .Property("Latitude", map.Latitude)
                         .Property("Longitude", map.Longitude)
-                        .Property("Primary", true)
-                        .Property("Coordinates", map.Coordinates)
+                        .Property("Primary", map.Primary)
+                        .Property("Coordinates", String.Join(",", map.Coordinates))
                         .Property("DefaultLayerID", map.DefaultLayerID);
 
                     await Submit(editQuery);
 
                     if (map.Primary)
-                        await setPrimaryMap(email, map.ID);
+                        await setPrimaryMap(email, entAPIKey, (map.ID.HasValue ? map.ID.Value : Guid.Empty));
 
                     return new BaseResponse()
                     {
@@ -431,6 +519,47 @@ namespace AmblOn.State.API.Users.Graphs
                 }
                 else
                     return new BaseResponse() { Status = Status.NotLocated.Clone("This map does not exist for this user")};
+            });
+        }
+
+        public virtual async Task<BaseResponse> EditSharedMap(string email, string entAPIKey, UserMap map)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
+
+                var existingMapQuery = g.V(userId)
+                    .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, map.ID);
+                
+                var existingMaps = await Submit<SharedMap>(existingMapQuery);
+
+                var existingMap = existingMaps?.FirstOrDefault();
+
+                if (existingMap != null)
+                {
+                    var editQuery = g.V(map.ID)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
+                        .Property("Lookup", lookup)
+                        .Property("Title", map.Title)
+                        .Property("Deletable", true)
+                        .Property("Primary", map.Primary)
+                        .Property("DefaultLayerID", map.DefaultLayerID);
+
+                    await Submit(editQuery);
+
+                    if (map.Primary)
+                        await setPrimaryMap(email, entAPIKey, (map.ID.HasValue ? map.ID.Value : Guid.Empty));
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This shared map does not exist for this user")};
             });
         }
 
@@ -464,6 +593,20 @@ namespace AmblOn.State.API.Users.Graphs
                     .HasLabel(AmblOnGraphConstants.LocationVertexName);
 
                 var results = await Submit<Location>(query);
+
+                if (results.ToList().Count == 0)
+                {
+                    query = g.V(userId)
+                        .Out(AmblOnGraphConstants.OwnsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.SharedLayerVertexName)
+                        .Has(AmblOnGraphConstants.IDPropertyName, layerID)
+                        .Out(AmblOnGraphConstants.InheritsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.LayerVertexName)
+                        .Out(AmblOnGraphConstants.ContainsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                    results = await Submit<Location>(query);
+                }
 
                 return results.ToList();
             });
@@ -579,7 +722,7 @@ namespace AmblOn.State.API.Users.Graphs
             return existingUser;
         }
 
-        public virtual async Task<Status> setPrimaryMap(string email, Guid mapId)
+        public virtual async Task<Status> setPrimaryMap(string email, string entAPIKey, Guid mapId)
         {
             return await withG(async (client, g) =>
             {
@@ -593,13 +736,55 @@ namespace AmblOn.State.API.Users.Graphs
 
                 await Submit(oldMapsQuery);
 
-                var primaryMapQuery = g.V(userId)
+                var oldSharedMapsQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
+                    .Has("Primary", true)
+                    .Property("Primary", false);
+
+                await Submit(oldSharedMapsQuery);
+
+                var existingMapQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has("id", mapId)
-                    .Property("Primary", true);
+                    .Has("id", mapId);
 
-                await Submit(primaryMapQuery);
+                var existingMaps = await Submit<Map>(existingMapQuery);
+
+                var existingMap = existingMaps?.FirstOrDefault();
+
+                if (existingMap != null)
+                {
+                    existingMapQuery = g.V(userId)
+                        .Out(AmblOnGraphConstants.OwnsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.MapVertexName)
+                        .Has("id", mapId)
+                        .Property("Primary", true);
+
+                    await Submit(existingMapQuery);
+                }
+                else
+                {
+                    var existingSharedMapQuery =  g.V(userId)
+                        .Out(AmblOnGraphConstants.OwnsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
+                        .Has("id", mapId);
+
+                    var existingSharedMaps = await Submit<Map>(existingSharedMapQuery);
+
+                    var existingSharedMap = existingSharedMaps?.FirstOrDefault();
+
+                     if (existingSharedMap != null)
+                    {
+                        existingSharedMapQuery = g.V(userId)
+                            .Out(AmblOnGraphConstants.OwnsEdgeName)
+                            .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
+                            .Has("id", mapId)
+                            .Property("Primary", true);
+
+                        await Submit(existingSharedMapQuery);
+                    }
+                }
 
                 return Status.Success;
             });
@@ -622,21 +807,23 @@ namespace AmblOn.State.API.Users.Graphs
                 Title = "User Layer"
             });
 
-            var sharedMapQuery = g.V(AmblOnGraphConstants.AmblOnUserVertexName)
+            var sharedMapQuery = g.V()
+                    .HasLabel(AmblOnGraphConstants.AmblOnUserVertexName)
                     .Has("Email", AmblOnGraphConstants.DefaultUserEmail)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, "DefaultMap");
+                    .Has(AmblOnGraphConstants.LookupPropertyName, AmblOnGraphConstants.DefaultUserID + "|DefaultMap");
 
             var sharedMapResults = await Submit<Map>(sharedMapQuery);
 
             var sharedMapResult = sharedMapResults.Any() ? sharedMapResults.FirstOrDefault().ID : Guid.Empty;
 
-            var sharedLayerQuery = g.V(AmblOnGraphConstants.AmblOnUserVertexName)
+            var sharedLayerQuery = g.V()
+                    .HasLabel(AmblOnGraphConstants.AmblOnUserVertexName)
                     .Has("Email", AmblOnGraphConstants.DefaultUserEmail)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.LayerVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, "DefaultLayer");
+                    .Has(AmblOnGraphConstants.LookupPropertyName, AmblOnGraphConstants.DefaultUserID + "|DefaultLayer");
 
             var sharedLayerResults = await Submit<Map>(sharedLayerQuery);
 

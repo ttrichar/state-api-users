@@ -7,7 +7,7 @@ using Fathym.Business.Models;
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class UserMap : BusinessModel<Guid>
+    public class UserMap : BusinessModel<Guid?>
     {
         [DataMember]
         public virtual float[] Coordinates {get; set;}
@@ -19,7 +19,7 @@ namespace AmblOn.State.API.Users.Models
         public virtual bool Deletable {get; set;}
 
         [DataMember]
-        public virtual Guid InheritedID {get; set;}
+        public virtual Guid? InheritedID {get; set;}
 
         [DataMember]
         public virtual float Latitude { get; set; }

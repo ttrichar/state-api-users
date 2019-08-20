@@ -14,22 +14,22 @@ using AmblOn.State.API.Users.Harness;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class AddSelectedMapRequest
+    public class AddLocationRequest
     {
         [DataMember]
-        public virtual Guid MapID { get; set; }
+        public virtual UserLocation Location { get; set; }
     }
 
-    public static class AddSelectedMap
+    public static class AddLocation
     {
-        [FunctionName("AddSelectedMap")]
+        [FunctionName("AddLocation")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<AddSelectedMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<AddLocationRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                return await mgr.AddSelectedMap(reqData.MapID);
+                return await mgr.AddLocation(reqData.Location);
             });
         }
     }

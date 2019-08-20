@@ -19,6 +19,8 @@ namespace AmblOn.State.API.Users.Graphs
 
 		public const string DefaultUserEmail = "default@amblon.com";
 
+		public const string DefaultUserID = "98005bd5-830f-4ab0-8ce6-02906455db01";
+
 		public const string IDPropertyName = "id";
 
 		public const string InheritsEdgeName = "Inherits";
