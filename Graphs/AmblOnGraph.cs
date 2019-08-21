@@ -35,6 +35,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = userId.ToString() + "|" + layer.Title.Replace(" ","");
                 
                 var existingLayerQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.LayerVertexName)
                     .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
@@ -138,6 +139,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
 
                 var existingMapQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
                     .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
@@ -188,6 +190,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = userId.ToString() + "|" + layer.Title.Replace(" ","");
                 
                 var existingLayerQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.SharedLayerVertexName)
                     .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
@@ -236,6 +239,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
 
                 var existingMapQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
                     .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
@@ -287,6 +291,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
 
                 var existingMapQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
                     .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
@@ -336,6 +341,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
                 var existingLocationQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.LocationVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, locationID);
                 
@@ -346,7 +352,7 @@ namespace AmblOn.State.API.Users.Graphs
                 if (existingLocation != null)
                 {
                     var deleteQuery = g.V(userId)
-                    .HasLabel(AmblOnGraphConstants.LayerVertexName)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.LocationVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, locationID)
                     .Drop();
@@ -370,6 +376,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
                 var existingMapQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, mapID);
                 
@@ -380,6 +387,7 @@ namespace AmblOn.State.API.Users.Graphs
                 if (existingMap != null)
                 {
                     var deleteQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, mapID)
                     .Drop();
@@ -403,6 +411,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
                 var existingMapQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, mapID);
                 
@@ -413,6 +422,7 @@ namespace AmblOn.State.API.Users.Graphs
                 if (existingMap != null)
                 {
                     var deleteQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, mapID)
                     .Drop();
@@ -438,6 +448,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = location.LayerID.ToString() + "|" + location.Latitude.ToString() + "|" + location.Longitude.ToString();
 
                 var existingLocationQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.LayerVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, location.LayerID)
                     .Out(AmblOnGraphConstants.ContainsEdgeName)
@@ -451,20 +462,19 @@ namespace AmblOn.State.API.Users.Graphs
                 if (existingLocation != null)
                 {
                     var editQuery = g.V(location.ID)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(location.Latitude).ToString() + Convert.ToInt32(location.Longitude).ToString())
                         .Property("Lookup", lookup)
-                        .Property("Address", location.Address)
-                        .Property("Country", location.Title)
-                        .Property("Icon", location.Icon)
-                        .Property("Instagram", location.Instagram)
+                        .Property("Address", location.Address ?? "")
+                        .Property("Country", location.Country ?? "")
+                        .Property("Icon", location.Icon ?? "")
+                        .Property("Instagram", location.Instagram ?? "")
                         .Property("Latitude", location.Latitude)
                         .Property("Longitude", location.Longitude)
-                        .Property("State", location.State)
-                        .Property("Telephone", location.Telephone)
-                        .Property("Title", location.Title)
-                        .Property("Town", location.Town)
-                        .Property("Website", location.Website)
-                        .Property("ZipCode", location.ZipCode);
+                        .Property("State", location.State ?? "")
+                        .Property("Telephone", location.Telephone ?? "")
+                        .Property("Title", location.Title ?? "")
+                        .Property("Town", location.Town ?? "")
+                        .Property("Website", location.Website ?? "")
+                        .Property("ZipCode", location.ZipCode ?? "");
 
                     await Submit(editQuery);
 
@@ -487,6 +497,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
 
                 var existingMapQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, map.ID);
                 
@@ -531,6 +542,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
 
                 var existingMapQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.SharedMapVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, map.ID);
                 
