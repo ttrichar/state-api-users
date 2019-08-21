@@ -6,7 +6,7 @@ using Fathym.Business.Models;
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class UserLocation : BusinessModel<Guid>
+    public class UserLocation : BusinessModel<Guid?>
     {
         [DataMember]
         public virtual string Address { get; set; }
