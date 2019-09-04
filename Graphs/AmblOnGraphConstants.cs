@@ -13,6 +13,8 @@ namespace AmblOn.State.API.Users.Graphs
 {
     public class AmblOnGraphConstants
     {
+		public const string AlbumVertexName = "Album";
+
 		public const string AmblOnUserVertexName = "AmblOnUser";
         
 		public const string ContainsEdgeName = "Contains";
@@ -24,6 +26,10 @@ namespace AmblOn.State.API.Users.Graphs
 		public const string IDPropertyName = "id";
 
 		public const string InheritsEdgeName = "Inherits";
+
+		public const string ItineraryActivityVertexName = "ItineraryActivity";
+
+		public const string ItineraryVertexName = "Itinerary";
         
 		public const string LayerVertexName = "Layer";
 
@@ -33,11 +39,15 @@ namespace AmblOn.State.API.Users.Graphs
         
 		public const string MapVertexName = "Map";
 
+		public const string OccursAtEdgeName = "OccursAt";
+
         
 		public const string OwnsEdgeName = "Owns";
 
    
 		public const string PartitionKeyName = "PartitionKey";
+
+		public const string PhotoVertexName = "Photo";
 
 		public const string SharedLayerVertexName = "SharedLayer";
 

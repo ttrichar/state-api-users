@@ -26,6 +26,150 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region API Methods
+        public virtual async Task<BaseResponse<Guid>> AddAlbum(string email, string entAPIKey, UserAlbum album)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + album.Title.Replace(" ","");
+
+                var existingAlbumQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingAlbums = await Submit<Album>(existingAlbumQuery);
+
+                var existingAlbum = existingAlbums?.FirstOrDefault();
+
+                if (existingAlbum == null)
+                {
+                    var createQuery = g.AddV(AmblOnGraphConstants.AlbumVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
+                        .Property("Lookup", lookup)
+                        .Property("Title", album.Title ?? "");
+
+                    var createAlbumResults = await Submit<Album>(createQuery);
+
+                    var createdAlbum = createAlbumResults?.FirstOrDefault();
+
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdAlbum.ID));
+
+                    await Submit(userEdgeQuery);
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdAlbum.ID,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An album with that title already exists for this user.")};
+            });
+        }
+
+        public virtual async Task<BaseResponse<Guid>> AddItinerary(string email, string entAPIKey, UserItinerary itinerary)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + itinerary.Title.Replace(" ", "_") + "|" + itinerary.StartDate.ToString() + "|" + itinerary.EndDate.ToString();
+
+                var existingItineraryQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingItineraries = await Submit<Itinerary>(existingItineraryQuery);
+
+                var existingItinerary = existingItineraries?.FirstOrDefault();
+
+                if (existingItinerary == null)
+                {
+                    var createQuery = g.AddV(AmblOnGraphConstants.ItineraryVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, itinerary.StartDate.ToShortDateString() + itinerary.EndDate.ToShortDateString())
+                        .Property("Lookup", lookup)
+                        .Property("StartDate", itinerary.StartDate)
+                        .Property("EndDate", itinerary.EndDate)
+                        .Property("Title", itinerary.Title ?? "");
+
+                    var createItineraryResults = await Submit<Itinerary>(createQuery);
+
+                    var createdItinerary = createItineraryResults?.FirstOrDefault();
+
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdItinerary.ID));
+
+                    await Submit(userEdgeQuery);
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdItinerary.ID,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An itinerary with that title and start/end date already exists for this user.")};
+            });
+        }
+
+        public virtual async Task<BaseResponse<Guid>> AddItineraryActivity(string email, string entAPIKey, UserItineraryActivity itineraryActivity, Guid itineraryID, Guid locationID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + itineraryID.ToString() + "|" + itineraryActivity.StartDateTime.ToString() + "|" + itineraryActivity.EndDateTime.ToString() + "|" + itineraryActivity.LocationID.ToString();
+
+                var existingItineraryActivityQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryActivityVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingItineraryActivities = await Submit<ItineraryActivity>(existingItineraryActivityQuery);
+
+                var existingItineraryActivity = existingItineraryActivities?.FirstOrDefault();
+
+                if (existingItineraryActivity == null)
+                {
+                    var createQuery = g.AddV(AmblOnGraphConstants.ItineraryActivityVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, itineraryActivity.StartDateTime.ToShortDateString() + itineraryActivity.EndDateTime.ToShortDateString())
+                        .Property("Lookup", lookup)
+                        .Property("StartDateTime", itineraryActivity.StartDateTime)
+                        .Property("EndDateTime", itineraryActivity.EndDateTime)
+                        .Property("ActivityName", itineraryActivity.ActivityName ?? "");
+
+                    var createItineraryActivityResults = await Submit<ItineraryActivity>(createQuery);
+
+                    var createdItineraryActivity = createItineraryActivityResults?.FirstOrDefault();
+
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdItineraryActivity.ID));
+
+                    await Submit(userEdgeQuery);
+                    
+                    var itineraryEdgeQuery = g.V(itineraryID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdItineraryActivity.ID));
+
+                    await Submit(itineraryEdgeQuery);
+
+                    var locationEdgeQuery = g.V(createdItineraryActivity.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(locationID));
+
+                    await Submit(locationEdgeQuery);
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdItineraryActivity.ID,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An itinerary activity for that user's itinerary exists at the same date/time/location.")};
+            });
+        }
+
         public virtual async Task<BaseResponse<Guid>> AddLayer(string email, string entAPIKey, UserLayer layer)
         {
             return await withG(async (client, g) =>
@@ -181,6 +325,61 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse<Guid>> AddPhoto(string email, string entAPIKey, UserPhoto photo, Guid albumID, Guid locationID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL + "|" + photo.LocationID.ToString();
+
+                var existingPhotoQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, albumID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingPhotos = await Submit<Photo>(existingPhotoQuery);
+
+                var existingPhoto = existingPhotos?.FirstOrDefault();
+
+                if (existingPhoto == null)
+                {
+                    var createQuery = g.AddV(AmblOnGraphConstants.PhotoVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
+                        .Property("Lookup", lookup)
+                        .Property("Caption", photo.Caption ?? "")
+                        .Property("URL", photo.URL ?? "");
+
+                    var createPhotoResults = await Submit<Photo>(createQuery);
+
+                    var createdPhoto = createPhotoResults?.FirstOrDefault();
+
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdPhoto.ID));
+
+                    await Submit(userEdgeQuery);
+                    
+                    var albumEdgeQuery = g.V(albumID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdPhoto.ID));
+
+                    await Submit(albumEdgeQuery);
+
+                    var locationEdgeQuery = g.V(createdPhoto.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(locationID));
+
+                    await Submit(locationEdgeQuery);
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdPhoto.ID,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An photo for that user's album exists with the same URL.")};
+            });
+        }
+        
         public virtual async Task<BaseResponse<Guid>> AddSharedLayer(string email, string entAPIKey, UserLayer layer, bool deletable, Guid parentID, Guid defaultMapID)
         {
             return await withG(async (client, g) =>
@@ -334,6 +533,131 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> DeleteAlbum(string email, string entAPIKey, Guid albumID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var existingAlbumQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, albumID);
+                
+                var existingAlbums = await Submit<Album>(existingAlbumQuery);
+
+                var existingAlbum = existingAlbums?.FirstOrDefault();
+
+                if (existingAlbum != null)
+                {
+                    var deletePhotosQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, albumID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
+                    .Drop();
+
+                    await Submit(deletePhotosQuery);
+
+                    var deleteQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, albumID)
+                    .Drop();
+
+                    await Submit(deleteQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This album does not exist for this user")};
+            });
+        }
+
+        public virtual async Task<BaseResponse> DeleteItinerary(string email, string entAPIKey, Guid itineraryID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var existingItineraryQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryID);
+                
+                var existingItineraries = await Submit<Itinerary>(existingItineraryQuery);
+
+                var existingItinerary = existingItineraries?.FirstOrDefault();
+
+                if (existingItinerary != null)
+                {
+                    var deleteActivitiesQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryActivityVertexName)
+                    .Drop();
+
+                    await Submit(deleteActivitiesQuery);
+
+                    var deleteQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryID)
+                    .Drop();
+
+                    await Submit(deleteQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This itinerary does not exist for this user")};
+            });
+        }
+
+        public virtual async Task<BaseResponse> DeleteItineraryActivity(string email, string entAPIKey, Guid itineraryActivityID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var existingItineraryActivityQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryActivityVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryActivityID);
+                
+                var existingItineraryActivities = await Submit<ItineraryActivity>(existingItineraryActivityQuery);
+
+                var existingItineraryActivity = existingItineraryActivities?.FirstOrDefault();
+
+                if (existingItineraryActivity != null)
+                {
+                    var deleteQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryActivityVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryActivityID)
+                    .Drop();
+
+                    await Submit(deleteQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This itinerary activity does not exist for the user")};
+            });
+        }
+
         public virtual async Task<BaseResponse> DeleteLocation(string email, string entAPIKey, Guid locationID)
         {
             return await withG(async (client, g) =>
@@ -404,6 +728,41 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> DeletePhoto(string email, string entAPIKey, Guid photoID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var existingPhotoQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, photoID);
+                
+                var existingPhotos = await Submit<Photo>(existingPhotoQuery);
+
+                var existingPhoto = existingPhotos?.FirstOrDefault();
+
+                if (existingPhoto != null)
+                {
+                    var deleteQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, photoID)
+                    .Drop();
+
+                    await Submit(deleteQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This photo does not exist for the user")};
+            });
+        }
+        
         public virtual async Task<BaseResponse> DeleteSharedMap(string email, string entAPIKey, Guid mapID)
         {
             return await withG(async (client, g) =>
@@ -436,6 +795,115 @@ namespace AmblOn.State.API.Users.Graphs
                 }
                 else
                     return new BaseResponse() { Status = Status.NotLocated.Clone("This shared map does not exist for this user")};
+            });
+        }
+
+        public virtual async Task<BaseResponse> EditAlbum(string email, string entAPIKey, UserAlbum album)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + album.Title.Replace(" ","");
+
+                var existingAlbumQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, album.ID);
+                
+                var existingAlbums = await Submit<Album>(existingAlbumQuery);
+
+                var existingAlbum = existingAlbums?.FirstOrDefault();
+
+                if (existingAlbum != null)
+                {
+                    var editQuery = g.V(album.ID)
+                        .Property("Lookup", lookup)
+                        .Property("Title", album.Title ?? "");
+
+                    await Submit(editQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This album does not exist for this user")};
+            });
+        }
+
+        public virtual async Task<BaseResponse> EditItinerary(string email, string entAPIKey, UserItinerary itinerary)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + itinerary.Title.Replace(" ", "_") + "|" + itinerary.StartDate.ToString() + "|" + itinerary.EndDate.ToString();
+
+                var existingItineraryQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itinerary.ID);
+                
+                var existingItineraries = await Submit<Itinerary>(existingItineraryQuery);
+
+                var existingItinerary = existingItineraries?.FirstOrDefault();
+
+                if (existingItinerary != null)
+                {
+                    var editQuery = g.V(itinerary.ID)
+                        .Property("Lookup", lookup)
+                        .Property("StartDate", itinerary.StartDate)
+                        .Property("EndDate", itinerary.EndDate)
+                        .Property("Title", itinerary.Title ?? "");
+
+                    await Submit(editQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This itinerary does not exist for this user")};
+            });
+        }
+
+        public virtual async Task<BaseResponse> EditItineraryActivity(string email, string entAPIKey, UserItineraryActivity itineraryActivity, Guid itineraryID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + itineraryID.ToString() + "|" + itineraryActivity.StartDateTime.ToString() + "|" + itineraryActivity.EndDateTime.ToString() + "|" + itineraryActivity.LocationID.ToString();
+
+                var existingItineraryActivityQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryActivityVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryActivity.ID);
+                
+                var existingItineraryActivities = await Submit<ItineraryActivity>(existingItineraryActivityQuery);
+
+                var existingItineraryActivity = existingItineraryActivities?.FirstOrDefault();
+
+                if (existingItineraryActivity != null)
+                {
+                    var editQuery = g.V(itineraryActivity.ID)
+                        .Property("Lookup", lookup)
+                        .Property("StartDateTime", itineraryActivity.StartDateTime)
+                        .Property("EndDateTime", itineraryActivity.EndDateTime)
+                        .Property("ActivityName", itineraryActivity.ActivityName ?? "");
+
+                    await Submit(editQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This itinerary activity does not exist for this user")};
             });
         }
 
@@ -533,6 +1001,42 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> EditPhoto(string email, string entAPIKey, UserPhoto photo, Guid albumID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL + "|" + photo.LocationID.ToString();
+
+                var existingPhotoQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, photo.ID);
+                
+                var existingPhotos = await Submit<Photo>(existingPhotoQuery);
+
+                var existingPhoto = existingPhotos?.FirstOrDefault();
+
+                if (existingPhoto != null)
+                {
+                    var editQuery = g.V(photo.ID)
+                        .Property("Lookup", lookup)
+                        .Property("Caption", photo.Caption)
+                        .Property("URL", photo.URL);
+
+                    await Submit(editQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This photo does not exist for this user")};
+            });
+        }
+
         public virtual async Task<BaseResponse> EditSharedMap(string email, string entAPIKey, UserMap map)
         {
             return await withG(async (client, g) =>
@@ -572,6 +1076,64 @@ namespace AmblOn.State.API.Users.Graphs
                 }
                 else
                     return new BaseResponse() { Status = Status.NotLocated.Clone("This shared map does not exist for this user")};
+            });
+        }
+
+        public virtual async Task<List<Album>> ListAlbums(string email, string entAPIKey)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName);
+
+                var results = await Submit<Album>(query);
+
+                return results.ToList();
+            });
+        }
+
+        public virtual async Task<List<Itinerary>> ListItineraries(string email, string entAPIKey)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName);
+
+                var results = await Submit<Itinerary>(query);
+
+                return results.ToList();
+            });
+        }
+
+        public virtual async Task<List<ItineraryActivity>> ListItineraryActivities(string email, string entAPIKey, Guid itineraryID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryActivityVertexName);
+
+                var results = await Submit<ItineraryActivity>(query);
+
+                results.ToList().ForEach(
+                    async (itineraryActivity) =>
+                    {
+                        var locationId = await getItineraryActivityLocationID(userId, itineraryActivity.ID);
+                        itineraryActivity.LocationID = locationId;
+                    });
+
+                return results.ToList();
             });
         }
 
@@ -635,6 +1197,32 @@ namespace AmblOn.State.API.Users.Graphs
                     .HasLabel(AmblOnGraphConstants.MapVertexName);
 
                 var results = await Submit<Map>(query);
+
+                return results.ToList();
+            });
+        }
+
+        public virtual async Task<List<Photo>> ListPhotos(string email, string entAPIKey, Guid albumID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, albumID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.PhotoVertexName);
+
+                var results = await Submit<Photo>(query);
+
+                results.ToList().ForEach(
+                    async (photo) =>
+                    {
+                        var locationId = await getPhotoLocationID(userId, photo.ID);
+                        photo.LocationID = locationId;
+                    });
 
                 return results.ToList();
             });
@@ -732,6 +1320,50 @@ namespace AmblOn.State.API.Users.Graphs
             }
 
             return existingUser;
+        }
+
+        public virtual async Task<Guid> getItineraryActivityLocationID(Guid userId, Guid itineraryActivityId)
+        {
+            return await withG(async (client, g) =>
+            {
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryActivityVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryActivityId)
+                    .Out(AmblOnGraphConstants.OccursAtEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                var results = await Submit<Location>(query);
+
+                var location = results.FirstOrDefault();
+
+                if (location != null)
+                    return location.ID;
+                else
+                    return Guid.Empty;
+            });
+        }
+
+        public virtual async Task<Guid> getPhotoLocationID(Guid userId, Guid photoId)
+        {
+            return await withG(async (client, g) =>
+            {
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, photoId)
+                    .Out(AmblOnGraphConstants.OccursAtEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                var results = await Submit<Location>(query);
+
+                var location = results.FirstOrDefault();
+
+                if (location != null)
+                    return location.ID;
+                else
+                    return Guid.Empty;
+            });
         }
 
         public virtual async Task<Status> setPrimaryMap(string email, string entAPIKey, Guid mapId)

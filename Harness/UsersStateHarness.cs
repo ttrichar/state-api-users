@@ -34,6 +34,69 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region API Methods
+        public virtual async Task<UsersState> AddAlbum(UserAlbum album)
+        {
+            ensureStateObject();
+
+            var albumResp = await amblGraph.AddAlbum(details.Username, details.EnterpriseAPIKey, album);
+
+            if (albumResp.Status)
+            {
+                album.ID = albumResp.Model;
+
+                if (!state.UserAlbums.Any(x => x.ID == album.ID))
+                    state.UserAlbums.Add(album);
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> AddItinerary(UserItinerary itinerary)
+        {
+            ensureStateObject();
+
+            var itineraryResp = await amblGraph.AddItinerary(details.Username, details.EnterpriseAPIKey, itinerary);
+
+            if (itineraryResp.Status)
+            {
+                itinerary.ID = itineraryResp.Model;
+
+                if (!state.UserItineraries.Any(x => x.ID == itinerary.ID))
+                    state.UserItineraries.Add(itinerary);
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> AddItineraryActivity(UserItineraryActivity itineraryActivity, Guid itineraryID, Guid locationID)
+        {
+            ensureStateObject();
+
+            var itineraryActivityResp = await amblGraph.AddItineraryActivity(details.Username, details.EnterpriseAPIKey, itineraryActivity, itineraryID, locationID);
+
+            if (itineraryActivityResp.Status)
+            {
+                itineraryActivity.ID = itineraryActivityResp.Model;
+
+                var itinerary = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
+
+                if (itinerary != null)
+                {
+                    itinerary.Activities.Add(itineraryActivity);
+
+                    itinerary.Activities = itinerary.Activities.Distinct().ToList();
+                };
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> AddLocation(UserLocation location)
         {
             ensureStateObject();
@@ -92,6 +155,34 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> AddPhoto(UserPhoto photo, Guid albumID, Guid locationID)
+        {
+            ensureStateObject();
+
+            //UPLOAD ACTUAL IMAGE
+            photo.URL = "https://static01.nyt.com/images/2019/08/21/movies/21xp-matrix/21xp-matrix-articleLarge.jpg?quality=90&auto=webp";
+
+            var photoResp = await amblGraph.AddPhoto(details.Username, details.EnterpriseAPIKey, photo, albumID, locationID);
+
+            if (photoResp.Status)
+            {
+                photo.ID = photoResp.Model;
+
+                var album = state.UserAlbums.FirstOrDefault(x => x.ID == albumID);
+
+                if (album != null)
+                {
+                    album.Photos.Add(photo);
+
+                    album.Photos = album.Photos.Distinct().ToList();
+                };
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> AddSelectedLayer(Guid layerID)
         {
             ensureStateObject();
@@ -130,6 +221,76 @@ namespace AmblOn.State.API.Users.Harness
                 state.VisibleUserLocations = limitUserLocationsGeographically(visibleLocations, userMap.Coordinates);
 
                 state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> DeleteAlbum(Guid albumID)
+        {
+            ensureStateObject();
+
+            var albumResp = await amblGraph.DeleteAlbum(details.Username, details.EnterpriseAPIKey, albumID);
+
+            if (albumResp.Status)
+            {
+                var existing = state.UserAlbums.FirstOrDefault(x => x.ID == albumID);
+
+                if (existing != null)
+                    state.UserAlbums.Remove(existing);
+
+                state.UserAlbums = state.UserAlbums.Distinct().ToList();
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> DeleteItinerary(Guid itineraryID)
+        {
+            ensureStateObject();
+
+            var itineraryResp = await amblGraph.DeleteItinerary(details.Username, details.EnterpriseAPIKey, itineraryID);
+
+            if (itineraryResp.Status)
+            {
+                var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
+
+                if (existing != null)
+                    state.UserItineraries.Remove(existing);
+
+                state.UserItineraries = state.UserItineraries.Distinct().ToList();
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> DeleteItineraryActivity(Guid itineraryActivityID)
+        {
+            ensureStateObject();
+
+            var itineraryActivityResp = await amblGraph.DeleteItineraryActivity(details.Username, details.EnterpriseAPIKey, itineraryActivityID);
+
+            if (itineraryActivityResp.Status)
+            {
+                var existingItinerary = state.UserItineraries.FirstOrDefault(x => x.Activities.Any(y => y.ID == itineraryActivityID));
+
+                if (existingItinerary != null)
+                {
+                    var existingItineraryActivity = existingItinerary.Activities.FirstOrDefault(x => x.ID == itineraryActivityID);
+
+                    if (existingItineraryActivity != null)
+                    {
+                        existingItinerary.Activities.Remove(existingItineraryActivity);
+
+                        existingItinerary.Activities = existingItinerary.Activities.Distinct().ToList();
+                    }
+                }
             }
 
             state.Loading = false;
@@ -216,6 +377,114 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> DeletePhoto(Guid photoID)
+        {
+            ensureStateObject();
+
+            var photoResp = await amblGraph.DeletePhoto(details.Username, details.EnterpriseAPIKey, photoID);
+
+            if (photoResp.Status)
+            {
+                var existingAlbum = state.UserAlbums.FirstOrDefault(x => x.Photos.Any(y => y.ID == photoID));
+
+                if (existingAlbum != null)
+                {
+                    var existingPhoto = existingAlbum.Photos.FirstOrDefault(x => x.ID == photoID);
+
+                    if (existingPhoto != null)
+                    {
+                        existingAlbum.Photos.Remove(existingPhoto);
+
+                        existingAlbum.Photos = existingAlbum.Photos.Distinct().ToList();
+                    }
+                }
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> EditAlbum(UserAlbum album)
+        {
+            ensureStateObject();
+
+            var existing = state.UserAlbums.FirstOrDefault(x => x.ID == album.ID);
+
+            if (existing != null)
+            {
+                var albumResp = await amblGraph.EditAlbum(details.Username, details.EnterpriseAPIKey, album);
+
+                if (albumResp.Status)
+                {
+                    state.UserAlbums.Remove(existing);
+
+                    state.UserAlbums.Add(album);
+
+                    state.UserAlbums = state.UserAlbums.Distinct().ToList();
+                }
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> EditItinerary(UserItinerary itinerary)
+        {
+            ensureStateObject();
+
+            var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
+
+            if (existing != null)
+            {
+                var itineraryResp = await amblGraph.EditItinerary(details.Username, details.EnterpriseAPIKey, itinerary);
+
+                if (itineraryResp.Status)
+                {
+                    state.UserItineraries.Remove(existing);
+
+                    state.UserItineraries.Add(itinerary);
+
+                    state.UserItineraries = state.UserItineraries.Distinct().ToList();
+                }
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> EditItineraryActivity(UserItineraryActivity itineraryActivity, Guid itineraryID)
+        {
+            ensureStateObject();
+
+            var existingItinerary = state.UserItineraries.FirstOrDefault(x => x.Activities.Any(y => y.ID == itineraryActivity.ID));
+
+            if (existingItinerary != null)
+            {
+                var existingItineraryActivity = existingItinerary.Activities.FirstOrDefault(x => x.ID == itineraryActivity.ID);
+
+                if (existingItineraryActivity != null)
+                {
+                    var itineraryActivityResp = await amblGraph.EditItineraryActivity(details.Username, details.EnterpriseAPIKey, itineraryActivity, itineraryID);
+
+                    if (itineraryActivityResp.Status)
+                    {
+                        existingItinerary.Activities.Remove(existingItineraryActivity);
+
+                        existingItinerary.Activities.Add(itineraryActivity);
+
+                        existingItinerary.Activities = existingItinerary.Activities.Distinct().ToList();
+                    }
+                }
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> EditLocation(UserLocation location)
         {
             ensureStateObject();
@@ -282,9 +551,46 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> EditPhoto(UserPhoto photo, Guid albumID)
+        {
+            ensureStateObject();
+
+            var existingAlbum = state.UserAlbums.FirstOrDefault(x => x.Photos.Any(y => y.ID == photo.ID));
+
+            if (existingAlbum != null)
+            {
+                var existingPhoto = existingAlbum.Photos.FirstOrDefault(x => x.ID == photo.ID);
+
+                if (existingPhoto != null)
+                {
+                    //SEND NEW PHOTO BYTES
+                    photo.URL = "https://static01.nyt.com/images/2019/08/21/movies/21xp-matrix/21xp-matrix-articleLarge.jpg?quality=90&auto=webp";
+                    
+                    var photoResp = await amblGraph.EditPhoto(details.Username, details.EnterpriseAPIKey, photo, albumID);
+
+                    if (photoResp.Status)
+                    {
+                        existingAlbum.Photos.Remove(existingPhoto);
+
+                        existingAlbum.Photos.Add(photo);
+
+                        existingAlbum.Photos = existingAlbum.Photos.Distinct().ToList();
+                    }
+                }
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+        
         public virtual async Task<UsersState> Ensure()
         {
             ensureStateObject();
+
+            state.UserAlbums = await fetchUserAlbums(details.Username, details.EnterpriseAPIKey);
+
+            state.UserItineraries = await fetchUserItineraries(details.Username, details.EnterpriseAPIKey);
 
             state.UserLayers = await fetchUserLayers(details.Username, details.EnterpriseAPIKey);
 
@@ -317,6 +623,10 @@ namespace AmblOn.State.API.Users.Harness
         public virtual async Task<UsersState> Load()
         {
             ensureStateObject();
+
+            state.UserAlbums = await fetchUserAlbums(details.Username, details.EnterpriseAPIKey);
+
+            state.UserItineraries = await fetchUserItineraries(details.Username, details.EnterpriseAPIKey);
 
             state.UserLayers = await fetchUserLayers(details.Username, details.EnterpriseAPIKey);
 
@@ -443,6 +753,38 @@ namespace AmblOn.State.API.Users.Harness
                 state.VisibleUserLocations = new List<UserLocation>();
         }
 
+        protected virtual async Task<List<UserAlbum>> fetchUserAlbums(string email, string entAPIKey)
+        {
+            var userAlbums = new List<UserAlbum>();
+
+            var albums = await amblGraph.ListAlbums(email, entAPIKey);
+
+            albums.ForEach(
+                async (album) =>
+                {
+                    var photos = await amblGraph.ListPhotos(email, entAPIKey, album.ID);
+                    userAlbums.Add(mapUserAlbum(album, photos));
+                });
+
+            return userAlbums;
+        }
+
+        protected virtual async Task<List<UserItinerary>> fetchUserItineraries(string email, string entAPIKey)
+        {
+            var userItineraries = new List<UserItinerary>();
+
+            var itineraries = await amblGraph.ListItineraries(email, entAPIKey);
+
+            itineraries.ForEach(
+                async (itinerary) =>
+                {
+                    var itineraryActivities = await amblGraph.ListItineraryActivities(email, entAPIKey, itinerary.ID);
+                    userItineraries.Add(mapUserItinerary(itinerary, itineraryActivities));
+                });
+
+            return userItineraries;
+        }
+
         protected virtual async Task<List<UserLayer>> fetchUserLayers(string email, string entAPIKey)
         {
             var userLayers = new List<UserLayer>();
@@ -532,6 +874,58 @@ namespace AmblOn.State.API.Users.Harness
             }
             else
                 return userLocations;
+        }
+
+        protected virtual UserAlbum mapUserAlbum(Album album, List<Photo> photos)
+        {
+            var userAlbum = new UserAlbum()
+            {
+                ID = album.ID,
+                Photos = new List<UserPhoto>(),
+                Title = album.Title
+            };
+
+            photos.ForEach(
+                (photo) =>
+                {
+                    var userPhoto = mapUserPhoto(photo);
+                    userAlbum.Photos.Add(userPhoto);
+                });
+
+            return userAlbum;
+        }
+
+        protected virtual UserItinerary mapUserItinerary(Itinerary itinerary, List<ItineraryActivity> itineraryActivities)
+        {
+            var userItinerary = new UserItinerary()
+            {
+                ID = itinerary.ID,
+                Activities = new List<UserItineraryActivity>(),
+                EndDate = itinerary.EndDate,
+                StartDate = itinerary.StartDate,
+                Title = itinerary.Title
+            };
+
+            itineraryActivities.ForEach(
+                (itineraryActivity) =>
+                {
+                    var userItineryActivity = mapUserItineraryActivity(itineraryActivity);
+                    userItinerary.Activities.Add(userItineryActivity);
+                });
+
+            return userItinerary;
+        }
+
+        protected virtual UserItineraryActivity mapUserItineraryActivity(ItineraryActivity itineraryActivity)
+        {
+            return new UserItineraryActivity()
+            {
+                ID = itineraryActivity.ID,
+                ActivityName = itineraryActivity.ActivityName,
+                StartDateTime = itineraryActivity.StartDateTime,
+                EndDateTime = itineraryActivity.EndDateTime,
+                LocationID = itineraryActivity.LocationID
+            };
         }
 
         protected virtual UserLayer mapUserLayer(Layer layer)
@@ -648,6 +1042,17 @@ namespace AmblOn.State.API.Users.Harness
                 Title = map.Title,
                 Zoom = parent.Zoom,
                 InheritedID = parent.ID
+            };
+        }
+
+         protected virtual UserPhoto mapUserPhoto(Photo photo)
+        {
+            return new UserPhoto()
+            {
+                ID = photo.ID,
+                Caption = photo.Caption,
+                URL = photo.URL,
+                LocationID = photo.LocationID
             };
         }
 
