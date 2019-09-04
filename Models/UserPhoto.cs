@@ -13,7 +13,7 @@ namespace AmblOn.State.API.Users.Models
         public virtual string Caption {get; set;}
 
         [DataMember]
-        public virtual Guid LocationID {get; set;}
+        public virtual Guid? LocationID {get; set;}
 
         [DataMember]
         public virtual string URL { get; set; }

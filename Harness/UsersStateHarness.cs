@@ -44,6 +44,15 @@ namespace AmblOn.State.API.Users.Harness
             {
                 album.ID = albumResp.Model;
 
+                if (album.Photos.Count > 0)
+                {
+                    album.Photos.ForEach(
+                        (photo) =>
+                        {
+                            AddPhoto(photo, album.ID.HasValue ? album.ID.Value : Guid.Empty, photo.LocationID.HasValue ? photo.LocationID.Value : Guid.Empty).GetAwaiter().GetResult();
+                        });
+                }
+
                 if (!state.UserAlbums.Any(x => x.ID == album.ID))
                     state.UserAlbums.Add(album);
             }
