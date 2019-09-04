@@ -7,7 +7,7 @@ using Fathym.Business.Models;
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class UserPhoto : BusinessModel<Guid>
+    public class UserPhoto : BusinessModel<Guid?>
     {
         [DataMember]
         public virtual string Caption {get; set;}
