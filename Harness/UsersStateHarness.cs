@@ -751,6 +751,12 @@ namespace AmblOn.State.API.Users.Harness
 
             if (state.VisibleUserLocations == null)
                 state.VisibleUserLocations = new List<UserLocation>();
+            
+            if (state.UserAlbums == null)
+                state.UserAlbums = new List<UserAlbum>();
+
+            if (state.UserItineraries == null)
+                state.UserItineraries = new List<UserItinerary>();
         }
 
         protected virtual async Task<List<UserAlbum>> fetchUserAlbums(string email, string entAPIKey)
