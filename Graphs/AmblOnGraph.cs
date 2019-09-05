@@ -141,6 +141,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Lookup", lookup)
                         .Property("StartDateTime", itineraryActivity.StartDateTime)
                         .Property("EndDateTime", itineraryActivity.EndDateTime)
+                        .Property("CreatedDateTime", DateTime.Now)
                         .Property("ActivityName", itineraryActivity.ActivityName ?? "");
 
                     var createItineraryActivityResults = await Submit<ItineraryActivity>(createQuery);
@@ -1127,9 +1128,9 @@ namespace AmblOn.State.API.Users.Graphs
                 var results = await Submit<ItineraryActivity>(query);
 
                 results.ToList().ForEach(
-                    async (itineraryActivity) =>
+                    (itineraryActivity) =>
                     {
-                        var locationId = await getItineraryActivityLocationID(userId, itineraryActivity.ID);
+                        var locationId = getItineraryActivityLocationID(userId, itineraryActivity.ID).GetAwaiter().GetResult();
                         itineraryActivity.LocationID = locationId;
                     });
 
@@ -1218,9 +1219,9 @@ namespace AmblOn.State.API.Users.Graphs
                 var results = await Submit<Photo>(query);
 
                 results.ToList().ForEach(
-                    async (photo) =>
+                    (photo) =>
                     {
-                        var locationId = await getPhotoLocationID(userId, photo.ID);
+                        var locationId = getPhotoLocationID(userId, photo.ID).GetAwaiter().GetResult();
                         photo.LocationID = locationId;
                     });
 

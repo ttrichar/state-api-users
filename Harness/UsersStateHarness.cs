@@ -775,9 +775,9 @@ namespace AmblOn.State.API.Users.Harness
             var albums = await amblGraph.ListAlbums(email, entAPIKey);
 
             albums.ForEach(
-                async (album) =>
+                (album) =>
                 {
-                    var photos = await amblGraph.ListPhotos(email, entAPIKey, album.ID);
+                    var photos = amblGraph.ListPhotos(email, entAPIKey, album.ID).GetAwaiter().GetResult();
                     userAlbums.Add(mapUserAlbum(album, photos));
                 });
 

@@ -13,6 +13,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual string ActivityName {get; set;}
 
         [DataMember]
+        public virtual DateTime CreatedDateTime {get; set;}
+
+        [DataMember]
         public virtual DateTime EndDateTime {get; set;}
 
         [DataMember]
