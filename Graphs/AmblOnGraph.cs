@@ -93,6 +93,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Lookup", lookup)
                         .Property("StartDate", itinerary.StartDate)
                         .Property("EndDate", itinerary.EndDate)
+                        .Property("CreatedDateTime", DateTime.Now)
                         .Property("Title", itinerary.Title ?? "");
 
                     var createItineraryResults = await Submit<Itinerary>(createQuery);

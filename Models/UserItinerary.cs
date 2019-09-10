@@ -12,6 +12,10 @@ namespace AmblOn.State.API.Users.Models
         [DataMember]
         public virtual List<UserItineraryActivity> Activities {get; set;}
 
+        
+        [DataMember]
+        public virtual DateTime CreatedDateTime { get; set; }
+
         [DataMember]
         public virtual DateTime EndDate {get; set;}
 

@@ -9,6 +9,10 @@ namespace AmblOn.State.API.Users.Models
     [DataContract]
     public class Itinerary : BusinessModel<Guid>
     {   
+        
+        [DataMember]
+        public virtual DateTime CreatedDateTime { get; set; }
+        
         [DataMember]
         public virtual DateTime EndDate {get; set;}
 

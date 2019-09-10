@@ -8,9 +8,11 @@ using AmblOn.State.API.Users.Models;
 using Fathym;
 using Fathym.API;
 using Fathym.Design.Singleton;
+using LCU.Graphs;
 using LCU.Graphs.Registry.Enterprises;
-using LCU.Runtime;
+using LCU.StateAPI;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
@@ -19,7 +21,7 @@ namespace AmblOn.State.API.Users.Harness
     public class UsersStateHarness : LCUStateHarness<UsersState>
     {
         #region Fields
-        protected readonly AmblOnGraph amblGraph;
+        protected readonly AmblOnGraph amblGraph;    
         #endregion
 
         #region Properties
@@ -29,7 +31,13 @@ namespace AmblOn.State.API.Users.Harness
         public UsersStateHarness(HttpRequest req, ILogger log, UsersState state)
             : base(req, log, state)
         {
-            amblGraph = req.LoadGraph<AmblOnGraph>();
+            amblGraph = new AmblOnGraph(new LCUGraphConfig()
+            {
+                APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY"),
+                Database = Environment.GetEnvironmentVariable("LCU-GRAPH-DATABASE"),
+                Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
+                Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
+            });
         }
         #endregion
 
@@ -44,6 +52,9 @@ namespace AmblOn.State.API.Users.Harness
             {
                 album.ID = albumResp.Model;
 
+                if (!state.UserAlbums.Any(x => x.ID == album.ID))
+                    state.UserAlbums.Add(album);
+
                 if (album.Photos.Count > 0)
                 {
                     album.Photos.ForEach(
@@ -52,9 +63,6 @@ namespace AmblOn.State.API.Users.Harness
                             AddPhoto(photo, album.ID.HasValue ? album.ID.Value : Guid.Empty, photo.LocationID.HasValue ? photo.LocationID.Value : Guid.Empty).GetAwaiter().GetResult();
                         });
                 }
-
-                if (!state.UserAlbums.Any(x => x.ID == album.ID))
-                    state.UserAlbums.Add(album);
             }
 
             state.Loading = false;
@@ -918,7 +926,8 @@ namespace AmblOn.State.API.Users.Harness
                 Activities = new List<UserItineraryActivity>(),
                 EndDate = itinerary.EndDate,
                 StartDate = itinerary.StartDate,
-                Title = itinerary.Title
+                Title = itinerary.Title,
+                CreatedDateTime = itinerary.CreatedDateTime
             };
 
             itineraryActivities.ForEach(
@@ -939,7 +948,8 @@ namespace AmblOn.State.API.Users.Harness
                 ActivityName = itineraryActivity.ActivityName,
                 StartDateTime = itineraryActivity.StartDateTime,
                 EndDateTime = itineraryActivity.EndDateTime,
-                LocationID = itineraryActivity.LocationID
+                LocationID = itineraryActivity.LocationID,
+                CreatedDateTime = itineraryActivity.CreatedDateTime
             };
         }
 
