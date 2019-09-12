@@ -5,9 +5,10 @@
     <RootNamespace>state_api_users</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="LCU.StateAPI" Version="1.32.19248.4" />
+    <PackageReference Include="LCU.StateAPI" Version="1.34.19253.1" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />  
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="System.Device.Location.Portable" Version="1.0.0" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

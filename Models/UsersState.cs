@@ -16,6 +16,12 @@ namespace AmblOn.State.API.Users.Models
         public virtual bool Loading { get; set; }
 
         [DataMember]
+        public virtual List<UserLocation> LocalSearchUserLocations {get; set;}
+
+        [DataMember]
+        public virtual List<UserLocation> OtherSearchUserLocations {get; set;}
+
+        [DataMember]
         public virtual List<Guid> SelectedUserLayerIDs {get; set;}
 
         [DataMember]

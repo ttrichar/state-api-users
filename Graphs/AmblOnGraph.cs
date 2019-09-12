@@ -1477,7 +1477,7 @@ namespace AmblOn.State.API.Users.Graphs
 
             await AddSharedMap(email, entAPIKey, new SharedMap()
             {
-                Title = "Curated Map",
+                Title = "Global Map",
                 Deletable = false,
                 DefaultLayerID = sharedLayerResult
             }, false, sharedMapResult);

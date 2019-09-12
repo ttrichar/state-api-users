@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using System.Device.Location;
 
 namespace AmblOn.State.API.Users.Harness
 {
@@ -637,6 +638,43 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> GlobalSearch(string searchTerm)
+        {
+            ensureStateObject();
+
+            var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
+
+            if (userMap != null)
+            {
+                var radius = computeSearchRadius(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
+
+                var allLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.UserLayers.Select(x => x.ID).ToList());
+
+                var searchLocations = limitUserLocationsBySearch(allLocations, searchTerm);
+
+                var centerCoords = computeCenter(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
+
+                var radiusLocations = limitUserLocationsByRadius(searchLocations, radius, centerCoords.Item1, centerCoords.Item2);
+
+                state.LocalSearchUserLocations = radiusLocations
+                        .Distinct()
+                        .OrderBy(x => x.Title)
+                        .ToList();
+
+                var localIDs = state.LocalSearchUserLocations.Select(x => x.ID);
+
+                state.OtherSearchUserLocations = searchLocations
+                        .Where(x => !localIDs.Contains(x.ID))
+                        .Distinct()
+                        .OrderBy(x => x.Title)
+                        .ToList();
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+        
         public virtual async Task<UsersState> Load()
         {
             ensureStateObject();
@@ -755,6 +793,39 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region Helpers
+        protected virtual Tuple<float, float> computeCenter(float lat1, float long1, float lat2, float long2)
+        {
+            var latRad1 = Math.PI * lat1 / 180.0;
+            var latRad2 = Math.PI * lat2 / 180.0;
+            var longRad1 = Math.PI * long1 / 180.0;
+            var longRad2 = Math.PI * long2 / 180.0;
+
+            var dLon = (longRad2-longRad1); 
+
+
+            var Bx = Math.Cos(latRad2) * Math.Cos(dLon);
+            var By = Math.Cos(latRad2) * Math.Sin(dLon);
+            var avgLat = Math.Atan2(
+                    Math.Sin(latRad1) + 
+                    Math.Sin(latRad2), 
+                    Math.Sqrt((
+                    Math.Cos(latRad1)+Bx) * (Math.Cos(latRad1)+Bx) + By*By));
+
+            var avgLong = longRad1 + Math.Atan2(By, Math.Cos(latRad1) + Bx);
+
+            return new Tuple<float, float>(float.Parse(avgLat.ToString()), float.Parse(avgLong.ToString()));
+        }
+
+        protected virtual float computeSearchRadius(float lat1, float long1, float lat2, float long2)
+        {
+            var coord1 = new GeoCoordinate(Convert.ToDouble(lat1), Convert.ToDouble(long1));
+            var coord2 = new GeoCoordinate(Convert.ToDouble(lat2), Convert.ToDouble(long2));
+
+            var distanceMeters = Math.Abs(coord1.GetDistanceTo(coord2));
+
+            return float.Parse((distanceMeters / 1609.344).ToString());
+        }
+
         protected virtual void ensureStateObject()
         {
             if (state.SelectedUserLayerIDs == null)
@@ -768,6 +839,12 @@ namespace AmblOn.State.API.Users.Harness
 
             if (state.VisibleUserLocations == null)
                 state.VisibleUserLocations = new List<UserLocation>();
+
+            if (state.LocalSearchUserLocations == null)
+                state.LocalSearchUserLocations = new List<UserLocation>();
+
+            if (state.OtherSearchUserLocations == null)
+                state.OtherSearchUserLocations = new List<UserLocation>();
             
             if (state.UserAlbums == null)
                 state.UserAlbums = new List<UserAlbum>();
@@ -884,6 +961,33 @@ namespace AmblOn.State.API.Users.Harness
                 });
 
             return userLocations;
+        }
+
+        protected virtual List<UserLocation> limitUserLocationsByRadius(List<UserLocation> userLocations, float radius, float centerLat, float centerLong)
+        {
+            if (radius > 0)
+            {
+                var center = new GeoCoordinate(Convert.ToDouble(centerLat), Convert.ToDouble(centerLong));
+
+                return userLocations.Where(x => 
+                    {
+                        var coord = new GeoCoordinate(Convert.ToDouble(x.Latitude), Convert.ToDouble(x.Longitude));
+
+                        return float.Parse((Math.Abs(coord.GetDistanceTo(center)) / 1609.344).ToString()) <= radius;
+                    }).ToList();
+            }
+            else
+                return userLocations;
+        }
+
+        protected virtual List<UserLocation> limitUserLocationsBySearch(List<UserLocation> userLocations, string searchTerm)
+        {
+            if (!String.IsNullOrEmpty(searchTerm))
+            {
+                return userLocations.Where(x => x.Title.ToLower().Contains(searchTerm.ToLower())).ToList();
+            }
+            else
+                return userLocations;
         }
 
         protected virtual List<UserLocation> limitUserLocationsGeographically(List<UserLocation> userLocations, float[] coordinates)
