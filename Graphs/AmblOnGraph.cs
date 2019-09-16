@@ -242,6 +242,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Lookup", lookup)
                         .Property("Address", location.Address ?? "")
                         .Property("Country", location.Country ?? "")
+                        .Property("GoogleLocationName", location.GoogleLocationName ?? "")
                         .Property("Icon", location.Icon ?? "")
                         .Property("Instagram", location.Instagram ?? "")
                         .Property("Latitude", location.Latitude)
