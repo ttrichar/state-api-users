@@ -13,6 +13,9 @@ namespace AmblOn.State.API.Users.Models
 
         [DataMember]
         public virtual string Country { get; set; }
+
+        [DataMember]
+        public virtual string GoogleLocationName { get; set; }
         
         [DataMember]
         public virtual string Icon { get; set; }

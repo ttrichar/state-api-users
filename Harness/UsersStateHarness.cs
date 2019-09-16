@@ -1093,6 +1093,7 @@ namespace AmblOn.State.API.Users.Harness
                 Address = location.Address,
                 Country = location.Country,
                 Deletable = userOwns,
+                GoogleLocationName = location.GoogleLocationName,
                 Icon = location.Icon,
                 Instagram = location.Instagram,
                 Latitude = location.Latitude,
