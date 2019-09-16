@@ -75,11 +75,13 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
+            itinerary.CreatedDateTime = DateTime.Now;
             var itineraryResp = await amblGraph.AddItinerary(details.Username, details.EnterpriseAPIKey, itinerary);
 
             if (itineraryResp.Status)
             {
                 itinerary.ID = itineraryResp.Model;
+                itinerary.Activities = new List<UserItineraryActivity>();
 
                 if (!state.UserItineraries.Any(x => x.ID == itinerary.ID))
                     state.UserItineraries.Add(itinerary);
@@ -94,6 +96,7 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
+            itineraryActivity.CreatedDateTime = DateTime.Now;
             var itineraryActivityResp = await amblGraph.AddItineraryActivity(details.Username, details.EnterpriseAPIKey, itineraryActivity, itineraryID, locationID);
 
             if (itineraryActivityResp.Status)
