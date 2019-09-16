@@ -798,25 +798,27 @@ namespace AmblOn.State.API.Users.Harness
         #region Helpers
         protected virtual Tuple<float, float> computeCenter(float lat1, float long1, float lat2, float long2)
         {
-            var latRad1 = Math.PI * lat1 / 180.0;
-            var latRad2 = Math.PI * lat2 / 180.0;
-            var longRad1 = Math.PI * long1 / 180.0;
-            var longRad2 = Math.PI * long2 / 180.0;
+            //var latRad1 = Math.PI * lat1 / 180.0;
+            //var latRad2 = Math.PI * lat2 / 180.0;
+            //var longRad1 = Math.PI * long1 / 180.0;
+            //var longRad2 = Math.PI * long2 / 180.0;
 
-            var dLon = (longRad2-longRad1); 
+            //var dLon = (longRad2-longRad1); 
 
 
-            var Bx = Math.Cos(latRad2) * Math.Cos(dLon);
-            var By = Math.Cos(latRad2) * Math.Sin(dLon);
-            var avgLat = Math.Atan2(
-                    Math.Sin(latRad1) + 
-                    Math.Sin(latRad2), 
-                    Math.Sqrt((
-                    Math.Cos(latRad1)+Bx) * (Math.Cos(latRad1)+Bx) + By*By));
+            //var Bx = Math.Cos(latRad2) * Math.Cos(dLon);
+            //var By = Math.Cos(latRad2) * Math.Sin(dLon);
+            //var avgLat = Math.Atan2(
+            //        Math.Sin(latRad1) + 
+            //        Math.Sin(latRad2), 
+            //        Math.Sqrt((
+            //        Math.Cos(latRad1)+Bx) * (Math.Cos(latRad1)+Bx) + By*By));
 
-            var avgLong = longRad1 + Math.Atan2(By, Math.Cos(latRad1) + Bx);
+            //var avgLong = longRad1 + Math.Atan2(By, Math.Cos(latRad1) + Bx);
 
-            return new Tuple<float, float>(float.Parse(avgLat.ToString()), float.Parse(avgLong.ToString()));
+            //return new Tuple<float, float>(float.Parse(avgLat.ToString()), float.Parse(avgLong.ToString()));
+
+            return new Tuple<float, float>((lat1 + lat2)/2, (long1 + long2)/2);
         }
 
         protected virtual float computeSearchRadius(float lat1, float long1, float lat2, float long2)
