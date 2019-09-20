@@ -733,9 +733,10 @@ namespace AmblOn.State.API.Users.Harness
 
             float testFloat = 0;
 
-            list.Where(x => x.Latitude != null && float.TryParse(x.Latitude.ToString(), out testFloat)
-                && x.Longitude != null && float.TryParse(x.Longitude.ToString(), out testFloat)).ToList()
-                .ForEach(
+            var workingList = list.Where(x => x.Latitude != null && float.TryParse(x.Latitude.ToString(), out testFloat)
+                && x.Longitude != null && float.TryParse(x.Longitude.ToString(), out testFloat)).ToList();
+
+                workingList.ForEach(
                async (jsonLocation) =>
                {
                     var location = new UserLocation()
