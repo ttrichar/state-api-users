@@ -915,7 +915,8 @@ namespace AmblOn.State.API.Users.Harness
                     if (associatedMap != null)
                         coords = associatedMap.Coordinates;
 
-                    userLayers.Add(mapUserLayer(layerInfo.Item1, layerInfo.Item2, coords));
+                    // Insert curated layer first
+                    userLayers.Insert(0, mapUserLayer(layerInfo.Item1, layerInfo.Item2, coords));
                 });
 
             return userLayers;
