@@ -244,6 +244,17 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> AddTopList(UserTopList topList)
+        {
+            ensureStateObject();
+
+           
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> ChangeViewingArea(float[] coordinates)
         {
             ensureStateObject();
@@ -443,6 +454,27 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> DeleteTopList(Guid topListID)
+        {
+            ensureStateObject();
+
+            // var albumResp = await amblGraph.DeleteAlbum(details.Username, details.EnterpriseAPIKey, albumID);
+
+            // if (albumResp.Status)
+            // {
+            //     var existing = state.UserAlbums.FirstOrDefault(x => x.ID == albumID);
+
+            //     if (existing != null)
+            //         state.UserAlbums.Remove(existing);
+
+            //     state.UserAlbums = state.UserAlbums.Distinct().ToList();
+            // }
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> EditAlbum(UserAlbum album)
         {
             ensureStateObject();
@@ -621,7 +653,30 @@ namespace AmblOn.State.API.Users.Harness
 
             return state;
         }
-        
+        public virtual async Task<UsersState> EditTopList(UserTopList topList)
+        {
+            ensureStateObject();
+
+            // var existing = state.UserAlbums.FirstOrDefault(x => x.ID == album.ID);
+
+            // if (existing != null)
+            // {
+            //     var albumResp = await amblGraph.EditAlbum(details.Username, details.EnterpriseAPIKey, album);
+
+            //     if (albumResp.Status)
+            //     {
+            //         state.UserAlbums.Remove(existing);
+
+            //         state.UserAlbums.Add(album);
+
+            //         state.UserAlbums = state.UserAlbums.Distinct().ToList();
+            //     }
+            // }
+
+            state.Loading = false;
+
+            return state;
+        }
         public virtual async Task<UsersState> Ensure()
         {
             ensureStateObject();
