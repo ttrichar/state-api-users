@@ -379,7 +379,7 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An photo for that user's album exists with the same URL.")};
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A photo for that user's album exists with the same URL.")};
             });
         }
         

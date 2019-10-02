@@ -207,20 +207,13 @@ namespace AmblOn.State.API.Users.Harness
             
             photo.URL = "/" + details.Username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
+            photo.ImageData = null;
+
             var photoResp = await amblGraph.AddPhoto(details.Username, details.EnterpriseAPIKey, photo, albumID, locationID);
 
             if (photoResp.Status)
             {
                 photo.ID = photoResp.Model;
-
-                var album = state.UserAlbums.FirstOrDefault(x => x.ID == albumID);
-
-                if (album != null)
-                {
-                    album.Photos.Add(photo);
-
-                    album.Photos = album.Photos.Distinct().ToList();
-                };
             }
 
             state.Loading = false;
