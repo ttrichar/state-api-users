@@ -16,13 +16,26 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System.Device.Location;
+using LCU.Presentation;
+using Microsoft.AspNetCore.WebUtilities;
+using LCU.Personas.Client.Applications;
+using Microsoft.AspNetCore.Http.Internal;
+using System.IO;
+using LCU.Personas.Client.Enterprises;
 
 namespace AmblOn.State.API.Users.Harness
 {
     public class UsersStateHarness : LCUStateHarness<UsersState>
     {
         #region Fields
-        protected readonly AmblOnGraph amblGraph;    
+        protected readonly AmblOnGraph amblGraph; 
+
+        protected readonly ApplicationManagerClient appMgr;
+
+        protected readonly Guid enterpriseId;
+
+        protected readonly EnterpriseManagerClient entMgr;
+           
         #endregion
 
         #region Properties
@@ -39,13 +52,23 @@ namespace AmblOn.State.API.Users.Harness
                 Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
                 Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
             });
+
+            appMgr = req.ResolveClient<ApplicationManagerClient>(logger);
+
+            entMgr = req.ResolveClient<EnterpriseManagerClient>(logger);
+
+            var enterprise = entMgr.GetEnterprise(details.EnterpriseAPIKey).GetAwaiter().GetResult();
+
+            enterpriseId = enterprise.Model.ID;
         }
         #endregion
 
         #region API Methods
-        public virtual async Task<UsersState> AddAlbum(UserAlbum album)
+        public virtual async Task<UsersState> AddAlbum(UserAlbum album, List<ImageMessage> images)
         {
             ensureStateObject();
+
+            album.Photos = mapImageDataToUserPhotos(album.Photos, images);
 
             var albumResp = await amblGraph.AddAlbum(details.Username, details.EnterpriseAPIKey, album);
 
@@ -180,8 +203,9 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
-            //UPLOAD ACTUAL IMAGE
-            photo.URL = "https://static01.nyt.com/images/2019/08/21/movies/21xp-matrix/21xp-matrix-articleLarge.jpg?quality=90&auto=webp";
+            await appMgr.SaveFile(photo.ImageData.Data, enterpriseId, details.Username + "/albums/" + albumID.ToString(), QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], new Guid(details.ApplicationID),"/");
+            
+            photo.URL = "/" + details.Username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
             var photoResp = await amblGraph.AddPhoto(details.Username, details.EnterpriseAPIKey, photo, albumID, locationID);
 
@@ -1007,6 +1031,27 @@ namespace AmblOn.State.API.Users.Harness
             }
             else
                 return userLocations;
+        }
+
+        protected virtual List<UserPhoto> mapImageDataToUserPhotos(List<UserPhoto> photos, List<ImageMessage> images)
+        {
+            var photoCount = 0;
+
+            photos.ForEach(
+                (photo) =>
+                {
+                    var img = images.FirstOrDefault(x => QueryHelpers.ParseQuery(x.Headers)["ID"] == photo.ID);
+                    
+                    if (img == null)
+                        img = images[photoCount];
+
+                    if (img != null)
+                        photo.ImageData = img;
+
+                    photoCount++;
+                });
+            
+            return photos;
         }
 
         protected virtual UserAlbum mapUserAlbum(Album album, List<Photo> photos)

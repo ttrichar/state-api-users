@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Fathym.Business.Models;
+using LCU.Presentation;
 
 namespace AmblOn.State.API.Users.Models
 {
@@ -11,6 +12,9 @@ namespace AmblOn.State.API.Users.Models
     {
         [DataMember]
         public virtual string Caption {get; set;}
+
+        [DataMember]
+        public virtual ImageMessage ImageData {get; set;}
 
         [DataMember]
         public virtual Guid? LocationID {get; set;}

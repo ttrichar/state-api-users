@@ -12,6 +12,8 @@ using AmblOn.State.API.Users.Harness;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
+using System.Drawing;
+using LCU.Presentation;
 
 namespace AmblOn.State.API.Users
 {
@@ -20,6 +22,9 @@ namespace AmblOn.State.API.Users
     {
         [DataMember]
         public virtual UserAlbum Album { get; set; }
+
+        [DataMember]
+        public virtual List<ImageMessage> Images {get; set;}
     }
     public static class AddAlbum
     {
@@ -30,7 +35,7 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<AddAlbumRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.AddAlbum(reqData.Album);
+                await mgr.AddAlbum(reqData.Album, reqData.Images);
 
                 return await mgr.WhenAll(
                 );
