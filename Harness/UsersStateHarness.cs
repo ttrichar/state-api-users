@@ -290,38 +290,12 @@ namespace AmblOn.State.API.Users.Harness
         public virtual async Task<UsersState> DeleteMaps(Guid[] mapIDs)
         {
             ensureStateObject();
-
-            var mapList = mapIDs.ToList<Guid>();
             
-            var userMapsShared = state.UserMaps
-                                      .Where(x => mapList.Contains(x.ID ?? default(Guid)) 
-                                                    && x.Deletable
-                                                    && x.Shared)
-                                      .Select(x => new {x.ID})
-                                      .ToArray();                                                   
-
-            var userMapsNotShared = state.UserMaps
-                                         .Where(x => mapList.Contains(x.ID ?? default(Guid)) 
-                                                    && x.Deletable
-                                                    && !x.Shared)
-                                         .Select(x => new {x.ID})
-                                         .ToArray();
-                                         
-
-
-            BaseResponse mapResp = new BaseResponse() {Status = Status.Initialized};
-
-                if (!userMap.Shared)
-                    mapResp = await amblGraph.DeleteMap(details.Username, details.EnterpriseAPIKey, mapID);
-                else
-                    mapResp = await amblGraph.DeleteSharedMap(details.Username, details.EnterpriseAPIKey, mapID);
-
-                if (mapResp.Status)
-                {
-                    var existingMap = state.UserMaps.FirstOrDefault(x => x.ID == mapID);
-
-                    if (existingMap != null)
-                        state.UserMaps.Remove(existingMap);
+            var mapResp = await amblGraph.DeleteMaps(details.Username, details.EnterpriseAPIKey, mapIDs);
+            
+            if (mapResp.Status)
+            {
+                    state.UserMaps.RemoveAll(x => mapIDs.ToList().Contains(x.ID ?? default(Guid)));
                     
                     state.UserMaps = state.UserMaps.Distinct().ToList();
 
