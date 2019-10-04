@@ -26,6 +26,8 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region API Methods
+
+        #region Add 
         public virtual async Task<BaseResponse<Guid>> AddAlbum(string email, string entAPIKey, UserAlbum album)
         {
             return await withG(async (client, g) =>
@@ -536,6 +538,60 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse<Guid>> AddTopList(string email, string entAPIKey, UserTopList topList)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + topList.Title.Replace(" ","");
+
+                var existingTopListQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.TopListVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingTopLists = await Submit<TopList>(existingTopListQuery);
+
+                var existingTopList = existingTopLists?.FirstOrDefault();
+
+                if (existingTopList == null)
+                {
+                    // Add the Top List
+                    var createQuery = g.AddV(AmblOnGraphConstants.TopListVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
+                        .Property("Lookup", lookup)
+                        .Property("Title", topList.Title ?? "")
+                        .Property("OrderedValue", topList.OrderedValue);
+                        //TODO: Add map marker nodes
+
+                    var createTopList = await Submit<TopList>(createQuery);
+
+                    var createdTopList = createTopList?.FirstOrDefault();
+
+                    // Add edge to from user vertex to newly created top list vertex
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdTopList.ID));
+                    await Submit(userEdgeQuery);
+
+                    // Add edges to each location - locations are presumed to already exist in the graph
+                    foreach (UserLocation loc in topList.LocationList) {
+                        var locationQuery = g.V(createdTopList.ID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(loc.ID));
+                        await Submit(locationQuery);
+                    }
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdTopList.ID,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An top list with that title already exists for this user.")};
+            });
+        }   
+        #endregion
+        
+        #region Delete
         public virtual async Task<BaseResponse> DeleteAlbum(string email, string entAPIKey, Guid albumID)
         {
             return await withG(async (client, g) =>
@@ -801,6 +857,77 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> DeleteTopList(string email, string entAPIKey, Guid topListID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var existingTopListQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.TopListVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, topListID);
+                
+                var existingTopLists = await Submit<Album>(existingTopListQuery);
+
+                var existingTopList = existingTopLists?.FirstOrDefault();
+
+                if (existingTopList != null)
+                {
+                    var deleteTopListQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.TopListVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, topListID)
+                    .Drop();
+
+                    await Submit(deleteTopListQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This top list does not exist for this user")};
+            });
+        }
+        
+        public virtual async Task<BaseResponse> DeleteMaps(string email, string entAPIKey, Guid[] mapIDs)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+               
+                var existingMapsQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.MapVertexName)
+                    .Has("ID",  P.Inside(mapIDs));
+                
+                var existingMaps = await Submit<Map>(existingMapsQuery);
+
+                if (existingMaps != null)
+                {
+                    var deleteQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.MapVertexName)
+                    .Has("ID",  P.Inside(mapIDs))
+                    .Drop();
+
+                    await Submit(deleteQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This map does not exist for this user")};
+            });
+        }
+
+        #endregion
+        
+        #region Edit
         public virtual async Task<BaseResponse> EditAlbum(string email, string entAPIKey, UserAlbum album)
         {
             return await withG(async (client, g) =>
@@ -1082,6 +1209,43 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> EditTopList(string email, string entAPIKey, UserTopList topList)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|" + topList.Title.Replace(" ","");
+
+                var existingTopListQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.TopListVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, topList.ID);
+                
+                var existingTopLists = await Submit<TopList>(existingTopListQuery);
+
+                var existingTopList = existingTopLists?.FirstOrDefault();
+
+                if (existingTopList != null)
+                {
+                    var editQuery = g.V(topList.ID)
+                        .Property("Lookup", lookup)
+                        .Property("Title", topList.Title ?? "");
+
+                    await Submit(editQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This top list does not exist for this user")};
+            });
+        }
+        #endregion 
+
+        #region List
         public virtual async Task<List<Album>> ListAlbums(string email, string entAPIKey)
         {
             return await withG(async (client, g) =>
@@ -1302,6 +1466,25 @@ namespace AmblOn.State.API.Users.Graphs
                 return returnValues;
             });
         }
+        
+        public virtual async Task<List<TopList>> ListTopLists(string email, string entAPIKey)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.TopListVertexName);
+
+                var results = await Submit<TopList>(query);
+
+                return results.ToList();
+            });
+        }
+
+        #endregion
+        
         #endregion
 
         #region Helpers

@@ -64,6 +64,7 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region API Methods
+        #region Add
         public virtual async Task<UsersState> AddAlbum(UserAlbum album, List<ImageMessage> images)
         {
             ensureStateObject();
@@ -244,6 +245,25 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> AddTopList(UserTopList topList)
+        {
+            ensureStateObject();
+
+           var topListResp = await amblGraph.AddTopList(details.Username, details.EnterpriseAPIKey, topList);
+
+            if (topListResp.Status)
+            {
+                topList.ID = topListResp.Model;
+
+                if (!state.UserTopLists.Any(x => x.ID == topList.ID))
+                    state.UserTopLists.Add(topList);               
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+        #endregion
         public virtual async Task<UsersState> ChangeViewingArea(float[] coordinates)
         {
             ensureStateObject();
@@ -260,6 +280,53 @@ namespace AmblOn.State.API.Users.Harness
 
                 state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
             }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        #region Delete
+        public virtual async Task<UsersState> DeleteMaps(Guid[] mapIDs)
+        {
+            ensureStateObject();
+            
+            var mapResp = await amblGraph.DeleteMaps(details.Username, details.EnterpriseAPIKey, mapIDs);
+            
+            if (mapResp.Status)
+            {
+                    state.UserMaps.RemoveAll(x => mapIDs.ToList().Contains(x.ID ?? default(Guid)));
+                    
+                    state.UserMaps = state.UserMaps.Distinct().ToList();
+
+                    if (!state.UserMaps.Any(x => x.Primary == true))
+                    {
+                        var newPrimary = state.UserMaps.FirstOrDefault(x => x.Shared && !x.Deletable);
+
+                        if (newPrimary != null)
+                            newPrimary.Primary = true;
+                        else if (state.UserMaps.Count > 0)
+                            state.UserMaps.First().Primary = true;
+                    }
+
+                    if (state.UserMaps.Any(x => x.Primary))
+                    {
+                        var primaryMap = state.UserMaps.First(x => x.Primary);
+
+                        state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
+                    
+                        state.SelectedUserLayerIDs.Clear();
+
+                        state.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
+
+                        var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                    
+                        state.VisibleUserLocations = limitUserLocationsGeographically(visibleLocations, primaryMap.Coordinates);
+
+                        state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+                    }
+                }
+    
 
             state.Loading = false;
 
@@ -443,6 +510,30 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> DeleteTopList(Guid topListID)
+        {
+            ensureStateObject();
+
+            var topListResp = await amblGraph.DeleteTopList(details.Username, details.EnterpriseAPIKey, topListID);
+
+            if (topListResp.Status)
+            {
+                var existing = state.UserTopLists.FirstOrDefault(x => x.ID == topListID);
+
+                if (existing != null)
+                    state.UserTopLists.Remove(existing);
+
+                state.UserTopLists = state.UserTopLists.Distinct().ToList();
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        #endregion
+
+        #region Edit
         public virtual async Task<UsersState> EditAlbum(UserAlbum album)
         {
             ensureStateObject();
@@ -621,6 +712,32 @@ namespace AmblOn.State.API.Users.Harness
 
             return state;
         }
+        public virtual async Task<UsersState> EditTopList(UserTopList topList)
+        {
+            ensureStateObject();
+
+            var existing = state.UserTopLists.FirstOrDefault(x => x.ID == topList.ID);
+
+            if (existing != null)
+            {
+                var topListResp = await amblGraph.EditTopList(details.Username, details.EnterpriseAPIKey, topList);
+
+                if (topListResp.Status)
+                {
+                    
+                    state.UserTopLists.Remove(existing);
+
+                    state.UserTopLists.Add(topList);
+
+                    state.UserTopLists = state.UserTopLists.Distinct().ToList();
+                }
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+        #endregion
         
         public virtual async Task<UsersState> Ensure()
         {
