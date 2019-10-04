@@ -52,6 +52,8 @@ namespace AmblOn.State.API.Users.Graphs
 		public const string SharedLayerVertexName = "SharedLayer";
 
 		public const string SharedMapVertexName = "SharedMap";
+
+		public const string TopListVertexName = "TopList";
     }
 
 }
