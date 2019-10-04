@@ -557,19 +557,27 @@ namespace AmblOn.State.API.Users.Graphs
 
                 if (existingTopList == null)
                 {
+                    // Add the Top List
                     var createQuery = g.AddV(AmblOnGraphConstants.TopListVertexName)
                         .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
                         .Property("Lookup", lookup)
-                        .Property("Title", topList.Title ?? "");
+                        .Property("Title", topList.Title ?? "")
+                        .Property("OrderedValue", topList.OrderedValue);
                         //TODO: Add map marker nodes
 
                     var createTopList = await Submit<TopList>(createQuery);
 
                     var createdTopList = createTopList?.FirstOrDefault();
 
+                    // Add edge to from user vertex to newly created top list vertex
                     var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdTopList.ID));
-
                     await Submit(userEdgeQuery);
+
+                    // Add edges to each location - locations are presumed to already exist in the graph
+                    foreach (UserLocation loc in topList.LocationList) {
+                        var locationQuery = g.V(createdTopList.ID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(loc.ID));
+                        await Submit(locationQuery);
+                    }
 
                     return new BaseResponse<Guid>()
                     {
