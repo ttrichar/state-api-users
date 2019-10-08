@@ -563,7 +563,6 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Lookup", lookup)
                         .Property("Title", topList.Title ?? "")
                         .Property("OrderedValue", topList.OrderedValue);
-                        //TODO: Add map marker nodes
 
                     var createTopList = await Submit<TopList>(createQuery);
 

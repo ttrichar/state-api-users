@@ -1104,6 +1104,25 @@ namespace AmblOn.State.API.Users.Harness
             return userLocations;
         }
 
+
+        protected virtual async Task<List<UserTopList>> fetchUserTopLists(string email, string entAPIKey)
+        {
+            var userTopLists = new List<UserTopList>();
+
+            var topLists = await amblGraph.ListTopLists(email, entAPIKey);
+
+            topLists.ForEach(
+                (topList) =>
+                {
+                    var locations = amblGraph.ListLocations(email, entAPIKey, topList.ID).GetAwaiter().GetResult();
+                    userTopLists.Add(mapUserTopList(topList, locations));
+                });
+
+            return userTopLists;
+
+        }
+
+
         protected virtual List<UserLocation> limitUserLocationsByRadius(List<UserLocation> userLocations, float radius, float centerLat, float centerLong)
         {
             if (radius > 0)
@@ -1346,6 +1365,27 @@ namespace AmblOn.State.API.Users.Harness
                 URL = photo.URL,
                 LocationID = photo.LocationID
             };
+        }
+
+        protected virtual UserTopList mapUserTopList(TopList topList, List<Location> locations)
+        {
+            var userTopList = new UserTopList()
+            {
+                ID = topList.ID,
+                LocationList = new List<UserLocation>(),
+                Title = topList.Title,
+                OrderedValue = topList.OrderedValue
+            };
+
+            locations.ForEach(
+                (location) =>
+                {
+                    // TODO: Unsure about layerID for toplist locations
+                    var userLocation = mapUserLocation(location, Guid.Empty, true);
+                    userTopList.LocationList.Add(userLocation);
+                });
+
+            return userTopList;
         }
 
         protected virtual List<UserLocation> removeUserLocationsByLayerID(List<UserLocation> userLocations, Guid layerID)
