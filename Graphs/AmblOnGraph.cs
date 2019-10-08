@@ -868,8 +868,9 @@ namespace AmblOn.State.API.Users.Graphs
                     .HasLabel(AmblOnGraphConstants.TopListVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, topListID);
                 
-                var existingTopLists = await Submit<Album>(existingTopListQuery);
+                var existingTopLists = await Submit<TopList>(existingTopListQuery);
 
+                // Get the top list vertex
                 var existingTopList = existingTopLists?.FirstOrDefault();
 
                 if (existingTopList != null)
@@ -1224,15 +1225,36 @@ namespace AmblOn.State.API.Users.Graphs
                 
                 var existingTopLists = await Submit<TopList>(existingTopListQuery);
 
+                // Retrieve the top list
                 var existingTopList = existingTopLists?.FirstOrDefault();
 
+                
                 if (existingTopList != null)
-                {
+                {    
+                    // Update the top list properties                                
                     var editQuery = g.V(topList.ID)
                         .Property("Lookup", lookup)
-                        .Property("Title", topList.Title ?? "");
+                        .Property("Title", topList.Title ?? "")
+                        .Property("OrderedValue", topList.OrderedValue);
 
+                    
                     await Submit(editQuery);
+
+                    // Delete existing edges
+                    var existingTopListLocsQuery = g.V(existingTopList.ID)
+                                            .OutE(AmblOnGraphConstants.ContainsEdgeName)
+                                            .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                                            .Drop();
+
+                    await Submit(existingTopListLocsQuery);
+
+                    // Add new edges from ordered list 
+                    foreach (UserLocation loc in topList.LocationList) {
+                        var locationQuery = g.V(existingTopList.ID)
+                                             .AddE(AmblOnGraphConstants.ContainsEdgeName)
+                                             .To(g.V(loc.ID));
+                        await Submit(locationQuery);
+                    }
 
                     return new BaseResponse()
                     {
