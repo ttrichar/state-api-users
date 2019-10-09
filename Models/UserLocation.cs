@@ -25,7 +25,10 @@ namespace AmblOn.State.API.Users.Models
 
         [DataMember]
         public virtual string Instagram { get; set; }
-        
+
+        [DataMember]
+        public virtual bool IsHidden { get; set; }
+
         [DataMember]
         public virtual float Latitude { get; set; }
 
@@ -52,5 +55,6 @@ namespace AmblOn.State.API.Users.Models
 
         [DataMember]
         public virtual string ZipCode { get; set; }
+
     }
 }
