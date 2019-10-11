@@ -921,7 +921,7 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This map does not exist for this user")};
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("These maps do not exist for this user")};
             });
         }
 

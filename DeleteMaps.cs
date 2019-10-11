@@ -19,7 +19,7 @@ namespace AmblOn.State.API.Users
     public class DeleteMapsRequest
     {
         [DataMember]
-        public virtual Guid MapIDs { get; set; }
+        public virtual Guid[] MapIDs { get; set; }
     }
     public static class DeleteMaps
     {
@@ -30,7 +30,7 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeleteMapsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.DeleteMap(reqData.MapIDs);
+                await mgr.DeleteMaps(reqData.MapIDs);
 
                 return await mgr.WhenAll(
                 );
