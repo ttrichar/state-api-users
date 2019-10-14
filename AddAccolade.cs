@@ -12,25 +12,32 @@ using AmblOn.State.API.Users.Harness;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
+using System.Drawing;
+using LCU.Presentation;
 
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class DeleteMapsRequest
+    public class AddAccoladeRequest
     {
         [DataMember]
-        public virtual Guid[] MapIDs { get; set; }
+        public virtual UserAccolade Accolade { get; set; }
+
+        [DataMember]
+        public virtual Guid LayerID { get; set; }
+
     }
-    public static class DeleteMaps
+
+    public static class AddAccolade
     {
-        [FunctionName("DeleteMaps")]
+        [FunctionName("AddAccolade")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<DeleteMapsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<AddAccoladeRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.DeleteMaps(reqData.MapIDs);
+                await mgr.AddAccolade(reqData.Accolade, reqData.LayerID);
 
                 return await mgr.WhenAll(
                 );

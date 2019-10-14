@@ -16,21 +16,24 @@ using System.Collections.Generic;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class DeleteMapsRequest
+    public class DeleteAccoladeRequest
     {
         [DataMember]
-        public virtual Guid[] MapIDs { get; set; }
+        public virtual Guid[] AccoladeIDs { get; set; }
+
+        [DataMember]
+        public virtual Guid LayerID { get; set; }
     }
-    public static class DeleteMaps
+    public static class DeleteAccolade
     {
-        [FunctionName("DeleteMaps")]
+        [FunctionName("DeleteAccolade")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<DeleteMapsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<DeleteAccoladeRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.DeleteMaps(reqData.MapIDs);
+                await mgr.DeleteAccolades(reqData.AccoladeIDs, reqData.LayerID);
 
                 return await mgr.WhenAll(
                 );
