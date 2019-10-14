@@ -27,6 +27,10 @@ namespace AmblOn.State.API.Users.Models
         [DataMember]
         public virtual Guid SelectedUserMapID {get; set;}
 
+
+        [DataMember]
+        public virtual List<UserAccolade> UserAccolades { get; set; }
+
         [DataMember]
         public virtual List<UserAlbum> UserAlbums {get; set;}
 

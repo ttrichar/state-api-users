@@ -28,6 +28,57 @@ namespace AmblOn.State.API.Users.Graphs
         #region API Methods
 
         #region Add 
+        public virtual async Task<BaseResponse<Guid>> AddAccolade(string email, string entAPIKey, UserAccolade accolade, Guid layerId)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = layerId.ToString() + "|" + accolade.Title.Replace(" ", "");
+
+                // Look up the accolade in the layer (curated layer, by default)
+                var existingAccoladeQuery = g.V(layerId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AccoladeVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+
+                var existingAccolades = await Submit<Accolade>(existingAccoladeQuery);
+
+                var existingAccolade = existingAccolades?.FirstOrDefault();
+
+                if (existingAccolade == null)
+                {
+                    // Add the accolade vertex
+                    var createQuery = g.AddV(AmblOnGraphConstants.AccoladeVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
+                        .Property("Lookup", lookup)
+                        .Property("Title", accolade.Title ?? "")
+                        .Property("Year", accolade.Year)
+                        .Property("Rank", accolade.Rank);
+
+                    var createAccolade = await Submit<Accolade>(createQuery);
+
+                    var createdAccolade = createAccolade?.FirstOrDefault();
+
+                    // Add edge from location vertex to newly created accolade vertex (Contains)
+                    var locationEdgeQuery = g.V(createdAccolade.LocationID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
+                    await Submit(locationEdgeQuery);
+
+                    // Add edge from layer vertex to newly create accodated vertex (Owns)
+                    var layerEdgeQuery = g.V(layerId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
+                    await Submit(layerEdgeQuery);
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdAccolade.ID,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An accolade with that title already exists for this layer.") };
+            });
+        }
+
         public virtual async Task<BaseResponse<Guid>> AddAlbum(string email, string entAPIKey, UserAlbum album)
         {
             return await withG(async (client, g) =>
@@ -588,10 +639,41 @@ namespace AmblOn.State.API.Users.Graphs
                 else
                     return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An top list with that title already exists for this user.")};
             });
-        }   
+        }
         #endregion
-        
+
         #region Delete
+        public virtual async Task<BaseResponse> DeleteAccolades(string email, string entAPIKey, Guid[] accoladeIDs, Guid layerId)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var existingAccoladeQuery = g.V(layerId)
+                    .HasLabel(AmblOnGraphConstants.AccoladeVertexName);
+
+                var existingAccolades = await Submit<Accolade>(existingAccoladeQuery);
+
+                if (existingAccolades != null)
+                {
+                    var deleteQuery = g.V(layerId)
+                     .Out(AmblOnGraphConstants.OwnsEdgeName)
+                     .HasLabel(AmblOnGraphConstants.AccoladeVertexName)
+                     .Has("ID", P.Inside(accoladeIDs))
+                     .Drop();
+
+                    await Submit(deleteQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This accolade does not exist") };
+            });
+        }
+
         public virtual async Task<BaseResponse> DeleteAlbum(string email, string entAPIKey, Guid albumID)
         {
             return await withG(async (client, g) =>
@@ -927,8 +1009,45 @@ namespace AmblOn.State.API.Users.Graphs
         }
 
         #endregion
-        
+
         #region Edit
+        public virtual async Task<BaseResponse> EditAccolade(string email, string entAPIKey, UserAccolade accolade, Guid layerId)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = layerId.ToString() + "|" + accolade.Title.Replace(" ", "");
+
+                var existingAccoladeQuery = g.V(layerId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AccoladeVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, accolade.ID);
+
+                var existingAccolades = await Submit<Accolade>(existingAccoladeQuery);
+
+                var existingAccolade = existingAccolades?.FirstOrDefault();
+
+                if (existingAccolades != null)
+                {
+                    var editQuery = g.V(accolade.ID)
+                        .Property("Lookup", lookup)
+                        .Property("Title", accolade.Title)
+                        .Property("LocationId", accolade.LocationID)
+                        .Property("Rank", accolade.Rank)
+                        .Property("Year", accolade.Year);
+
+                    await Submit(editQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This accolade does not exist for this layer") };
+            });
+        }
         public virtual async Task<BaseResponse> EditAlbum(string email, string entAPIKey, UserAlbum album)
         {
             return await withG(async (client, g) =>
@@ -1269,6 +1388,22 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion 
 
         #region List
+        public virtual async Task<List<Accolade>> ListAccolades(string email, string entAPIKey, Guid layerId)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var query = g.V(layerId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.AccoladeVertexName);
+
+                var results = await Submit<Accolade>(query);
+
+                return results.ToList();
+            });
+        }
+
         public virtual async Task<List<Album>> ListAlbums(string email, string entAPIKey)
         {
             return await withG(async (client, g) =>

@@ -13,7 +13,9 @@ namespace AmblOn.State.API.Users.Graphs
 {
     public class AmblOnGraphConstants
     {
-		public const string AlbumVertexName = "Album";
+        public const string AccoladeVertexName = "Accolade";
+
+        public const string AlbumVertexName = "Album";
 
 		public const string AmblOnUserVertexName = "AmblOnUser";
         
@@ -40,10 +42,8 @@ namespace AmblOn.State.API.Users.Graphs
 		public const string MapVertexName = "Map";
 
 		public const string OccursAtEdgeName = "OccursAt";
-
         
 		public const string OwnsEdgeName = "Owns";
-
    
 		public const string PartitionKeyName = "PartitionKey";
 

@@ -5,11 +5,6 @@
     <RootNamespace>state_api_users</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="AddAccolade.cs" />
-    <Compile Remove="DeleteAccolade.cs" />
-    <Compile Remove="EditAccolade.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="LCU.StateAPI" Version="1.60.19274.3" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />  
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />

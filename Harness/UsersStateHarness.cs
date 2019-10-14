@@ -65,6 +65,25 @@ namespace AmblOn.State.API.Users.Harness
 
         #region API Methods
         #region Add
+        public virtual async Task<UsersState> AddAccolade(UserAccolade accolade, Guid layerId)
+        {
+            ensureStateObject();
+
+            var accoladeResp = await amblGraph.AddAccolade(details.Username, details.EnterpriseAPIKey, accolade, layerId);
+
+            if (accoladeResp.Status)
+            {
+                accolade.ID = accoladeResp.Model;
+
+                if (!state.UserAccolades.Any(x => x.ID == accolade.ID))
+                    state.UserAccolades.Add(accolade);
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> AddAlbum(UserAlbum album, List<ImageMessage> images)
         {
             ensureStateObject();
@@ -287,6 +306,24 @@ namespace AmblOn.State.API.Users.Harness
         }
 
         #region Delete
+        public virtual async Task<UsersState> DeleteAccolades(Guid[] accoladeIDs, Guid layerId)
+        {
+            ensureStateObject();
+
+            var accoladeResp = await amblGraph.DeleteAccolades(details.Username, details.EnterpriseAPIKey, accoladeIDs, layerId);
+
+            if (accoladeResp.Status)
+            {
+                state.UserAccolades.RemoveAll(x => accoladeIDs.ToList<Guid>().Contains(x.ID ?? Guid.Empty));
+
+                state.UserAccolades = state.UserAccolades.Distinct().ToList();
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> DeleteMaps(Guid[] mapIDs)
         {
             ensureStateObject();
@@ -534,6 +571,32 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region Edit
+        public virtual async Task<UsersState> EditAccolade(UserAccolade accolade, Guid layerId)
+        {
+            ensureStateObject();
+
+            var existing = state.UserAccolades.FirstOrDefault(x => x.ID == accolade.ID);
+
+            if (existing != null)
+            {
+                var accoladeResp = await amblGraph.EditAccolade(details.Username, details.EnterpriseAPIKey, accolade, layerId);
+
+                if (accoladeResp.Status)
+                {
+
+                    state.UserAccolades.Remove(existing);
+
+                    state.UserAccolades.Add(accolade);
+
+                    state.UserAccolades = state.UserAccolades.Distinct().ToList();
+                }
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> EditAlbum(UserAlbum album)
         {
             ensureStateObject();
@@ -1007,6 +1070,21 @@ namespace AmblOn.State.API.Users.Harness
             state.UserTopLists = state.UserTopLists ?? new List<UserTopList>();
         }
 
+        protected virtual async Task<List<UserAccolade>> fetchUserAccolades(string email, string entAPIKey, Guid layerId)
+        {
+            var userAccolades = new List<UserAccolade>();
+
+            var accolades = await amblGraph.ListAccolades(email, entAPIKey, layerId);
+
+            accolades.ForEach(
+                (accolade) =>
+                {
+                    userAccolades.Add(mapUserAccolade(accolade));
+                });
+
+            return userAccolades;
+        }
+
         protected virtual async Task<List<UserAlbum>> fetchUserAlbums(string email, string entAPIKey)
         {
             var userAlbums = new List<UserAlbum>();
@@ -1195,6 +1273,18 @@ namespace AmblOn.State.API.Users.Harness
                 });
 
             return photos;
+        }
+
+        protected virtual UserAccolade mapUserAccolade(Accolade accolade)
+        {
+            return new UserAccolade()
+            {
+                ID = accolade.ID,
+                LocationID = accolade.LocationID,
+                Rank = accolade.Rank,
+                Title = accolade.Title,
+                Year = accolade.Year
+            };
         }
 
         protected virtual UserAlbum mapUserAlbum(Album album, List<Photo> photos)
