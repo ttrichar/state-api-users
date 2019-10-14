@@ -22,6 +22,9 @@ namespace AmblOn.State.API.Users.Models
 
         [DataMember]
         public virtual string Instagram { get; set; }
+
+        [DataMember]
+        public virtual string IsHidden { get; set; }
         
         [DataMember]
         public virtual float Latitude { get; set; }
