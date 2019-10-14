@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Fathym.Business.Models;
 
@@ -8,6 +9,9 @@ namespace AmblOn.State.API.Users.Models
     [DataContract]
     public class UserLocation : BusinessModel<Guid?>
     {
+        [DataMember]
+        public virtual List<Accolade> Accolades { get; set; }
+
         [DataMember]
         public virtual string Address { get; set; }
 
