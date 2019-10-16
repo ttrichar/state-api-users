@@ -1,3 +1,11 @@
 {
-    "version": "2.0"
+    "version": "2.0",
+    "logging": {
+        "logLevel": {
+          "default": "Error",
+          "Host.Results": "Error",
+          "Function": "Error",
+          "Host.Aggregator": "Error"
+        }
+      }
 }
