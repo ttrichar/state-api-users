@@ -965,7 +965,7 @@ namespace AmblOn.State.API.Users.Harness
                    ZipCode = jsonLocation.Zipcode
                };
 
-               var resp = amblGraph.AddLocation("default@amblon.com", details.EnterpriseAPIKey, location);
+               var resp = amblGraph.AddLocation("moxhay@gmail.com", details.EnterpriseAPIKey, location);
            });
         }
 
