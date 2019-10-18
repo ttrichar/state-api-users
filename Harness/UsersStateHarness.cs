@@ -936,9 +936,9 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task LoadCuratedLocationsIntoDB(string json, Guid layerID)
+        public virtual async Task LoadCuratedLocationsIntoDB(string ownerEmail, List<dynamic> list, Guid layerID)
         {
-            var list = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(json);
+//            var list = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(json);
 
             float testFloat = 0;
 
@@ -965,7 +965,7 @@ namespace AmblOn.State.API.Users.Harness
                    ZipCode = jsonLocation.Zipcode
                };
 
-               var resp = amblGraph.AddLocation("default@amblon.com", details.EnterpriseAPIKey, location);
+               var resp = amblGraph.AddLocation(ownerEmail, details.EnterpriseAPIKey, location);
            });
         }
 
