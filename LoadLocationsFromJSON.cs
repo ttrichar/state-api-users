@@ -14,6 +14,7 @@ namespace AmblOn.State.API.Users
 {
     public static class LoadLocationsFromJSON
     {
+        [Disable]
         [FunctionName("LoadLocationsFromJSON")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
