@@ -29,10 +29,15 @@ namespace AmblOn.State.API.Users
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
+            try {
             return await req.Manage<AddTopListRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                var reqResult = reqData;
                 return await mgr.AddTopList(reqData.TopList);
             });
+            } catch (Exception ex) { 
+                throw ex;
+            }
         }
     }
 }

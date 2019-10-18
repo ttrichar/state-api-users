@@ -1205,7 +1205,7 @@ namespace AmblOn.State.API.Users.Harness
             topLists.ForEach(
                 (topList) =>
                 {
-                    var locations = amblGraph.ListLocations(email, entAPIKey, topList.ID).GetAwaiter().GetResult();
+                    var locations = amblGraph.ListTopListLocations(email, entAPIKey, topList.ID).GetAwaiter().GetResult();
                     userTopLists.Add(mapUserTopList(topList, locations, layerId));
                 });
 
