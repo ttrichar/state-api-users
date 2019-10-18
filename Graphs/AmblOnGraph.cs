@@ -626,8 +626,10 @@ namespace AmblOn.State.API.Users.Graphs
 
                     // Add edges to each location - locations are presumed to already exist in the graph
                     foreach (UserLocation loc in topList.LocationList) {
-                        var locationQuery = g.V(createdTopList.ID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(loc.ID));
-                        await Submit(locationQuery);
+                        if (loc.ID!=null) {
+                            var locationQuery = g.V(createdTopList.ID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(loc.ID));
+                            await Submit(locationQuery);
+                        }
                     }
 
                     return new BaseResponse<Guid>()
@@ -1478,6 +1480,21 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<List<Location>> ListTopListLocations(string email, string entAPIKey, Guid topListID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var query = g.V(topListID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                var results = await Submit<Location>(query);
+
+                return results.ToList();
+            });
+        }
         public virtual async Task<List<Location>> ListLocations(string email, string entAPIKey, Guid layerID)
         {
             return await withG(async (client, g) =>

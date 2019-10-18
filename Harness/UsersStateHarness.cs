@@ -223,9 +223,9 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
-            await appMgr.SaveFile(photo.ImageData.Data, enterpriseId, details.Username + "/albums/" + albumID.ToString(), QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], new Guid(details.ApplicationID), "/");
+            await appMgr.SaveFile(photo.ImageData.Data, enterpriseId, "admin/" + details.Username + "/albums/" + albumID.ToString(), QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], new Guid(details.ApplicationID), "/");
 
-            photo.URL = "/" + details.Username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+            photo.URL = "/admin/" + details.Username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
             photo.ImageData = null;
 
@@ -1205,7 +1205,7 @@ namespace AmblOn.State.API.Users.Harness
             topLists.ForEach(
                 (topList) =>
                 {
-                    var locations = amblGraph.ListLocations(email, entAPIKey, topList.ID).GetAwaiter().GetResult();
+                    var locations = amblGraph.ListTopListLocations(email, entAPIKey, topList.ID).GetAwaiter().GetResult();
                     userTopLists.Add(mapUserTopList(topList, locations, layerId));
                 });
 
