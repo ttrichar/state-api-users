@@ -23,7 +23,7 @@ namespace AmblOn.State.API.Users
             {
                 var json = String.Empty;
                 
-                await mgr.LoadCuratedLocationsIntoDB(json, new Guid("4704a25b-049b-49a9-90b0-2551b40045c3"));
+                //await mgr.LoadCuratedLocationsIntoDB("moxhay@gmail.com", json, new Guid("4704a25b-049b-49a9-90b0-2551b40045c3"));
 
                 return await mgr.WhenAll(
                 );
