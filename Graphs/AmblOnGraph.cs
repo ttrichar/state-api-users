@@ -979,15 +979,18 @@ namespace AmblOn.State.API.Users.Graphs
         
         public virtual async Task<BaseResponse> DeleteMaps(string email, string entAPIKey, Guid[] mapIDs)
         {
+            try {
             return await withG(async (client, g) =>
             {
+                var stringGuids = mapIDs.Select(m => m.ToString()).ToArray();
+
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
                
                 var existingMapsQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has("ID",  P.Inside(mapIDs));
-                
+                    .Has("id",  P.Within(stringGuids));
+   
                 var existingMaps = await Submit<Map>(existingMapsQuery);
 
                 if (existingMaps != null)
@@ -995,7 +998,7 @@ namespace AmblOn.State.API.Users.Graphs
                     var deleteQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has("ID",  P.Inside(mapIDs))
+                    .Has("id",  P.Within(stringGuids))
                     .Drop();
 
                     await Submit(deleteQuery);
@@ -1007,7 +1010,12 @@ namespace AmblOn.State.API.Users.Graphs
                 }
                 else
                     return new BaseResponse() { Status = Status.NotLocated.Clone("These maps do not exist for this user")};
+              
             });
+                          } catch (Exception ex) {
+                   var result = ex.Message;
+                   throw;
+               }
         }
 
         #endregion
