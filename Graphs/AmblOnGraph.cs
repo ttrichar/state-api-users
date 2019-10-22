@@ -976,6 +976,54 @@ namespace AmblOn.State.API.Users.Graphs
                     return new BaseResponse() { Status = Status.NotLocated.Clone("This top list does not exist for this user")};
             });
         }
+
+        public virtual async Task<BaseResponse> DedupLocationsByMap(string email, string entAPIKey, Guid mapID)
+        {
+            return await withG(async (client, g) =>
+            {
+                var dedupeGuids = new List<Guid>();
+
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                // Load all locations for a mapID
+                var query = g.V(mapID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
+                    
+                var locationSet = await Submit<Location>(query);
+
+                // Create collections of maps group by lat/lon (sufficient for "equality")
+                var locationGroups = from l in locationSet.ToList()
+                                    group l by new { Lat = l.Latitude, Lon = l.Longitude} into locGroup
+                                    orderby locGroup.Key.Lat, locGroup.Key.Lon
+                                    select locGroup;
+
+                // For each group, take the guids for all but one.
+                foreach(var locGroup in locationGroups) {
+                    int locSize = locGroup.Count();
+                    if (locSize > 1){
+                        var locGuids =  locGroup.Select(l => l.ID)
+                                                .Take(locSize-1)
+                                                .ToArray();
+                        dedupeGuids.AddRange(locGuids);
+                    }
+                } 
+                
+                // Delete the extraneous locations
+                var dedupQuery = g.V(mapID)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                    .Has("id",  P.Within(dedupeGuids))
+                    .Drop();
+
+                var results = await Submit<Location>(dedupQuery);
+               
+                return new BaseResponse()
+                {
+                        Status = Status.Success
+                };
+            });
+        }
         
         public virtual async Task<BaseResponse> DeleteMaps(string email, string entAPIKey, Guid[] mapIDs)
         {
