@@ -568,6 +568,28 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> DedupLocationsByMap(Guid mapID)
+        {
+            ensureStateObject();
+
+            var locationResp = await amblGraph.DedupLocationsByMap(details.Username, details.EnterpriseAPIKey, mapID);
+            
+            // Do not refresh state for now
+
+            // if (locationResp.Status)
+            // {
+            //     var existingVisible = state.VisibleUserLocations.FirstOrDefault(x => x.ID == locationID);
+
+            //     if (existingVisible != null)
+            //         state.VisibleUserLocations.Remove(existingVisible);
+
+            //     state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+            // }
+
+            state.Loading = false;
+
+            return state;
+        }
         #endregion
 
         #region Edit
