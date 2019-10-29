@@ -53,8 +53,8 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
                         .Property("Lookup", lookup)
                         .Property("Title", accolade.Title ?? "")
-                        .Property("Year", accolade.Year)
-                        .Property("Rank", accolade.Rank);
+                        .Property("Year", accolade.Year ?? "")
+                        .Property("Rank", accolade.Rank ?? "");
 
                     var createAccolade = await Submit<Accolade>(createQuery);
 

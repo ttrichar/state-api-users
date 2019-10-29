@@ -27,6 +27,9 @@ namespace AmblOn.State.API.Users
     
             [DataMember]
             public virtual List<dynamic> LocationImportJSON { get; set;}
+
+            [DataMember]
+            public virtual List<string> AccoladeList {get; set;}
         }
 
         [FunctionName("ImportLocations")]
@@ -36,7 +39,7 @@ namespace AmblOn.State.API.Users
         {            
             return await req.Manage<ImportLocationsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.LoadCuratedLocationsIntoDB(reqData.OwnerEmail, reqData.LocationImportJSON, new Guid(reqData.LayerID));
+                await mgr.LoadCuratedLocationsIntoDB(reqData.OwnerEmail, reqData.LocationImportJSON, reqData.AccoladeList, new Guid(reqData.LayerID));
 
                 return await mgr.WhenAll(
                 );
