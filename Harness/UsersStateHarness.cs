@@ -994,11 +994,11 @@ namespace AmblOn.State.API.Users.Harness
                // Create location object if it doesn't already exist in the graph DB
                var resp = amblGraph.AddLocation(ownerEmail, details.EnterpriseAPIKey, location);
 
-               if (resp.Result.Status == Status.Success) {
+               if (resp.Result.Model != null) {
                // Iterate through accolade list 
                acclist.ForEach((accName) => {
                     // If it's in the JSON properties list for this location
-                    var accKey = jsonProperties.Keys.First(x => x == accName);
+                    var accKey = jsonProperties.Keys.FirstOrDefault(x => x == accName);
                   
                     if (!String.IsNullOrEmpty(accKey) && (!String.IsNullOrEmpty(jsonProperties[accKey].ToString()))) {
                         UserAccolade accolade;
