@@ -28,17 +28,17 @@ namespace AmblOn.State.API.Users.Graphs
         #region API Methods
 
         #region Add 
-        public virtual async Task<BaseResponse<Guid>> AddAccolade(string email, string entAPIKey, UserAccolade accolade, Guid layerId)
+        public virtual async Task<BaseResponse<Guid>> AddAccolade(string email, string entAPIKey, UserAccolade accolade, Guid locationId)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var lookup = layerId.ToString() + "|" + accolade.Title.Replace(" ", "");
+                var lookup = locationId.ToString() + "|" + accolade.Title.Replace(" ", "").Replace("'","");
 
                 // Look up the accolade in the layer (curated layer, by default)
-                var existingAccoladeQuery = g.V(layerId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                var existingAccoladeQuery = g.V(locationId)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
                     .HasLabel(AmblOnGraphConstants.AccoladeVertexName)
                     .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
 
@@ -59,14 +59,15 @@ namespace AmblOn.State.API.Users.Graphs
                     var createAccolade = await Submit<Accolade>(createQuery);
 
                     var createdAccolade = createAccolade?.FirstOrDefault();
+                    createdAccolade.LocationID = locationId;
 
                     // Add edge from location vertex to newly created accolade vertex (Contains)
-                    var locationEdgeQuery = g.V(createdAccolade.LocationID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
+                    var locationEdgeQuery = g.V(locationId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
                     await Submit(locationEdgeQuery);
 
                     // Add edge from layer vertex to newly create accodated vertex (Owns)
-                    var layerEdgeQuery = g.V(layerId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
-                    await Submit(layerEdgeQuery);
+                    // var layerEdgeQuery = g.V(layerId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
+                    // await Submit(layerEdgeQuery);
 
                     return new BaseResponse<Guid>()
                     {
@@ -327,7 +328,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A location by that lat/long already exists in selected layer.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingLocation.ID,
+                        Status = Status.Conflict.Clone("A location by that lat/long already exists in selected layer.")                        
+                    };
             });
         }
 

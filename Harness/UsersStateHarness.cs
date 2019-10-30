@@ -1000,19 +1000,29 @@ namespace AmblOn.State.API.Users.Harness
                     // If it's in the JSON properties list for this location
                     var accKey = jsonProperties.Keys.First(x => x == accName);
                   
-                    if (!String.IsNullOrEmpty(accKey)) {
-                        var accolade = new UserAccolade() {
-                            Rank = jsonProperties[accKey].ToString(),
-                            Title = accKey
-                        };                                          
-                  
-                        var accResp = amblGraph.AddAccolade(ownerEmail, details.EnterpriseAPIKey, accolade, layerID);
+                    if (!String.IsNullOrEmpty(accKey) && (!String.IsNullOrEmpty(jsonProperties[accKey].ToString()))) {
+                        UserAccolade accolade;
+                        
+                        // Awkward logic to include support for Michelin stars
+                        if (accKey == "Michelin")  {
+                            accolade = new UserAccolade() {
+                                Rank = jsonProperties[accKey].ToString(),
+                                Title = accKey,
+                                Year = jsonProperties["Mich Since"].ToString()
+                            }; 
+                        } else {                        
+                            accolade = new UserAccolade() {
+                                Rank = jsonProperties[accKey].ToString(),
+                                Title = accKey
+                            };                                                            
+                        }
+                        var accResp = amblGraph.AddAccolade(ownerEmail, details.EnterpriseAPIKey, accolade, resp.Result.Model);
                     }
                 });
                }
            });
         }
-        
+
         public virtual async Task<UsersState> RemoveSelectedLayer(Guid layerID)
         {
             ensureStateObject();
