@@ -958,15 +958,15 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task LoadCuratedLocationsIntoDB(string ownerEmail, List<dynamic> list, Guid layerID)
+        public virtual async Task LoadCuratedLocationsIntoDB(string ownerEmail, List<dynamic> list, List<string> acclist, Guid layerID)
         {
-//            var list = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(json);
 
             float testFloat = 0;
 
             var workingList = list.Where(x => x.Latitude != null && float.TryParse(x.Latitude.ToString(), out testFloat)
                 && x.Longitude != null && float.TryParse(x.Longitude.ToString(), out testFloat)).ToList();
 
+            // Create location object
             workingList.ForEach(
            async (jsonLocation) =>
            {
@@ -986,8 +986,40 @@ namespace AmblOn.State.API.Users.Harness
                    Website = jsonLocation.Website,
                    ZipCode = jsonLocation.Zipcode
                };
-
+            
+               // Extract all properties of jsonLocation
+               JObject propetiesObj = jsonLocation;
+               var jsonProperties = propetiesObj.ToObject<Dictionary<string, object>>();
+    
+               // Create location object if it doesn't already exist in the graph DB
                var resp = amblGraph.AddLocation(ownerEmail, details.EnterpriseAPIKey, location);
+
+               if (resp.Result.Model != null) {
+               // Iterate through accolade list 
+               acclist.ForEach((accName) => {
+                    // If it's in the JSON properties list for this location
+                    var accKey = jsonProperties.Keys.FirstOrDefault(x => x == accName);
+                  
+                    if (!String.IsNullOrEmpty(accKey) && (!String.IsNullOrEmpty(jsonProperties[accKey].ToString()))) {
+                        UserAccolade accolade;
+                        
+                        // Awkward logic to include support for Michelin stars
+                        if (accKey == "Michelin")  {
+                            accolade = new UserAccolade() {
+                                Rank = jsonProperties[accKey].ToString(),
+                                Title = accKey,
+                                Year = jsonProperties["Mich Since"].ToString()
+                            }; 
+                        } else {                        
+                            accolade = new UserAccolade() {
+                                Rank = jsonProperties[accKey].ToString(),
+                                Title = accKey
+                            };                                                            
+                        }
+                        var accResp = amblGraph.AddAccolade(ownerEmail, details.EnterpriseAPIKey, accolade, resp.Result.Model);
+                    }
+                });
+               }
            });
         }
 
