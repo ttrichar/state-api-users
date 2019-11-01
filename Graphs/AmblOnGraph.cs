@@ -25,7 +25,7 @@ namespace AmblOn.State.API.Users.Graphs
         { }
         #endregion
 
-        #region API Methods
+        #region API Methods 
 
         #region Add 
         public virtual async Task<BaseResponse<Guid>> AddAccolade(string email, string entAPIKey, UserAccolade accolade, Guid locationId)
@@ -1450,14 +1450,14 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion 
 
         #region List
-        public virtual async Task<List<Accolade>> ListAccolades(string email, string entAPIKey, Guid layerId)
+        public virtual async Task<List<Accolade>> ListAccolades(string email, string entAPIKey, Guid locationId)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var query = g.V(layerId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                var query = g.V(locationId)
+                    .Out(AmblOnGraphConstants.ContainsEdgeName)
                     .HasLabel(AmblOnGraphConstants.AccoladeVertexName);
 
                 var results = await Submit<Accolade>(query);
@@ -1582,6 +1582,8 @@ namespace AmblOn.State.API.Users.Graphs
                         .HasLabel(AmblOnGraphConstants.LocationVertexName);
 
                     results = await Submit<Location>(query);
+
+                   
                 }
 
                 return results.ToList();

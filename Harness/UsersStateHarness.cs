@@ -1124,16 +1124,16 @@ namespace AmblOn.State.API.Users.Harness
             state.UserTopLists = state.UserTopLists ?? new List<UserTopList>();
         }
 
-        protected virtual async Task<List<UserAccolade>> fetchUserAccolades(string email, string entAPIKey, Guid layerId)
+        protected virtual async Task<List<UserAccolade>> fetchUserAccolades(string email, string entAPIKey, Guid locationId)
         {
             var userAccolades = new List<UserAccolade>();
 
-            var accolades = await amblGraph.ListAccolades(email, entAPIKey, layerId);
+            var accolades = await amblGraph.ListAccolades(email, entAPIKey, locationId);
 
             accolades.ForEach(
                 (accolade) =>
                 {
-                    userAccolades.Add(mapUserAccolade(accolade));
+                    userAccolades.Add(mapUserAccolade(accolade, locationId));
                 });
 
             return userAccolades;
@@ -1240,7 +1240,9 @@ namespace AmblOn.State.API.Users.Harness
                         (location) =>
                         {
                             var loc = mapUserLocation(location, layerID, state.UserLayers.Any(x => x.ID == layerID && !x.Shared));
-                            userLocations.Add(loc);
+                            var accolades = fetchUserAccolades(email, entAPIKey, location.ID).GetAwaiter().GetResult();
+                            loc.Accolades = accolades; 
+                            userLocations.Add(loc);                            
                         });
 
                     if (layer != null && layer.Coordinates != null)
@@ -1329,12 +1331,12 @@ namespace AmblOn.State.API.Users.Harness
             return photos;
         }
 
-        protected virtual UserAccolade mapUserAccolade(Accolade accolade)
+        protected virtual UserAccolade mapUserAccolade(Accolade accolade, Guid locationId)
         {
             return new UserAccolade()
             {
                 ID = accolade.ID,
-                LocationID = accolade.LocationID,
+                LocationID = locationId,
                 Rank = accolade.Rank,
                 Title = accolade.Title,
                 Year = accolade.Year
