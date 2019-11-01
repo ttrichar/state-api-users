@@ -49,5 +49,8 @@ namespace AmblOn.State.API.Users.Models
         [DataMember]
         public virtual List<UserLocation> VisibleUserLocations {get; set;}
 
+        [DataMember]
+        public virtual List<UserLocation> AllUserLocations {get; set;}
+
     }
 }
