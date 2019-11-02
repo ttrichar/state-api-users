@@ -60,6 +60,13 @@ namespace AmblOn.State.API.Users.Harness
             var enterprise = entMgr.GetEnterprise(details.EnterpriseAPIKey).GetAwaiter().GetResult();
 
             enterpriseId = enterprise.Model.ID;
+
+            appMgr.RegisterApplicationProfile(details.ApplicationID, new LCU.ApplicationProfile()
+            {
+                DatabaseClientMaxPoolConnections = Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-MAX-POOL-CONNS").As<int>(32),
+                DatabaseClientPoolSize = Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-POOL-SIZE").As<int>(4),
+                DatabaseClientTTLMinutes = Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-TTL").As<int>(60)
+            });
         }
         #endregion
 
