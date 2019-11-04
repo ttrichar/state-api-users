@@ -1871,7 +1871,7 @@ namespace AmblOn.State.API.Users.Graphs
 
             await AddLayer(email, entAPIKey, new UserLayer()
             {
-                Title = "User Layer"
+                Title = "User"
             });
 
             var sharedMapQuery = g.V()
@@ -1898,14 +1898,14 @@ namespace AmblOn.State.API.Users.Graphs
 
             await AddSharedMap(email, entAPIKey, new SharedMap()
             {
-                Title = "Global Map",
+                Title = "Global",
                 Deletable = false,
                 DefaultLayerID = sharedLayerResult
             }, false, sharedMapResult);
 
             await AddSharedLayer(email, entAPIKey, new UserLayer()
             {
-                Title = "Curated Layer",
+                Title = "Curated",
                 Deletable = false,
             }, false, sharedLayerResult, sharedMapResult);
 
