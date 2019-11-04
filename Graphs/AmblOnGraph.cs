@@ -20,8 +20,8 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region Constructors
-        public AmblOnGraph(LCUGraphConfig config)
-            : base(config)
+        public AmblOnGraph(GremlinClientPoolManager clientMgr)
+            : base(clientMgr)
         { }
         #endregion
 

@@ -22,6 +22,7 @@ using LCU.Personas.Client.Applications;
 using Microsoft.AspNetCore.Http.Internal;
 using System.IO;
 using LCU.Personas.Client.Enterprises;
+using LCU;
 
 namespace AmblOn.State.API.Users.Harness
 {
@@ -31,6 +32,8 @@ namespace AmblOn.State.API.Users.Harness
         protected readonly AmblOnGraph amblGraph;
 
         protected readonly ApplicationManagerClient appMgr;
+
+        protected readonly IConfiguration config;
 
         protected readonly Guid enterpriseId;
 
@@ -42,16 +45,19 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region Constructors
-        public UsersStateHarness(HttpRequest req, ILogger log, UsersState state)
+        public UsersStateHarness(IConfiguration config, HttpRequest req, ILogger log, UsersState state)
             : base(req, log, state)
         {
-            amblGraph = new AmblOnGraph(new LCUGraphConfig()
+            this.config = config;
+            
+            amblGraph = new AmblOnGraph(new GremlinClientPoolManager(new ApplicationProfileManager(config),
+            new LCUGraphConfig()
             {
                 APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY"),
                 Database = Environment.GetEnvironmentVariable("LCU-GRAPH-DATABASE"),
                 Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
                 Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
-            });
+            }));
 
             appMgr = req.ResolveClient<ApplicationManagerClient>(logger);
 
