@@ -5,7 +5,7 @@
     <RootNamespace>state_api_users</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="LCU.StateAPI" Version="1.81.19306.2" />
+    <PackageReference Include="LCU.StateAPI" Version="1.87.19310.3" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />  
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="System.Device.Location.Portable" Version="1.0.0" />
