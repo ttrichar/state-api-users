@@ -11,6 +11,9 @@ namespace AmblOn.State.API.Users.Models
     {
         [DataMember]
         public virtual string AddMapError { get; set; }
+        
+        [DataMember]
+        public virtual List<UserLocation> AllUserLocations {get; set;}
 
         [DataMember]
         public virtual bool Loading { get; set; }
@@ -49,8 +52,6 @@ namespace AmblOn.State.API.Users.Models
         [DataMember]
         public virtual List<UserLocation> VisibleUserLocations {get; set;}
 
-        [DataMember]
-        public virtual List<UserLocation> AllUserLocations {get; set;}
 
     }
 }

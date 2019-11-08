@@ -27,6 +27,6 @@ namespace AmblOn.State.API.Users
                 return await mgr.WhenAll(
                 );
             });
-        }
+          }
     }
 }
