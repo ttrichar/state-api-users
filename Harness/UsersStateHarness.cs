@@ -790,9 +790,6 @@ namespace AmblOn.State.API.Users.Harness
 
                 if (existingPhoto != null)
                 {
-                    //SEND NEW PHOTO BYTES
-                    photo.URL = "https://static01.nyt.com/images/2019/08/21/movies/21xp-matrix/21xp-matrix-articleLarge.jpg?quality=90&auto=webp";
-
                     var photoResp = await amblGraph.EditPhoto(details.Username, details.EnterpriseAPIKey, photo, albumID);
 
                     if (photoResp.Status)
