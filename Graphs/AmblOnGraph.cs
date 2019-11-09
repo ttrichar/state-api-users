@@ -72,7 +72,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An accolade with that title already exists for this layer.") };
+                    return new BaseResponse<Guid>() { 
+                        Model = existingAccolade.ID,
+                        Status = Status.Conflict.Clone("An accolade with that title already exists for this layer.") 
+                    };
             });
         }
 
@@ -115,7 +118,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An album with that title already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingAlbum.ID,
+                        Status = Status.Conflict.Clone("An album with that title already exists for this user.")
+                    };
             });
         }
 
@@ -161,7 +167,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An itinerary with that title and start/end date already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingItinerary.ID,
+                        Status = Status.Conflict.Clone("An itinerary with that title and start/end date already exists for this user.")
+                    };
             });
         }
 
@@ -218,7 +227,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An itinerary activity for that user's itinerary exists at the same date/time/location.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingItineraryActivity.ID,
+                        Status = Status.Conflict.Clone("An itinerary activity for that user's itinerary exists at the same date/time/location.")
+                    };
             });
         }
 
@@ -261,7 +273,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingLayer.ID,
+                        Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")
+                    };
             });
         }
 
@@ -378,7 +393,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A map by that name already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingMap.ID,
+                        Status = Status.Conflict.Clone("A map by that name already exists for this user.")
+                    };
             });
         }
 
@@ -433,7 +451,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A photo for that user's album exists with the same URL.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingPhoto.ID,
+                        Status = Status.Conflict.Clone("A photo for that user's album exists with the same URL.")
+                    };
             });
         }
         
@@ -482,7 +503,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingLayer.ID,
+                        Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")
+                    };
             });
         }
 
@@ -534,7 +558,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A map by that name already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingMap.ID,
+                        Status = Status.Conflict.Clone("A map by that name already exists for this user.")
+                    };
             });
         }
 
@@ -586,7 +613,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A map by that name already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingMap.ID,
+                        Status = Status.Conflict.Clone("A map by that name already exists for this user.")
+                    };
             });
         }
 
@@ -639,7 +669,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An top list with that title already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingTopList.ID,
+                        Status = Status.Conflict.Clone("An top list with that title already exists for this user.")
+                    };
             });
         }
         #endregion
