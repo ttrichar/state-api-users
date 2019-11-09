@@ -24,7 +24,7 @@ namespace AmblOn.State.API.Users
         public virtual UserAccolade Accolade { get; set; }
 
         [DataMember]
-        public virtual Guid LayerID { get; set; }
+        public virtual Guid LocationID { get; set; }
 
     }
 
@@ -37,7 +37,7 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<AddAccoladeRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.AddAccolade(reqData.Accolade, reqData.LayerID);
+                await mgr.AddAccolade(reqData.Accolade, reqData.LocationID);
 
                 return await mgr.WhenAll(
                 );

@@ -65,10 +65,6 @@ namespace AmblOn.State.API.Users.Graphs
                     var locationEdgeQuery = g.V(locationId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
                     await Submit(locationEdgeQuery);
 
-                    // Add edge from layer vertex to newly create accodated vertex (Owns)
-                    // var layerEdgeQuery = g.V(layerId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
-                    // await Submit(layerEdgeQuery);
-
                     return new BaseResponse<Guid>()
                     {
                         Model = createdAccolade.ID,
@@ -649,20 +645,20 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region Delete
-        public virtual async Task<BaseResponse> DeleteAccolades(string email, string entAPIKey, Guid[] accoladeIDs, Guid layerId)
+        public virtual async Task<BaseResponse> DeleteAccolades(string email, string entAPIKey, Guid[] accoladeIDs, Guid locationId)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var existingAccoladeQuery = g.V(layerId)
+                var existingAccoladeQuery = g.V(locationId)
                     .HasLabel(AmblOnGraphConstants.AccoladeVertexName);
 
                 var existingAccolades = await Submit<Accolade>(existingAccoladeQuery);
 
                 if (existingAccolades != null)
                 {
-                    var deleteQuery = g.V(layerId)
+                    var deleteQuery = g.V(locationId)
                      .Out(AmblOnGraphConstants.OwnsEdgeName)
                      .HasLabel(AmblOnGraphConstants.AccoladeVertexName)
                      .Has("ID", P.Inside(accoladeIDs))
@@ -1073,15 +1069,15 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region Edit
-        public virtual async Task<BaseResponse> EditAccolade(string email, string entAPIKey, UserAccolade accolade, Guid layerId)
+        public virtual async Task<BaseResponse> EditAccolade(string email, string entAPIKey, UserAccolade accolade, Guid locationId)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var lookup = layerId.ToString() + "|" + accolade.Title.Replace(" ", "");
+                var lookup = locationId.ToString() + "|" + accolade.Title.Replace(" ", "");
 
-                var existingAccoladeQuery = g.V(layerId)
+                var existingAccoladeQuery = g.V(locationId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.AccoladeVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, accolade.ID);
