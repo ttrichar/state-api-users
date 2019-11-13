@@ -36,6 +36,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<AddItineraryActivityRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Adding Itinerary Activity: {reqData.ItineraryID}");
+
                 await mgr.AddItineraryActivity(reqData.ItineraryActivity, reqData.ItineraryID, reqData.LocationID);
 
                 return await mgr.WhenAll(

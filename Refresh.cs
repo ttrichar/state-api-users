@@ -22,6 +22,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<dynamic, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Refreshing");
+
                 await mgr.Ensure();
 
                 return await mgr.WhenAll(

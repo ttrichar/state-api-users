@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeleteAlbumRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Deleting Album: {reqData.AlbumID}");
+
                 await mgr.DeleteAlbum(reqData.AlbumID);
 
                 return await mgr.WhenAll(

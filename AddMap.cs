@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<AddMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Adding Map");
+
                 await mgr.AddMap(reqData.Map);
 
                 return await mgr.WhenAll(

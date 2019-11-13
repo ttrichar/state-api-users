@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<AddSelectedLayerRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Adding Selected Layer: {reqData.LayerID}");
+
                 await mgr.AddSelectedLayer(reqData.LayerID);
 
                 return await mgr.WhenAll(

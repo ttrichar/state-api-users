@@ -65,10 +65,6 @@ namespace AmblOn.State.API.Users.Graphs
                     var locationEdgeQuery = g.V(locationId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
                     await Submit(locationEdgeQuery);
 
-                    // Add edge from layer vertex to newly create accodated vertex (Owns)
-                    // var layerEdgeQuery = g.V(layerId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdAccolade.ID));
-                    // await Submit(layerEdgeQuery);
-
                     return new BaseResponse<Guid>()
                     {
                         Model = createdAccolade.ID,
@@ -76,7 +72,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An accolade with that title already exists for this layer.") };
+                    return new BaseResponse<Guid>() { 
+                        Model = existingAccolade.ID,
+                        Status = Status.Conflict.Clone("An accolade with that title already exists for this layer.") 
+                    };
             });
         }
 
@@ -119,7 +118,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An album with that title already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingAlbum.ID,
+                        Status = Status.Conflict.Clone("An album with that title already exists for this user.")
+                    };
             });
         }
 
@@ -165,7 +167,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An itinerary with that title and start/end date already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingItinerary.ID,
+                        Status = Status.Conflict.Clone("An itinerary with that title and start/end date already exists for this user.")
+                    };
             });
         }
 
@@ -222,7 +227,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An itinerary activity for that user's itinerary exists at the same date/time/location.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingItineraryActivity.ID,
+                        Status = Status.Conflict.Clone("An itinerary activity for that user's itinerary exists at the same date/time/location.")
+                    };
             });
         }
 
@@ -265,7 +273,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingLayer.ID,
+                        Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")
+                    };
             });
         }
 
@@ -382,7 +393,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A map by that name already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingMap.ID,
+                        Status = Status.Conflict.Clone("A map by that name already exists for this user.")
+                    };
             });
         }
 
@@ -437,7 +451,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A photo for that user's album exists with the same URL.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingPhoto.ID,
+                        Status = Status.Conflict.Clone("A photo for that user's album exists with the same URL.")
+                    };
             });
         }
         
@@ -486,7 +503,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingLayer.ID,
+                        Status = Status.Conflict.Clone("A layer by that name already exists in for this user.")
+                    };
             });
         }
 
@@ -538,7 +558,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A map by that name already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingMap.ID,
+                        Status = Status.Conflict.Clone("A map by that name already exists for this user.")
+                    };
             });
         }
 
@@ -590,7 +613,10 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("A map by that name already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingMap.ID,
+                        Status = Status.Conflict.Clone("A map by that name already exists for this user.")
+                    };
             });
         }
 
@@ -643,26 +669,29 @@ namespace AmblOn.State.API.Users.Graphs
                     };
                 }
                 else
-                    return new BaseResponse<Guid>() { Status = Status.Conflict.Clone("An top list with that title already exists for this user.")};
+                    return new BaseResponse<Guid>() { 
+                        Model = existingTopList.ID,
+                        Status = Status.Conflict.Clone("An top list with that title already exists for this user.")
+                    };
             });
         }
         #endregion
 
         #region Delete
-        public virtual async Task<BaseResponse> DeleteAccolades(string email, string entAPIKey, Guid[] accoladeIDs, Guid layerId)
+        public virtual async Task<BaseResponse> DeleteAccolades(string email, string entAPIKey, Guid[] accoladeIDs, Guid locationId)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var existingAccoladeQuery = g.V(layerId)
+                var existingAccoladeQuery = g.V(locationId)
                     .HasLabel(AmblOnGraphConstants.AccoladeVertexName);
 
                 var existingAccolades = await Submit<Accolade>(existingAccoladeQuery);
 
                 if (existingAccolades != null)
                 {
-                    var deleteQuery = g.V(layerId)
+                    var deleteQuery = g.V(locationId)
                      .Out(AmblOnGraphConstants.OwnsEdgeName)
                      .HasLabel(AmblOnGraphConstants.AccoladeVertexName)
                      .Has("ID", P.Inside(accoladeIDs))
@@ -1073,15 +1102,15 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region Edit
-        public virtual async Task<BaseResponse> EditAccolade(string email, string entAPIKey, UserAccolade accolade, Guid layerId)
+        public virtual async Task<BaseResponse> EditAccolade(string email, string entAPIKey, UserAccolade accolade, Guid locationId)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var lookup = layerId.ToString() + "|" + accolade.Title.Replace(" ", "");
+                var lookup = locationId.ToString() + "|" + accolade.Title.Replace(" ", "");
 
-                var existingAccoladeQuery = g.V(layerId)
+                var existingAccoladeQuery = g.V(locationId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.AccoladeVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, accolade.ID);

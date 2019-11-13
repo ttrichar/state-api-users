@@ -35,6 +35,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<AddAlbumRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Adding Album");
+
                 await mgr.AddAlbum(reqData.Album, reqData.Images);
 
                 return await mgr.WhenAll(

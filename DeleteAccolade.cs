@@ -22,7 +22,7 @@ namespace AmblOn.State.API.Users
         public virtual Guid[] AccoladeIDs { get; set; }
 
         [DataMember]
-        public virtual Guid LayerID { get; set; }
+        public virtual Guid LocationID { get; set; }
     }
     public static class DeleteAccolade
     {
@@ -33,7 +33,9 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeleteAccoladeRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                await mgr.DeleteAccolades(reqData.AccoladeIDs, reqData.LayerID);
+                log.LogInformation($"Deleting Accolades");
+
+                await mgr.DeleteAccolades(reqData.AccoladeIDs, reqData.LocationID);
 
                 return await mgr.WhenAll(
                 );

@@ -29,6 +29,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<RemoveSelectedLayerRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Removing Selected Layers: {reqData.LayerID}");
+
                 return await mgr.RemoveSelectedLayer(reqData.LayerID);
             });
         }
