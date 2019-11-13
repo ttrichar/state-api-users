@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<GlobalSearchRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Executing Global Search: {reqData.SearchTerm}");
+
                 await mgr.GlobalSearch(reqData.SearchTerm);
 
                 return await mgr.WhenAll(

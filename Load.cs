@@ -24,6 +24,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<dynamic, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Loading");
+
                 await mgr.Load();
 
                 return await mgr.WhenAll(

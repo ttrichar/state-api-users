@@ -33,6 +33,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<EditPhotoRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Editing Photo for album: {reqData.AlbumID}");
+
                 await mgr.EditPhoto(reqData.Photo, reqData.AlbumID);
 
                 return await mgr.WhenAll(

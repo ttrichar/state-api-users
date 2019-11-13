@@ -30,12 +30,17 @@ namespace AmblOn.State.API.Users
             ILogger log)
         {
             try {
-            return await req.Manage<AddTopListRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
-            {
-                var reqResult = reqData;
-                return await mgr.AddTopList(reqData.TopList);
-            });
+                return await req.Manage<AddTopListRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+                {
+                    log.LogInformation($"Adding Top List");
+
+                    var reqResult = reqData;
+
+                    return await mgr.AddTopList(reqData.TopList);
+                });
             } catch (Exception ex) { 
+                log.LogError(ex, "Error Adding to Top List");
+                
                 throw ex;
             }
         }

@@ -29,6 +29,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<SetSelectedMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Setting Selected Map: {reqData.MapID}");
+
                 return await mgr.SetSelectedMap(reqData.MapID);
             });
         }

@@ -36,6 +36,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<AddAccoladeRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Editing Accolade");
+
                 await mgr.EditAccolade(reqData.Accolade, reqData.LocationID);
 
                 return await mgr.WhenAll(

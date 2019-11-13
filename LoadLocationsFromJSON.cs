@@ -22,6 +22,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<dynamic, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Loading Locations from JSON");
+
                 var json = String.Empty;
                 
                 //await mgr.LoadCuratedLocationsIntoDB("moxhay@gmail.com", json, new Guid("4704a25b-049b-49a9-90b0-2551b40045c3"));

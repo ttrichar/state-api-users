@@ -33,6 +33,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeleteAccoladeRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Deleting Accolades");
+
                 await mgr.DeleteAccolades(reqData.AccoladeIDs, reqData.LocationID);
 
                 return await mgr.WhenAll(

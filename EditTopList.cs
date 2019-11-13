@@ -31,6 +31,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<EditTopListRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Editing Top List");
+
                 await mgr.EditTopList(reqData.TopList);
 
                 return await mgr.WhenAll(

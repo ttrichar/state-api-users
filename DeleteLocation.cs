@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeleteLocationRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Deleting Location: {reqData.LocationID}");
+
                 await mgr.DeleteLocation(reqData.LocationID);
 
                 return await mgr.WhenAll(
