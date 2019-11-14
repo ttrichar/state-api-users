@@ -50,6 +50,7 @@ namespace AmblOn.State.API.Users.Harness
         {
             this.config = config;
             
+            // TODO: This needs to be injected , registered at startup as a singleton
             amblGraph = new AmblOnGraph(new GremlinClientPoolManager(new ApplicationProfileManager(config),
             new LCUGraphConfig()
             {
@@ -314,6 +315,17 @@ namespace AmblOn.State.API.Users.Harness
             }
 
             state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> ChangeVisibleCurations(VisibleCurations curations)
+        {
+            ensureStateObject();
+
+            state.VisibleCuratedLocations = curations;
+
+            await amblGraph.EditVisibleCurations(details.Username, details.EnterpriseAPIKey, curations);
 
             return state;
         }
@@ -856,6 +868,8 @@ namespace AmblOn.State.API.Users.Harness
 
             var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
+            state.VisibleCuratedLocations = await fetchUserVisibleCurations(details.Username, details.EnterpriseAPIKey);
+
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
             if (userMap != null)
@@ -962,6 +976,8 @@ namespace AmblOn.State.API.Users.Harness
             var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
 
             state.UserTopLists = await fetchUserTopLists(details.Username, details.EnterpriseAPIKey, userLayerID);
+
+            state.VisibleCuratedLocations = await fetchUserVisibleCurations(details.Username, details.EnterpriseAPIKey);
 
             state.Loading = false;
 
@@ -1276,6 +1292,13 @@ namespace AmblOn.State.API.Users.Harness
                 });
 
             return userTopLists;
+
+        }
+        protected virtual async Task<VisibleCurations> fetchUserVisibleCurations(string email, string entAPIKey)
+        {
+            var curations = await amblGraph.ListVisibleCurations(email, entAPIKey);
+
+            return curations;
 
         }
 
