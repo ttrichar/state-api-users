@@ -50,14 +50,20 @@ namespace AmblOn.State.API.Users.Harness
         {
             this.config = config;
             
-            amblGraph = new AmblOnGraph(new GremlinClientPoolManager(new ApplicationProfileManager(config),
-            new LCUGraphConfig()
-            {
-                APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY"),
-                Database = Environment.GetEnvironmentVariable("LCU-GRAPH-DATABASE"),
-                Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
-                Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
-            }));
+            amblGraph = new AmblOnGraph(new GremlinClientPoolManager(
+                new ApplicationProfileManager(
+                    Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-POOL-SIZE").As<int>(4),
+                    Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-MAX-POOL-CONNS").As<int>(32),
+                    Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-TTL").As<int>(60)
+                ),
+                new LCUGraphConfig()
+                {
+                    APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY"),
+                    Database = Environment.GetEnvironmentVariable("LCU-GRAPH-DATABASE"),
+                    Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
+                    Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
+                })
+            );
 
             appMgr = req.ResolveClient<ApplicationManagerClient>(logger);
 
