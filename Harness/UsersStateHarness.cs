@@ -33,8 +33,6 @@ namespace AmblOn.State.API.Users.Harness
 
         protected readonly ApplicationManagerClient appMgr;
 
-        protected readonly IConfiguration config;
-
         protected readonly Guid enterpriseId;
 
         protected readonly EnterpriseManagerClient entMgr;
@@ -45,11 +43,9 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region Constructors
-        public UsersStateHarness(IConfiguration config, HttpRequest req, ILogger log, UsersState state)
+        public UsersStateHarness(HttpRequest req, ILogger log, UsersState state)
             : base(req, log, state)
         {
-            this.config = config;
-            
             // TODO: This needs to be injected , registered at startup as a singleton
             amblGraph = new AmblOnGraph(new GremlinClientPoolManager(
                 new ApplicationProfileManager(
