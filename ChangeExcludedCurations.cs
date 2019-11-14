@@ -14,24 +14,24 @@ using AmblOn.State.API.Users.Harness;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class ChangeVisibleCurationsRequest
+    public class ChangeExcludedCurationsRequest
     {
         [DataMember]
-        public virtual VisibleCurations Curations { get; set; }
+        public virtual ExcludedCurations Curations { get; set; }
     }
 
-    public static class ChangeVisibleCurations
+    public static class ChangeExcludedCurations
     {
-        [FunctionName("ChangeVisibleCurations")]
+        [FunctionName("ChangeExcludedCurations")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<ChangeVisibleCurationsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<ChangeExcludedCurationsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
                 log.LogInformation($"Change visible curated locations: {reqData.Curations}");
 
-                return await mgr.ChangeVisibleCurations(reqData.Curations);
+                return await mgr.ChangeExcludedCurations(reqData.Curations);
             });
         }
     }

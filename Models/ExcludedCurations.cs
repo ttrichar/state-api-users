@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class VisibleCurations : BusinessModel<Guid>
+    public class ExcludedCurations : BusinessModel<Guid>
     {
         
         [DataMember]

@@ -50,7 +50,7 @@ namespace AmblOn.State.API.Users.Models
         public virtual List<UserLocation> VisibleUserLocations {get; set;}
 
         [DataMember]
-        public virtual VisibleCurations VisibleCuratedLocations { get; set; }
+        public virtual ExcludedCurations ExcludedCuratedLocations { get; set; }
 
     }
 }
