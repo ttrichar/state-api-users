@@ -10,6 +10,6 @@ namespace AmblOn.State.API.Users.Models
     {
         
         [DataMember]
-        public virtual Guid[] LocationIDs  { get; set; }
+        public virtual string[] LocationIDs  { get; set; }
     }
 }
