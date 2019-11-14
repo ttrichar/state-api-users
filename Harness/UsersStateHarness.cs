@@ -321,13 +321,13 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> ChangeVisibleCurations(VisibleCurations curations)
+        public virtual async Task<UsersState> ChangeExcludedCurations(ExcludedCurations curations)
         {
             ensureStateObject();
 
-            state.VisibleCuratedLocations = curations;
+            state.ExcludedCuratedLocations = curations;
 
-            await amblGraph.EditVisibleCurations(details.Username, details.EnterpriseAPIKey, curations);
+            await amblGraph.EditExcludedCurations(details.Username, details.EnterpriseAPIKey, curations);
 
             return state;
         }
@@ -870,7 +870,7 @@ namespace AmblOn.State.API.Users.Harness
 
             var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
-            state.VisibleCuratedLocations = await fetchUserVisibleCurations(details.Username, details.EnterpriseAPIKey);
+            state.ExcludedCuratedLocations = await fetchUserExcludedCurations(details.Username, details.EnterpriseAPIKey);
 
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
@@ -979,7 +979,7 @@ namespace AmblOn.State.API.Users.Harness
 
             state.UserTopLists = await fetchUserTopLists(details.Username, details.EnterpriseAPIKey, userLayerID);
 
-            state.VisibleCuratedLocations = await fetchUserVisibleCurations(details.Username, details.EnterpriseAPIKey);
+            state.ExcludedCuratedLocations = await fetchUserExcludedCurations(details.Username, details.EnterpriseAPIKey);
 
             state.Loading = false;
 
@@ -1296,9 +1296,9 @@ namespace AmblOn.State.API.Users.Harness
             return userTopLists;
 
         }
-        protected virtual async Task<VisibleCurations> fetchUserVisibleCurations(string email, string entAPIKey)
+        protected virtual async Task<ExcludedCurations> fetchUserExcludedCurations(string email, string entAPIKey)
         {
-            var curations = await amblGraph.ListVisibleCurations(email, entAPIKey);
+            var curations = await amblGraph.ListExcludedCurations(email, entAPIKey);
 
             return curations;
 

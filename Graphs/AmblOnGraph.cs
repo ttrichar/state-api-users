@@ -1477,19 +1477,19 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<BaseResponse> EditVisibleCurations(string email, string entAPIKey, VisibleCurations curations)
+        public virtual async Task<BaseResponse> EditExcludedCurations(string email, string entAPIKey, ExcludedCurations curations)
         {
             return await withG(async (client, g) =>
             {
-                Guid visibleCurationsId;
+                Guid excludedCurationsId;
 
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var visibleCurationsExistsQuery = g.V(userId)
+                var curationsExistsQuery = g.V(userId)
                                         .Out(AmblOnGraphConstants.OwnsEdgeName)
                                         .HasLabel("VisibleCurations");
 
-                var existsResult = await Submit<VisibleCurations>(visibleCurationsExistsQuery);
+                var existsResult = await Submit<ExcludedCurations>(curationsExistsQuery);
                 
                 var existFirst = existsResult?.FirstOrDefault();
 
@@ -1498,22 +1498,22 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
                         .Property("LocationIDs", curations.LocationIDs);
 
-                    var createVisibleCurationsResults = await Submit<VisibleCurations>(createQuery);
+                    var createCurationsResults = await Submit<ExcludedCurations>(createQuery);
 
-                    var createdVisibleCurations = createVisibleCurationsResults?.FirstOrDefault();
+                    var createdCurations = createCurationsResults?.FirstOrDefault();
 
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdVisibleCurations.ID));
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdCurations.ID));
 
                     await Submit(userEdgeQuery);
 
-                    visibleCurationsId = createdVisibleCurations.ID;
+                    excludedCurationsId = createdCurations.ID;
                 } else {
                     var updateQuery = g.V(existFirst.ID)
                         .Property("LocationIDs", curations.LocationIDs);
 
                     await Submit(updateQuery);
 
-                    visibleCurationsId = existFirst.ID;
+                    excludedCurationsId = existFirst.ID;
                 }
 
                 return new BaseResponse()
@@ -1795,7 +1795,7 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<VisibleCurations> ListVisibleCurations(string email, string entAPIKey)
+        public virtual async Task<ExcludedCurations> ListExcludedCurations(string email, string entAPIKey)
         {
             return await withG(async (client, g) =>
             {
@@ -1805,7 +1805,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.VisibleCurationsName);
 
-                var results = await Submit<VisibleCurations>(query);
+                var results = await Submit<ExcludedCurations>(query);
 
                 return results?.FirstOrDefault();
             });
