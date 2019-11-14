@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<EditMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Editing Map");
+
                 await mgr.EditMap(reqData.Map);
 
                 return await mgr.WhenAll(

@@ -14,24 +14,24 @@ using AmblOn.State.API.Users.Harness;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class RemoveSelectedLayerRequest
+    public class ChangeVisibleCurationsRequest
     {
         [DataMember]
-        public virtual Guid LayerID { get; set; }
+        public virtual VisibleCurations Curations { get; set; }
     }
 
-    public static class RemoveSelectedLayer
+    public static class ChangeVisibleCurations
     {
-        [FunctionName("RemoveSelectedLayer")]
+        [FunctionName("ChangeVisibleCurations")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<RemoveSelectedLayerRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<ChangeVisibleCurationsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                log.LogInformation($"Removing Selected Layers: {reqData.LayerID}");
+                log.LogInformation($"Change visible curated locations: {reqData.Curations}");
 
-                return await mgr.RemoveSelectedLayer(reqData.LayerID);
+                return await mgr.ChangeVisibleCurations(reqData.Curations);
             });
         }
     }

@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeleteMapsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Deleting Maps");
+
                 await mgr.DeleteMaps(reqData.MapIDs);
 
                 return await mgr.WhenAll(

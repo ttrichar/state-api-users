@@ -29,6 +29,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<AddLocationRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Adding Location");
+
                 return await mgr.AddLocation(reqData.Location);
             });
         }

@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeleteTopListRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Deleting Top List: {reqData.TopListID}");
+
                 await mgr.DeleteTopList(reqData.TopListID);
 
                 return await mgr.WhenAll(

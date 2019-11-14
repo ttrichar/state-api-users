@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<ChangeViewingAreaRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Changing Viewing Area");
+
                 await mgr.ChangeViewingArea(reqData.Coordinates);
 
                 return await mgr.WhenAll(

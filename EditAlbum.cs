@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<EditAlbumRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Editing Album");
+
                 await mgr.EditAlbum(reqData.Album);
 
                 return await mgr.WhenAll(

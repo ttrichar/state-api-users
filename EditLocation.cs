@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<EditLocationRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Editing Location");
+
                 await mgr.EditLocation(reqData.Location);
 
                 return await mgr.WhenAll(

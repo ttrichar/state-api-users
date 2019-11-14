@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DedupLocationRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Dedup Locations: {reqData.MapID}");
+
                 await mgr.DedupLocationsByMap(reqData.MapID);
 
                 return await mgr.WhenAll(

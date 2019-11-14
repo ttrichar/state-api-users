@@ -39,6 +39,8 @@ namespace AmblOn.State.API.Users
         {            
             return await req.Manage<ImportLocationsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Importing Locations");
+
                 await mgr.LoadCuratedLocationsIntoDB(reqData.OwnerEmail, reqData.LocationImportJSON, reqData.AccoladeList, new Guid(reqData.LayerID));
 
                 return await mgr.WhenAll(

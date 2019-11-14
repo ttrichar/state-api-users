@@ -50,6 +50,7 @@ namespace AmblOn.State.API.Users.Harness
         {
             this.config = config;
             
+            // TODO: This needs to be injected , registered at startup as a singleton
             amblGraph = new AmblOnGraph(new GremlinClientPoolManager(
                 new ApplicationProfileManager(
                     Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-POOL-SIZE").As<int>(4),
@@ -84,11 +85,11 @@ namespace AmblOn.State.API.Users.Harness
 
         #region API Methods
         #region Add
-        public virtual async Task<UsersState> AddAccolade(UserAccolade accolade, Guid layerId)
+        public virtual async Task<UsersState> AddAccolade(UserAccolade accolade, Guid locationId)
         {
             ensureStateObject();
 
-            var accoladeResp = await amblGraph.AddAccolade(details.Username, details.EnterpriseAPIKey, accolade, layerId);
+            var accoladeResp = await amblGraph.AddAccolade(details.Username, details.EnterpriseAPIKey, accolade, locationId);
 
             if (accoladeResp.Status)
             {
@@ -324,12 +325,23 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        #region Delete
-        public virtual async Task<UsersState> DeleteAccolades(Guid[] accoladeIDs, Guid layerId)
+        public virtual async Task<UsersState> ChangeVisibleCurations(VisibleCurations curations)
         {
             ensureStateObject();
 
-            var accoladeResp = await amblGraph.DeleteAccolades(details.Username, details.EnterpriseAPIKey, accoladeIDs, layerId);
+            state.VisibleCuratedLocations = curations;
+
+            await amblGraph.EditVisibleCurations(details.Username, details.EnterpriseAPIKey, curations);
+
+            return state;
+        }
+
+        #region Delete
+        public virtual async Task<UsersState> DeleteAccolades(Guid[] accoladeIDs, Guid locationId)
+        {
+            ensureStateObject();
+
+            var accoladeResp = await amblGraph.DeleteAccolades(details.Username, details.EnterpriseAPIKey, accoladeIDs, locationId);
 
             if (accoladeResp.Status)
             {
@@ -612,7 +624,7 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region Edit
-        public virtual async Task<UsersState> EditAccolade(UserAccolade accolade, Guid layerId)
+        public virtual async Task<UsersState> EditAccolade(UserAccolade accolade, Guid locationId)
         {
             ensureStateObject();
 
@@ -620,7 +632,7 @@ namespace AmblOn.State.API.Users.Harness
 
             if (existing != null)
             {
-                var accoladeResp = await amblGraph.EditAccolade(details.Username, details.EnterpriseAPIKey, accolade, layerId);
+                var accoladeResp = await amblGraph.EditAccolade(details.Username, details.EnterpriseAPIKey, accolade, locationId);
 
                 if (accoladeResp.Status)
                 {
@@ -796,9 +808,6 @@ namespace AmblOn.State.API.Users.Harness
 
                 if (existingPhoto != null)
                 {
-                    //SEND NEW PHOTO BYTES
-                    photo.URL = "https://static01.nyt.com/images/2019/08/21/movies/21xp-matrix/21xp-matrix-articleLarge.jpg?quality=90&auto=webp";
-
                     var photoResp = await amblGraph.EditPhoto(details.Username, details.EnterpriseAPIKey, photo, albumID);
 
                     if (photoResp.Status)
@@ -864,6 +873,8 @@ namespace AmblOn.State.API.Users.Harness
             }
 
             var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+
+            state.VisibleCuratedLocations = await fetchUserVisibleCurations(details.Username, details.EnterpriseAPIKey);
 
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
@@ -971,6 +982,8 @@ namespace AmblOn.State.API.Users.Harness
             var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
 
             state.UserTopLists = await fetchUserTopLists(details.Username, details.EnterpriseAPIKey, userLayerID);
+
+            state.VisibleCuratedLocations = await fetchUserVisibleCurations(details.Username, details.EnterpriseAPIKey);
 
             state.Loading = false;
 
@@ -1285,6 +1298,13 @@ namespace AmblOn.State.API.Users.Harness
                 });
 
             return userTopLists;
+
+        }
+        protected virtual async Task<VisibleCurations> fetchUserVisibleCurations(string email, string entAPIKey)
+        {
+            var curations = await amblGraph.ListVisibleCurations(email, entAPIKey);
+
+            return curations;
 
         }
 

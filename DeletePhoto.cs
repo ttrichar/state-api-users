@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeletePhotoRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Deleting Photo: {reqData.PhotoID}");
+
                 await mgr.DeletePhoto(reqData.PhotoID);
 
                 return await mgr.WhenAll(

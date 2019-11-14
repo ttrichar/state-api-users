@@ -30,6 +30,8 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<DeleteItineraryRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Deleting Itinerary: {reqData.ItineraryID}");
+
                 await mgr.DeleteItinerary(reqData.ItineraryID);
 
                 return await mgr.WhenAll(
