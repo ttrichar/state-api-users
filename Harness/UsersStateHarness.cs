@@ -33,8 +33,6 @@ namespace AmblOn.State.API.Users.Harness
 
         protected readonly ApplicationManagerClient appMgr;
 
-        protected readonly IConfiguration config;
-
         protected readonly Guid enterpriseId;
 
         protected readonly EnterpriseManagerClient entMgr;
@@ -45,19 +43,24 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region Constructors
-        public UsersStateHarness(IConfiguration config, HttpRequest req, ILogger log, UsersState state)
+        public UsersStateHarness(HttpRequest req, ILogger log, UsersState state)
             : base(req, log, state)
         {
-            this.config = config;
-            
-            amblGraph = new AmblOnGraph(new GremlinClientPoolManager(new ApplicationProfileManager(config),
-            new LCUGraphConfig()
-            {
-                APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY"),
-                Database = Environment.GetEnvironmentVariable("LCU-GRAPH-DATABASE"),
-                Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
-                Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
-            }));
+            // TODO: This needs to be injected , registered at startup as a singleton
+            amblGraph = new AmblOnGraph(new GremlinClientPoolManager(
+                new ApplicationProfileManager(
+                    Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-POOL-SIZE").As<int>(4),
+                    Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-MAX-POOL-CONNS").As<int>(32),
+                    Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-TTL").As<int>(60)
+                ),
+                new LCUGraphConfig()
+                {
+                    APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY"),
+                    Database = Environment.GetEnvironmentVariable("LCU-GRAPH-DATABASE"),
+                    Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
+                    Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
+                })
+            );
 
             appMgr = req.ResolveClient<ApplicationManagerClient>(logger);
 
@@ -323,6 +326,17 @@ namespace AmblOn.State.API.Users.Harness
             }
 
             state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> ChangeExcludedCurations(ExcludedCurations curations)
+        {
+            ensureStateObject();
+
+            state.ExcludedCuratedLocations = curations;
+
+            await amblGraph.EditExcludedCurations(details.Username, details.EnterpriseAPIKey, curations);
 
             return state;
         }
@@ -871,6 +885,8 @@ namespace AmblOn.State.API.Users.Harness
 
             //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
+            state.ExcludedCuratedLocations = await fetchUserExcludedCurations(details.Username, details.EnterpriseAPIKey);
+
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
             if (userMap != null)
@@ -984,6 +1000,8 @@ namespace AmblOn.State.API.Users.Harness
             var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
 
             state.UserTopLists = await fetchUserTopLists(details.Username, details.EnterpriseAPIKey, userLayerID);
+
+            state.ExcludedCuratedLocations = await fetchUserExcludedCurations(details.Username, details.EnterpriseAPIKey);
 
             state.Loading = false;
 
@@ -1311,6 +1329,13 @@ namespace AmblOn.State.API.Users.Harness
                 });
 
             return userTopLists;
+
+        }
+        protected virtual async Task<ExcludedCurations> fetchUserExcludedCurations(string email, string entAPIKey)
+        {
+            var curations = await amblGraph.ListExcludedCurations(email, entAPIKey);
+
+            return curations;
 
         }
 

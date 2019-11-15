@@ -1476,6 +1476,52 @@ namespace AmblOn.State.API.Users.Graphs
                     return new BaseResponse() { Status = Status.NotLocated.Clone("This top list does not exist for this user")};
             });
         }
+
+        public virtual async Task<BaseResponse> EditExcludedCurations(string email, string entAPIKey, ExcludedCurations curations)
+        {
+            return await withG(async (client, g) =>
+            {
+                Guid excludedCurationsId;
+
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var curationsExistsQuery = g.V(userId)
+                                        .Out(AmblOnGraphConstants.OwnsEdgeName)
+                                        .HasLabel("ExcludedCurations");
+
+                var existsResult = await Submit<ExcludedCurations>(curationsExistsQuery);
+                
+                var existFirst = existsResult?.FirstOrDefault();
+
+                if (existFirst == null) {
+                    var createQuery = g.AddV(AmblOnGraphConstants.ExcludedCurationsName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
+                        .Property("LocationIDs", curations.LocationIDs);
+
+                    var createCurationsResults = await Submit<ExcludedCurations>(createQuery);
+
+                    var createdCurations = createCurationsResults?.FirstOrDefault();
+
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdCurations.ID));
+
+                    await Submit(userEdgeQuery);
+
+                    excludedCurationsId = createdCurations.ID;
+                } else {
+                    var updateQuery = g.V(existFirst.ID)
+                        .Property("LocationIDs", curations.LocationIDs);
+
+                    await Submit(updateQuery);
+
+                    excludedCurationsId = existFirst.ID;
+                }
+
+                return new BaseResponse()
+                {
+                    Status = Status.Success
+                };
+            });
+        }        
         #endregion 
 
         #region List
@@ -1749,6 +1795,22 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<ExcludedCurations> ListExcludedCurations(string email, string entAPIKey)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ExcludedCurationsName);
+
+                var results = await Submit<ExcludedCurations>(query);
+
+                return results?.FirstOrDefault();
+            });
+
+        }
         #endregion
         
         #endregion
