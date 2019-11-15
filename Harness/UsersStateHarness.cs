@@ -192,6 +192,7 @@ namespace AmblOn.State.API.Users.Harness
                     if (state.SelectedUserLayerIDs.Contains(location.LayerID))
                     {
                         state.VisibleUserLocations.Add(location);
+                        state.AllUserLocations.Add(location);
 
                         var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
@@ -264,7 +265,12 @@ namespace AmblOn.State.API.Users.Harness
             if (state.UserLayers.Any(x => x.ID == layerID))
                 state.SelectedUserLayerIDs.Add(layerID);
 
+            //TODO: Check for whether locations are in AllLocations
             var locationsToAdd = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, new List<Guid>() { layerID });
+
+            state.AllUserLocations.AddRange(locationsToAdd);
+
+            state.AllUserLocations = state.AllUserLocations.Distinct().ToList();
 
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
@@ -308,12 +314,15 @@ namespace AmblOn.State.API.Users.Harness
             if (userMap != null)
             {
                 userMap.Coordinates = coordinates;
+                
+                //TODO : Does this need to be reloaded
+                //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
-                var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, userMap.Coordinates)
+                                            .Distinct()
+                                            .ToList();
 
-                state.VisibleUserLocations = limitUserLocationsGeographically(visibleLocations, userMap.Coordinates);
-
-                state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+                //state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
             }
 
             state.Loading = false;
@@ -372,6 +381,8 @@ namespace AmblOn.State.API.Users.Harness
                     else if (state.UserMaps.Count > 0)
                         state.UserMaps.First().Primary = true;
                 }
+                
+
 
                 if (state.UserMaps.Any(x => x.Primary))
                 {
@@ -379,15 +390,19 @@ namespace AmblOn.State.API.Users.Harness
 
                     state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
 
+                    // TODO: Do layers need to be reloaded if a map is removed
                     state.SelectedUserLayerIDs.Clear();
 
                     state.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
 
-                    var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                    // TODO: Reload from a local collection instead
+                    //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
-                    state.VisibleUserLocations = limitUserLocationsGeographically(visibleLocations, primaryMap.Coordinates);
+                    state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, primaryMap.Coordinates)
+                                                .Distinct()
+                                                .ToList();
 
-                    state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+                    //state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
                 }
             }
 
@@ -477,8 +492,10 @@ namespace AmblOn.State.API.Users.Harness
             {
                 var existingVisible = state.VisibleUserLocations.FirstOrDefault(x => x.ID == locationID);
 
-                if (existingVisible != null)
+                if (existingVisible != null) {
                     state.VisibleUserLocations.Remove(existingVisible);
+                    state.AllUserLocations.RemoveAll(item => item.ID == existingVisible.ID);
+                }
 
                 state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
             }
@@ -528,13 +545,14 @@ namespace AmblOn.State.API.Users.Harness
 
                         state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
 
+                        // TODO:  Should layers and locations be reloaded, or loaded from local collection
                         state.SelectedUserLayerIDs.Clear();
 
                         state.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
 
-                        var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
-
-                        state.VisibleUserLocations = limitUserLocationsGeographically(visibleLocations, primaryMap.Coordinates);
+                        //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                        
+                        state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, primaryMap.Coordinates);
 
                         state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
                     }
@@ -603,16 +621,7 @@ namespace AmblOn.State.API.Users.Harness
             
             // Do not refresh state for now
 
-            // if (locationResp.Status)
-            // {
-            //     var existingVisible = state.VisibleUserLocations.FirstOrDefault(x => x.ID == locationID);
-
-            //     if (existingVisible != null)
-            //         state.VisibleUserLocations.Remove(existingVisible);
-
-            //     state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
-            // }
-
+        
             state.Loading = false;
 
             return state;
@@ -740,10 +749,13 @@ namespace AmblOn.State.API.Users.Harness
                     {
                         var existingVisible = state.VisibleUserLocations.FirstOrDefault(x => x.ID == location.ID);
 
-                        if (existingVisible != null)
+                        if (existingVisible != null) {
                             state.VisibleUserLocations.Remove(existingVisible);
+                            state.AllUserLocations.RemoveAll(item => item.ID == existingVisible.ID);
+                        }
 
                         state.VisibleUserLocations.Add(location);
+                        state.AllUserLocations.Add(location);
 
                         var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
@@ -867,8 +879,10 @@ namespace AmblOn.State.API.Users.Harness
                 if (primaryMap != null)
                     state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
             }
+            
+            state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
-            var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+            //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
             state.ExcludedCuratedLocations = await fetchUserExcludedCurations(details.Username, details.EnterpriseAPIKey);
 
@@ -876,9 +890,10 @@ namespace AmblOn.State.API.Users.Harness
 
             if (userMap != null)
             {
-                state.VisibleUserLocations = limitUserLocationsGeographically(visibleLocations, userMap.Coordinates);
-
-                state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+                state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, userMap.Coordinates)
+                                                .Distinct()
+                                                .ToList();
+                //state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
             }
 
             var userLayer = state.UserLayers.Where(x => x.Title == "User").FirstOrDefault();
@@ -895,16 +910,18 @@ namespace AmblOn.State.API.Users.Harness
         public virtual async Task<UsersState> GlobalSearch(string searchTerm)
         {
             ensureStateObject();
-
+            
+            //TODO : There may be a more effective way to do this altogether in the graph db
+            //TODO : Research spatial queries in Cosmos
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
             if (userMap != null)
             {
                 var radius = computeSearchRadius(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
+                        
+                //var allLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.UserLayers.Select(x => x.ID).ToList());
 
-                var allLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.UserLayers.Select(x => x.ID).ToList());
-
-                var searchLocations = limitUserLocationsBySearch(allLocations, searchTerm);
+                var searchLocations = limitUserLocationsBySearch(state.AllUserLocations, searchTerm);
 
                 var centerCoords = computeCenter(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
 
@@ -965,11 +982,15 @@ namespace AmblOn.State.API.Users.Harness
 
                     state.SelectedUserLayerIDs.Add(layerID);
 
-                    var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                    // TODO: Bind collection to local object separate from "VisibleUserLocations"
+                    state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
-                    state.VisibleUserLocations = limitUserLocationsGeographically(visibleLocations, userMap.Coordinates);
+                    //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
-                    state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+                    state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, userMap.Coordinates)
+                                                    .Distinct()
+                                                    .ToList();
+//                    state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
                 }
             }
 
@@ -1073,12 +1094,15 @@ namespace AmblOn.State.API.Users.Harness
             if (userMap != null)
             {
                 state.SelectedUserMapID = mapID;
+                
+                // TODO: Filter results out a local collection of all locations 
+                //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
-                var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, userMap.Coordinates)
+                                            .Distinct()
+                                            .ToList();
 
-                state.VisibleUserLocations = limitUserLocationsGeographically(visibleLocations, userMap.Coordinates);
-
-                state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+               //state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
             }
 
             state.Loading = false;
@@ -1150,6 +1174,8 @@ namespace AmblOn.State.API.Users.Harness
                 state.UserItineraries = new List<UserItinerary>();
 
             state.UserTopLists = state.UserTopLists ?? new List<UserTopList>();
+
+            state.AllUserLocations = state.AllUserLocations ?? new List<UserLocation>();
         }
 
         protected virtual async Task<List<UserAccolade>> fetchUserAccolades(string email, string entAPIKey, Guid locationId)
@@ -1253,13 +1279,16 @@ namespace AmblOn.State.API.Users.Harness
             return userMaps;
         }
 
+        // Need clarification on the behavior of this - is this supposed to pull back all locations across all layers? 
         protected virtual async Task<List<UserLocation>> fetchVisibleUserLocations(string email, string entAPIKey, List<Guid> layerIDs)
         {
             var userLocations = new List<UserLocation>();
 
             layerIDs.ForEach(
                 (layerID) =>
-                {
+                {   
+                    var userLayerLocations = new List<UserLocation>();
+
                     var layer = state.UserLayers.FirstOrDefault(x => x.ID == layerID);
 
                     var locations = amblGraph.ListLocations(email, entAPIKey, layerID).GetAwaiter().GetResult();
@@ -1270,11 +1299,16 @@ namespace AmblOn.State.API.Users.Harness
                             var loc = mapUserLocation(location, layerID, state.UserLayers.Any(x => x.ID == layerID && !x.Shared));
                             var accolades = fetchUserAccolades(email, entAPIKey, location.ID).GetAwaiter().GetResult();
                             loc.Accolades = accolades; 
-                            userLocations.Add(loc);                            
+                            userLayerLocations.Add(loc);                            
                         });
 
                     if (layer != null && layer.Coordinates != null)
-                        userLocations = limitUserLocationsGeographically(userLocations, layer.Coordinates);
+                        userLayerLocations = userLayerLocations.Where(x => x.Latitude <= layer.Coordinates[0]
+                                    && x.Latitude >= layer.Coordinates[2]
+                                    && x.Longitude <= layer.Coordinates[1]
+                                    && x.Longitude >= layer.Coordinates[3]).ToList();
+
+                    userLocations.AddRange(userLayerLocations);
                 });
 
             return userLocations;

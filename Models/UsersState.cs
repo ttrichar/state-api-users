@@ -13,6 +13,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual string AddMapError { get; set; }
 
         [DataMember]
+        public virtual List<UserLocation> AllUserLocations { get; set; }
+
+        [DataMember]
         public virtual bool Loading { get; set; }
 
         [DataMember]
