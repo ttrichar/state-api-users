@@ -17,7 +17,7 @@ namespace AmblOn.State.API.Users
     public class ChangeExcludedCurationsRequest
     {
         [DataMember]
-        public virtual ExcludedCurations Curations { get; set; }
+        public virtual string LocationIDs { get; set; }
     }
 
     public static class ChangeExcludedCurations
@@ -29,9 +29,13 @@ namespace AmblOn.State.API.Users
         {
             return await req.Manage<ChangeExcludedCurationsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                log.LogInformation($"Change visible curated locations: {reqData.Curations}");
+                var curationList = new ExcludedCurations(){
+                        LocationIDs = reqData.LocationIDs
+                };
 
-                return await mgr.ChangeExcludedCurations(reqData.Curations);
+                log.LogInformation($"Change excluded curated locations: {curationList}");
+
+                return await mgr.ChangeExcludedCurations(curationList);
             });
         }
     }
