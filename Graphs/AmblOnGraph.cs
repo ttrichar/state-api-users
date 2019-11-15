@@ -1487,14 +1487,14 @@ namespace AmblOn.State.API.Users.Graphs
 
                 var curationsExistsQuery = g.V(userId)
                                         .Out(AmblOnGraphConstants.OwnsEdgeName)
-                                        .HasLabel("VisibleCurations");
+                                        .HasLabel("ExcludedCurations");
 
                 var existsResult = await Submit<ExcludedCurations>(curationsExistsQuery);
                 
                 var existFirst = existsResult?.FirstOrDefault();
 
                 if (existFirst == null) {
-                    var createQuery = g.AddV(AmblOnGraphConstants.AlbumVertexName)
+                    var createQuery = g.AddV(AmblOnGraphConstants.ExcludedCurationsName)
                         .Property(AmblOnGraphConstants.PartitionKeyName, entAPIKey.ToString())
                         .Property("LocationIDs", curations.LocationIDs);
 
@@ -1803,7 +1803,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                 var query = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.VisibleCurationsName);
+                    .HasLabel(AmblOnGraphConstants.ExcludedCurationsName);
 
                 var results = await Submit<ExcludedCurations>(query);
 
