@@ -880,7 +880,6 @@ namespace AmblOn.State.API.Users.Harness
                     state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
             }
             
-            //TODO: bind collection to local state object
             state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
             //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
