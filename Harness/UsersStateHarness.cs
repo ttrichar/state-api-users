@@ -880,8 +880,10 @@ namespace AmblOn.State.API.Users.Harness
                     state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
             }
             
-            state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
-
+            // Load only on initial state load
+            if (state.AllUserLocations.Count==0) {
+                state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+            }
             //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
             state.ExcludedCuratedLocations = await fetchUserExcludedCurations(details.Username, details.EnterpriseAPIKey);
@@ -982,8 +984,10 @@ namespace AmblOn.State.API.Users.Harness
 
                     state.SelectedUserLayerIDs.Add(layerID);
 
-                    // TODO: Bind collection to local object separate from "VisibleUserLocations"
-                    state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                    // Load only on initial state load
+                    if (state.AllUserLocations.Count ==0) {
+                        state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                    }
 
                     //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
@@ -1370,10 +1374,26 @@ namespace AmblOn.State.API.Users.Harness
         {
             if (coordinates != null && coordinates.Count() == 4)
             {
-                return userLocations.Where(x => x.Latitude <= coordinates[0]
-                                    && x.Latitude >= coordinates[2]
-                                    && x.Longitude <= coordinates[1]
-                                    && x.Longitude >= coordinates[3]).ToList();
+                if (coordinates[1]<=coordinates[3]) {
+
+                    //Accounts for the possibility that the bottom left coordinate has a greater longitude value 
+                    //than the top right, due to it being on the opposite side of the international date line
+                    var result =  userLocations.Where(x => x.Latitude <= coordinates[0]
+                                                    && x.Latitude >= coordinates[2]
+                                                    && x.Longitude <= 180.0
+                                                    && x.Longitude >= coordinates[3])
+                                    .Union(userLocations.Where(x => x.Latitude <= coordinates[0]
+                                                    && x.Latitude >= coordinates[2]
+                                                    && x.Longitude <= coordinates[1]
+                                                    && x.Longitude >= -180.0)).ToList();
+                    return result;
+                } else {
+                    var result =  userLocations.Where(x => x.Latitude <= coordinates[0]
+                                                    && x.Latitude >= coordinates[2]
+                                                    && x.Longitude <= coordinates[1]
+                                                    && x.Longitude >= coordinates[3]).ToList();
+                    return result;
+                }
             }
             else
                 return userLocations;
