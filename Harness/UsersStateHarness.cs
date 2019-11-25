@@ -884,7 +884,6 @@ namespace AmblOn.State.API.Users.Harness
             if (state.AllUserLocations.Count==0) {
                 state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
             }
-            //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
 
             state.ExcludedCuratedLocations = await fetchUserExcludedCurations(details.Username, details.EnterpriseAPIKey);
 
@@ -913,22 +912,16 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
             
-            //TODO : There may be a more effective way to do this altogether in the graph db
-            //TODO : Research spatial queries in Cosmos
             var userMap = state.UserMaps.FirstOrDefault(x => x.ID == state.SelectedUserMapID);
 
             if (userMap != null)
             {
-                var radius = computeSearchRadius(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
-                        
-                //var allLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.UserLayers.Select(x => x.ID).ToList());
+                var circle = computeCircle(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
 
                 var searchLocations = limitUserLocationsBySearch(state.AllUserLocations, searchTerm);
 
-                var centerCoords = computeCenter(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
-
-                var radiusLocations = limitUserLocationsByRadius(searchLocations, radius, centerCoords.Item1, centerCoords.Item2);
-
+                var radiusLocations = limitUserLocationsByRadius(searchLocations, circle.Item1, circle.Item2, circle.Item3);
+                                                    
                 state.LocalSearchUserLocations = radiusLocations
                         .Distinct()
                         .OrderBy(x => x.Title)
@@ -984,17 +977,11 @@ namespace AmblOn.State.API.Users.Harness
 
                     state.SelectedUserLayerIDs.Add(layerID);
 
-                    // Load only on initial state load
-                    if (state.AllUserLocations.Count ==0) {
-                        state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
-                    }
-
-                    //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
-
+                    state.AllUserLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+                    
                     state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, userMap.Coordinates)
                                                     .Distinct()
                                                     .ToList();
-//                    state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
                 }
             }
 
@@ -1116,40 +1103,18 @@ namespace AmblOn.State.API.Users.Harness
         #endregion
 
         #region Helpers
-        protected virtual Tuple<float, float> computeCenter(float lat1, float long1, float lat2, float long2)
-        {
-            //var latRad1 = Math.PI * lat1 / 180.0;
-            //var latRad2 = Math.PI * lat2 / 180.0;
-            //var longRad1 = Math.PI * long1 / 180.0;
-            //var longRad2 = Math.PI * long2 / 180.0;
 
-            //var dLon = (longRad2-longRad1); 
-
-
-            //var Bx = Math.Cos(latRad2) * Math.Cos(dLon);
-            //var By = Math.Cos(latRad2) * Math.Sin(dLon);
-            //var avgLat = Math.Atan2(
-            //        Math.Sin(latRad1) + 
-            //        Math.Sin(latRad2), 
-            //        Math.Sqrt((
-            //        Math.Cos(latRad1)+Bx) * (Math.Cos(latRad1)+Bx) + By*By));
-
-            //var avgLong = longRad1 + Math.Atan2(By, Math.Cos(latRad1) + Bx);
-
-            //return new Tuple<float, float>(float.Parse(avgLat.ToString()), float.Parse(avgLong.ToString()));
-
-            return new Tuple<float, float>((lat1 + lat2) / 2, (long1 + long2) / 2);
-        }
-
-        protected virtual float computeSearchRadius(float lat1, float long1, float lat2, float long2)
-        {
+        // Returns the radius and center of a circle inscribed within the bounded box
+        protected virtual Tuple<float,float,float> computeCircle(float lat1, float long1, float lat2, float long2) {
             var coord1 = new GeoCoordinate(Convert.ToDouble(lat1), Convert.ToDouble(long1));
             var coord2 = new GeoCoordinate(Convert.ToDouble(lat2), Convert.ToDouble(long2));
 
             var distanceMeters = Math.Abs(coord1.GetDistanceTo(coord2));
 
-            return float.Parse((distanceMeters / 1609.344).ToString());
-        }
+            // Attach modulus to adjust for international date line       
+            float aveLong = (long2 < long1) ? 180 + ((long1 + long2) / 2) : (long1 + long2) / 2; 
+            return new Tuple<float, float, float>(float.Parse((distanceMeters / 1609.344).ToString()), (lat1 + lat2) / 2, aveLong);
+        }        
 
         protected virtual void ensureStateObject()
         {
