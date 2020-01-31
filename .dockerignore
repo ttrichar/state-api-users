@@ -1,0 +1,12 @@
+.dockerignore
+.env
+.git
+.gitignore
+.vs
+.vscode
+*/obj
+appsettings.*
+secrets.json
+local.settings.json
+local.settings.json.int
+local.settings.json.prd

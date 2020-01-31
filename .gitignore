@@ -264,3 +264,4 @@ __pycache__/
 *.pyc
 local.settings.json.int
 local.settings.json.prd
+Dockerfile
