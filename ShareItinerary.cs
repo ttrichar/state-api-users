@@ -19,7 +19,7 @@ namespace AmblOn.State.API.Users
     public class ShareItineraryRequest
     {
         [DataMember]
-        public virtual Itinerary Itinerary { get; set; }
+        public virtual List<Itinerary> Itineraries { get; set; }
 
         [DataMember]
         public virtual List<string> Usernames {get; set;}
@@ -35,7 +35,7 @@ namespace AmblOn.State.API.Users
             {
                 log.LogInformation($"Sharing Itinerary");
 
-                await mgr.ShareItinerary(reqData.Itinerary, reqData.Usernames);
+                await mgr.ShareItinerary(reqData.Itineraries, reqData.Usernames);
 
                 return await mgr.WhenAll(
                 );

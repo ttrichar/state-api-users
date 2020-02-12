@@ -13,6 +13,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual List<Activity> Activities {get; set;}
 
         [DataMember]
+        public virtual bool Checked {get; set;}
+
+        [DataMember]
         public virtual DateTime CreatedDateTime {get; set;}
 
         [DataMember]

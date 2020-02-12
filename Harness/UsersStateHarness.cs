@@ -1214,7 +1214,7 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> ShareItinerary(Itinerary itinerary, List<string> usernames)
+        public virtual async Task<UsersState> ShareItinerary(List<Itinerary> itineraries, List<string> usernames)
         {
             ensureStateObject();
 
@@ -1223,28 +1223,25 @@ namespace AmblOn.State.API.Users.Harness
             usernames.ForEach(
                 (username) =>
                 {
-                    var result = amblGraph.ShareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID, username).GetAwaiter().GetResult();
+                    itineraries.ForEach(
+                        (itinerary) =>
+                        {
+                            var result = amblGraph.ShareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID, username).GetAwaiter().GetResult();
 
-                    if (!result.Status)
-                        success = false;
+                            if (!result.Status)
+                                success = false;
+                        });
                 });
 
             if (!success)
                 state.Error = "General Error sharing itinerary.";
-            else
-            {
-                var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
-
-                if (existing == null)
-                    state.UserItineraries.Add(existing);
-            }
 
             state.Loading = false;
 
             return state;
         }
 
-        public virtual async Task<UsersState> UnshareItinerary(Itinerary itinerary, List<string> usernames)
+        public virtual async Task<UsersState> UnshareItinerary(List<Itinerary> itineraries, List<string> usernames)
         {
             ensureStateObject();
 
@@ -1253,22 +1250,19 @@ namespace AmblOn.State.API.Users.Harness
             usernames.ForEach(
                 (username) =>
                 {
-                    var result = amblGraph.UnshareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID, username).GetAwaiter().GetResult();
+                    itineraries.ForEach(
+                        (itinerary) =>
+                        {
+                            var result = amblGraph.UnshareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID, username).GetAwaiter().GetResult();
 
-                    if (!result.Status)
-                        success = false;
+                            if (!result.Status)
+                                success = false;
+                        });
                 });
 
             if (!success)
                 state.Error = "General Error unsharing itinerary.";
-            else
-            {
-                var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
-
-                if (existing != null)
-                    state.UserItineraries.Remove(existing);
-            }
-
+            
             state.Loading = false;
 
             return state;

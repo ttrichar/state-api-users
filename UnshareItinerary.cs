@@ -19,7 +19,7 @@ namespace AmblOn.State.API.Users
     public class UnshareItineraryRequest
     {
         [DataMember]
-        public virtual Itinerary Itinerary { get; set; }
+        public virtual List<Itinerary> Itineraries { get; set; }
 
         [DataMember]
         public virtual List<string> Usernames {get; set;}
@@ -35,7 +35,7 @@ namespace AmblOn.State.API.Users
             {
                 log.LogInformation($"Unsharing Itinerary");
 
-                await mgr.UnshareItinerary(reqData.Itinerary, reqData.Usernames);
+                await mgr.UnshareItinerary(reqData.Itineraries, reqData.Usernames);
 
                 return await mgr.WhenAll(
                 );

@@ -172,6 +172,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Lookup", lookup)
                         .Property("GroupType", activityGroup.GroupType ?? "")
                         .Property("CreatedDateTime", activityGroup.CreatedDateTime)
+                        .Property("Checked", activityGroup.Checked)
                         .Property("Title", activityGroup.Title ?? "");
 
                     var createActivityGroupResults = await Submit<ActivityGroup>(createQuery);
