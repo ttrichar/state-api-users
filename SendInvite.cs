@@ -16,23 +16,23 @@ using System.Collections.Generic;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class DeleteItineraryActivityRequest
+    public class SendInviteRequest
     {
         [DataMember]
-        public virtual Guid ItineraryActivityID { get; set; }
+        public virtual string Email {get; set;}
     }
-    public static class DeleteItineraryActivity
+    public static class SendInvite
     {
-        [FunctionName("DeleteItineraryActivity")]
+        [FunctionName("SendInvite")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<DeleteItineraryActivityRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<SendInviteRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                log.LogInformation($"Deleting Itinerary Activity: {reqData.ItineraryActivityID}");
+                log.LogInformation($"Sending Invite");
 
-                await mgr.DeleteItineraryActivity(reqData.ItineraryActivityID);
+                await mgr.SendInvite(reqData.Email);
 
                 return await mgr.WhenAll(
                 );

@@ -19,7 +19,7 @@ namespace AmblOn.State.API.Users
     public class AddItineraryRequest
     {
         [DataMember]
-        public virtual UserItinerary Itinerary { get; set; }
+        public virtual Itinerary Itinerary { get; set; }
     }
     public static class AddItinerary
     {

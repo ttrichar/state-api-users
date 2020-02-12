@@ -15,9 +15,15 @@ namespace AmblOn.State.API.Users.Graphs
     {
         public const string AccoladeVertexName = "Accolade";
 
+		public const string ActivityGroupVertexName = "ActivityGroup";
+
+		public const string ActivityVertexName = "Activity";
+
         public const string AlbumVertexName = "Album";
 
 		public const string AmblOnUserVertexName = "AmblOnUser";
+
+		public const string CanViewEdgeName = "CanView";
         
 		public const string ContainsEdgeName = "Contains";
 
@@ -28,8 +34,6 @@ namespace AmblOn.State.API.Users.Graphs
 		public const string IDPropertyName = "id";
 
 		public const string InheritsEdgeName = "Inherits";
-
-		public const string ItineraryActivityVertexName = "ItineraryActivity";
 
 		public const string ItineraryVertexName = "Itinerary";
         

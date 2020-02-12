@@ -130,46 +130,42 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> AddItinerary(UserItinerary itinerary)
+        public virtual async Task<UsersState> AddItinerary(Itinerary itinerary)
         {
             ensureStateObject();
 
             itinerary.CreatedDateTime = DateTime.Now;
+
             var itineraryResp = await amblGraph.AddItinerary(details.Username, details.EnterpriseAPIKey, itinerary);
 
             if (itineraryResp.Status)
             {
                 itinerary.ID = itineraryResp.Model;
-                itinerary.Activities = new List<UserItineraryActivity>();
+
+                itinerary.ActivityGroups.ForEach(
+                    (activityGroup) =>
+                    {
+                        var activityGroupResp = amblGraph.AddActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup).GetAwaiter().GetResult();
+
+                        if (activityGroupResp.Status)
+                        {
+                            activityGroup.ID = activityGroupResp.Model;
+
+                            activityGroup.Activities.ForEach(
+                                (activity) =>
+                                {
+                                    var activityResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity).GetAwaiter().GetResult();
+
+                                    if (activityResp.Status)
+                                    {
+                                        activity.ID = activityResp.Model;
+                                    }
+                                });
+                        }
+                    });
 
                 if (!state.UserItineraries.Any(x => x.ID == itinerary.ID))
                     state.UserItineraries.Add(itinerary);
-            }
-
-            state.Loading = false;
-
-            return state;
-        }
-
-        public virtual async Task<UsersState> AddItineraryActivity(UserItineraryActivity itineraryActivity, Guid itineraryID, Guid locationID)
-        {
-            ensureStateObject();
-
-            itineraryActivity.CreatedDateTime = DateTime.Now;
-            var itineraryActivityResp = await amblGraph.AddItineraryActivity(details.Username, details.EnterpriseAPIKey, itineraryActivity, itineraryID, locationID);
-
-            if (itineraryActivityResp.Status)
-            {
-                itineraryActivity.ID = itineraryActivityResp.Model;
-
-                var itinerary = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
-
-                if (itinerary != null)
-                {
-                    itinerary.Activities.Add(itineraryActivity);
-
-                    itinerary.Activities = itinerary.Activities.Distinct().ToList();
-                };
             }
 
             state.Loading = false;
@@ -360,58 +356,6 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> DeleteMaps(Guid[] mapIDs)
-        {
-            ensureStateObject();
-
-            var mapResp = await amblGraph.DeleteMaps(details.Username, details.EnterpriseAPIKey, mapIDs);
-
-            if (mapResp.Status)
-            {
-                state.UserMaps.RemoveAll(x => mapIDs.ToList().Contains(x.ID ?? default(Guid)));
-
-                state.UserMaps = state.UserMaps.Distinct().ToList();
-
-                if (!state.UserMaps.Any(x => x.Primary == true))
-                {
-                    var newPrimary = state.UserMaps.FirstOrDefault(x => x.Shared && !x.Deletable);
-
-                    if (newPrimary != null)
-                        newPrimary.Primary = true;
-                    else if (state.UserMaps.Count > 0)
-                        state.UserMaps.First().Primary = true;
-                }
-                
-
-
-                if (state.UserMaps.Any(x => x.Primary))
-                {
-                    var primaryMap = state.UserMaps.First(x => x.Primary);
-
-                    state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
-
-                    // TODO: Do layers need to be reloaded if a map is removed
-                    state.SelectedUserLayerIDs.Clear();
-
-                    state.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
-
-                    // TODO: Reload from a local collection instead
-                    //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
-
-                    state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, primaryMap.Coordinates)
-                                                .Distinct()
-                                                .ToList();
-
-                    //state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
-                }
-            }
-
-
-            state.Loading = false;
-
-            return state;
-        }
-
         public virtual async Task<UsersState> DeleteAlbum(Guid albumID)
         {
             ensureStateObject();
@@ -437,45 +381,55 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
-            var itineraryResp = await amblGraph.DeleteItinerary(details.Username, details.EnterpriseAPIKey, itineraryID);
+            var itinerary = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
 
-            if (itineraryResp.Status)
+            if (itinerary != null)
             {
-                var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
+                var success = true;
 
-                if (existing != null)
-                    state.UserItineraries.Remove(existing);
-
-                state.UserItineraries = state.UserItineraries.Distinct().ToList();
-            }
-
-            state.Loading = false;
-
-            return state;
-        }
-
-        public virtual async Task<UsersState> DeleteItineraryActivity(Guid itineraryActivityID)
-        {
-            ensureStateObject();
-
-            var itineraryActivityResp = await amblGraph.DeleteItineraryActivity(details.Username, details.EnterpriseAPIKey, itineraryActivityID);
-
-            if (itineraryActivityResp.Status)
-            {
-                var existingItinerary = state.UserItineraries.FirstOrDefault(x => x.Activities.Any(y => y.ID == itineraryActivityID));
-
-                if (existingItinerary != null)
-                {
-                    var existingItineraryActivity = existingItinerary.Activities.FirstOrDefault(x => x.ID == itineraryActivityID);
-
-                    if (existingItineraryActivity != null)
+                itinerary.ActivityGroups.ForEach(
+                    (activityGroup) =>
                     {
-                        existingItinerary.Activities.Remove(existingItineraryActivity);
+                        activityGroup.Activities.ForEach(
+                            (activity) =>
+                            {
+                                var actResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity.ID).GetAwaiter().GetResult();
 
-                        existingItinerary.Activities = existingItinerary.Activities.Distinct().ToList();
-                    }
+                                if (!actResp.Status)
+                                    success = false;
+                            });
+
+                        if (success)
+                        {
+                            var actGroupResp = amblGraph.DeleteActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID).GetAwaiter().GetResult();
+
+                            if (!actGroupResp.Status)
+                                success = false;
+                        }
+                    });
+
+                if (success)
+                {
+                    var itineraryResp = await amblGraph.DeleteItinerary(details.Username, details.EnterpriseAPIKey, itineraryID);
+
+                    if (!itineraryResp.Status)
+                        success = false;
                 }
+
+                if (success)
+                {
+                    var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
+
+                    if (existing != null)
+                        state.UserItineraries.Remove(existing);
+
+                    state.UserItineraries = state.UserItineraries.Distinct().ToList();
+                }
+                else
+                    state.Error = "Error deleting itinerary.";
             }
+            else
+                state.Error = "Itinerary not found.";
 
             state.Loading = false;
 
@@ -558,6 +512,58 @@ namespace AmblOn.State.API.Users.Harness
                     }
                 }
             }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> DeleteMaps(Guid[] mapIDs)
+        {
+            ensureStateObject();
+
+            var mapResp = await amblGraph.DeleteMaps(details.Username, details.EnterpriseAPIKey, mapIDs);
+
+            if (mapResp.Status)
+            {
+                state.UserMaps.RemoveAll(x => mapIDs.ToList().Contains(x.ID ?? default(Guid)));
+
+                state.UserMaps = state.UserMaps.Distinct().ToList();
+
+                if (!state.UserMaps.Any(x => x.Primary == true))
+                {
+                    var newPrimary = state.UserMaps.FirstOrDefault(x => x.Shared && !x.Deletable);
+
+                    if (newPrimary != null)
+                        newPrimary.Primary = true;
+                    else if (state.UserMaps.Count > 0)
+                        state.UserMaps.First().Primary = true;
+                }
+                
+
+
+                if (state.UserMaps.Any(x => x.Primary))
+                {
+                    var primaryMap = state.UserMaps.First(x => x.Primary);
+
+                    state.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
+
+                    // TODO: Do layers need to be reloaded if a map is removed
+                    state.SelectedUserLayerIDs.Clear();
+
+                    state.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
+
+                    // TODO: Reload from a local collection instead
+                    //var visibleLocations = await fetchVisibleUserLocations(details.Username, details.EnterpriseAPIKey, state.SelectedUserLayerIDs);
+
+                    state.VisibleUserLocations = limitUserLocationsGeographically(state.AllUserLocations, primaryMap.Coordinates)
+                                                .Distinct()
+                                                .ToList();
+
+                    //state.VisibleUserLocations = state.VisibleUserLocations.Distinct().ToList();
+                }
+            }
+
 
             state.Loading = false;
 
@@ -680,7 +686,7 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> EditItinerary(UserItinerary itinerary)
+        public virtual async Task<UsersState> EditItinerary(Itinerary itinerary)
         {
             ensureStateObject();
 
@@ -688,47 +694,129 @@ namespace AmblOn.State.API.Users.Harness
 
             if (existing != null)
             {
-                var itineraryResp = await amblGraph.EditItinerary(details.Username, details.EnterpriseAPIKey, itinerary);
-
-                if (itineraryResp.Status)
+                if (existing.Editable)
                 {
-                    state.UserItineraries.Remove(existing);
+                    var success = true;
 
-                    state.UserItineraries.Add(itinerary);
+                    var itineraryResp = await amblGraph.EditItinerary(details.Username, details.EnterpriseAPIKey, itinerary);
 
-                    state.UserItineraries = state.UserItineraries.Distinct().ToList();
-                }
-            }
+                        if (!itineraryResp.Status)
+                            success = false;
 
-            state.Loading = false;
-
-            return state;
-        }
-
-        public virtual async Task<UsersState> EditItineraryActivity(UserItineraryActivity itineraryActivity, Guid itineraryID)
-        {
-            ensureStateObject();
-
-            var existingItinerary = state.UserItineraries.FirstOrDefault(x => x.Activities.Any(y => y.ID == itineraryActivity.ID));
-
-            if (existingItinerary != null)
-            {
-                var existingItineraryActivity = existingItinerary.Activities.FirstOrDefault(x => x.ID == itineraryActivity.ID);
-
-                if (existingItineraryActivity != null)
-                {
-                    var itineraryActivityResp = await amblGraph.EditItineraryActivity(details.Username, details.EnterpriseAPIKey, itineraryActivity, itineraryID);
-
-                    if (itineraryActivityResp.Status)
+                    if (success)
                     {
-                        existingItinerary.Activities.Remove(existingItineraryActivity);
+                        itinerary.ActivityGroups.ForEach(
+                            (activityGroup) =>
+                            {
+                                var agExisting = existing.ActivityGroups.FirstOrDefault(x => x.ID == activityGroup.ID);
 
-                        existingItinerary.Activities.Add(itineraryActivity);
+                                if (agExisting == null)
+                                {
+                                    var addActGResp = amblGraph.AddActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup).GetAwaiter().GetResult();
 
-                        existingItinerary.Activities = existingItinerary.Activities.Distinct().ToList();
+                                    if (addActGResp.Status)
+                                    {
+                                        activityGroup.ID = addActGResp.Model;
+
+                                        activityGroup.Activities.ForEach(
+                                            (activity) =>
+                                            {
+                                                var addActResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity).GetAwaiter().GetResult();
+
+                                                activity.ID = addActResp.Model;
+
+                                                if (!addActResp.Status)
+                                                    success = false;
+                                            });
+                                    }
+                                    else
+                                        success = false;
+                                }
+                                else
+                                {
+                                    activityGroup.Activities.ForEach(
+                                        (activity) =>
+                                        {
+                                            var aExisting = agExisting.Activities.FirstOrDefault(x => x.ID == activity.ID);
+
+                                            if (aExisting == null)
+                                            {
+                                                var addActResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity).GetAwaiter().GetResult();
+
+                                                activity.ID = addActResp.Model;
+
+                                                if (!addActResp.Status)
+                                                    success = false;
+                                            }
+                                            else
+                                            {
+                                                var editActResp = amblGraph.EditActivity(details.Username, details.EnterpriseAPIKey, activity).GetAwaiter().GetResult();
+
+                                                if (!editActResp.Status)
+                                                    success = false;
+                                            }
+                                        });
+
+                                    var editActGResp = amblGraph.EditActivityGroup(details.Username, details.EnterpriseAPIKey, activityGroup).GetAwaiter().GetResult();
+
+                                    if (!editActGResp.Status)
+                                        success = false;
+                                }
+                            });
+
+                        existing.ActivityGroups.ForEach(
+                            (activityGroup) =>
+                        {
+                            var agNew = itinerary.ActivityGroups.FirstOrDefault(x => x.ID == activityGroup.ID);
+
+                            if (agNew == null)
+                            {
+                                activityGroup.Activities.ForEach(
+                                    (activity) =>
+                                    {
+                                        var delActResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity.ID).GetAwaiter().GetResult();
+
+                                        if (!delActResp.Status)
+                                            success = false;
+                                    });
+                                
+                                if (success)
+                                {
+                                    var delActGResp = amblGraph.DeleteActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID).GetAwaiter().GetResult();
+
+                                    if (!delActGResp.Status)
+                                        success = false;
+                                }
+                            }
+                            else
+                            {
+                                activityGroup.Activities.ForEach(
+                                    (activity) =>
+                                    {
+                                        var aNew = agNew.Activities.FirstOrDefault(x => x.ID == activity.ID);
+
+                                        if (aNew == null)
+                                        {
+                                            var delActResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity.ID).GetAwaiter().GetResult();
+
+                                            if (!delActResp.Status)
+                                                success = false;
+                                        }
+                                    });
+                            }
+                        });
                     }
+
+                    if (success)
+                        state.UserItineraries = fetchUserItineraries(details.Username, details.EnterpriseAPIKey).GetAwaiter().GetResult();
+                    else
+                        state.Error = "General Error updating user itinerary.";
                 }
+                    else state.Error = "Cannot edit a shared itinerary.";
+
             }
+            else
+                state.Error = "Itinerary not found.";
 
             state.Loading = false;
 
@@ -1076,6 +1164,31 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
+        public virtual async Task<UsersState> SendInvite(string email)
+        {
+            ensureStateObject();
+
+            var subject = "";
+            var message = "";
+            var from = "";
+
+            var mail = new {
+                EmailTo = email,
+                EmailFrom = from,
+                Subject = subject,
+                Content = message
+            };
+
+            var meta = new MetadataModel();
+            meta.Metadata["AccessRequestEmail"] = JToken.Parse(mail.ToJSON());
+
+            var resp = await appMgr.SendAccessRequestEmail(meta, details.EnterpriseAPIKey);
+
+            state.Loading = false;
+
+            return state;
+        }
+
         public virtual async Task<UsersState> SetSelectedMap(Guid mapID)
         {
             ensureStateObject();
@@ -1100,6 +1213,66 @@ namespace AmblOn.State.API.Users.Harness
 
             return state;
         }
+
+        public virtual async Task<UsersState> ShareItinerary(Itinerary itinerary, List<string> usernames)
+        {
+            ensureStateObject();
+
+            var success = true;
+
+            usernames.ForEach(
+                (username) =>
+                {
+                    var result = amblGraph.ShareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID, username).GetAwaiter().GetResult();
+
+                    if (!result.Status)
+                        success = false;
+                });
+
+            if (!success)
+                state.Error = "General Error sharing itinerary.";
+            else
+            {
+                var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
+
+                if (existing == null)
+                    state.UserItineraries.Add(existing);
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> UnshareItinerary(Itinerary itinerary, List<string> usernames)
+        {
+            ensureStateObject();
+
+            var success = true;
+
+            usernames.ForEach(
+                (username) =>
+                {
+                    var result = amblGraph.UnshareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID, username).GetAwaiter().GetResult();
+
+                    if (!result.Status)
+                        success = false;
+                });
+
+            if (!success)
+                state.Error = "General Error unsharing itinerary.";
+            else
+            {
+                var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
+
+                if (existing != null)
+                    state.UserItineraries.Remove(existing);
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
         #endregion
 
         #region Helpers
@@ -1118,6 +1291,8 @@ namespace AmblOn.State.API.Users.Harness
 
         protected virtual void ensureStateObject()
         {
+            state.Error = "";
+
             if (state.SelectedUserLayerIDs == null)
                 state.SelectedUserLayerIDs = new List<Guid>();
 
@@ -1140,7 +1315,7 @@ namespace AmblOn.State.API.Users.Harness
                 state.UserAlbums = new List<UserAlbum>();
 
             if (state.UserItineraries == null)
-                state.UserItineraries = new List<UserItinerary>();
+                state.UserItineraries = new List<Itinerary>();
 
             state.UserTopLists = state.UserTopLists ?? new List<UserTopList>();
 
@@ -1178,20 +1353,23 @@ namespace AmblOn.State.API.Users.Harness
             return userAlbums;
         }
 
-        protected virtual async Task<List<UserItinerary>> fetchUserItineraries(string email, string entAPIKey)
+        protected virtual async Task<List<Itinerary>> fetchUserItineraries(string email, string entAPIKey)
         {
-            var userItineraries = new List<UserItinerary>();
-
             var itineraries = await amblGraph.ListItineraries(email, entAPIKey);
 
             itineraries.ForEach(
                 async (itinerary) =>
                 {
-                    var itineraryActivities = await amblGraph.ListItineraryActivities(email, entAPIKey, itinerary.ID);
-                    userItineraries.Add(mapUserItinerary(itinerary, itineraryActivities));
+                    var activityGroups = await amblGraph.ListActivityGroups(email, entAPIKey, itinerary.ID);
+
+                    activityGroups.ForEach(
+                        (activityGroup) =>
+                        {
+                            activityGroup.Activities = amblGraph.ListActivities(email, entAPIKey, itinerary.ID, activityGroup.ID).GetAwaiter().GetResult();
+                        });
                 });
 
-            return userItineraries;
+            return itineraries;
         }
 
         protected virtual async Task<List<UserLayer>> fetchUserLayers(string email, string entAPIKey)
@@ -1414,41 +1592,6 @@ namespace AmblOn.State.API.Users.Harness
                 });
 
             return userAlbum;
-        }
-
-        protected virtual UserItinerary mapUserItinerary(Itinerary itinerary, List<ItineraryActivity> itineraryActivities)
-        {
-            var userItinerary = new UserItinerary()
-            {
-                ID = itinerary.ID,
-                Activities = new List<UserItineraryActivity>(),
-                EndDate = itinerary.EndDate,
-                StartDate = itinerary.StartDate,
-                Title = itinerary.Title,
-                CreatedDateTime = itinerary.CreatedDateTime
-            };
-
-            itineraryActivities.ForEach(
-                (itineraryActivity) =>
-                {
-                    var userItineryActivity = mapUserItineraryActivity(itineraryActivity);
-                    userItinerary.Activities.Add(userItineryActivity);
-                });
-
-            return userItinerary;
-        }
-
-        protected virtual UserItineraryActivity mapUserItineraryActivity(ItineraryActivity itineraryActivity)
-        {
-            return new UserItineraryActivity()
-            {
-                ID = itineraryActivity.ID,
-                ActivityName = itineraryActivity.ActivityName,
-                StartDateTime = itineraryActivity.StartDateTime,
-                EndDateTime = itineraryActivity.EndDateTime,
-                LocationID = itineraryActivity.LocationID,
-                CreatedDateTime = itineraryActivity.CreatedDateTime
-            };
         }
 
         protected virtual UserLayer mapUserLayer(Layer layer)

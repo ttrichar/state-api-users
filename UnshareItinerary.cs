@@ -16,29 +16,26 @@ using System.Collections.Generic;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class AddItineraryActivityRequest
+    public class UnshareItineraryRequest
     {
         [DataMember]
-        public virtual UserItineraryActivity ItineraryActivity { get; set; }
+        public virtual Itinerary Itinerary { get; set; }
 
         [DataMember]
-        public virtual Guid ItineraryID { get; set; }
-
-        [DataMember]
-        public virtual Guid LocationID { get; set; }
+        public virtual List<string> Usernames {get; set;}
     }
-    public static class AddItineraryActivity
+    public static class UnshareItinerary
     {
-        [FunctionName("AddItineraryActivity")]
+        [FunctionName("UnshareItinerary")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<AddItineraryActivityRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<UnshareItineraryRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                log.LogInformation($"Adding Itinerary Activity: {reqData.ItineraryID}");
+                log.LogInformation($"Unsharing Itinerary");
 
-                await mgr.AddItineraryActivity(reqData.ItineraryActivity, reqData.ItineraryID, reqData.LocationID);
+                await mgr.UnshareItinerary(reqData.Itinerary, reqData.Usernames);
 
                 return await mgr.WhenAll(
                 );

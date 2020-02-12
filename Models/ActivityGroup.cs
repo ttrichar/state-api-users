@@ -7,24 +7,21 @@ using Fathym.Business.Models;
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class ItineraryActivity : BusinessModel<Guid>
+    public class ActivityGroup : BusinessModel<Guid>
     {   
         [DataMember]
-        public virtual string ActivityName {get; set;}
+        public virtual List<Activity> Activities {get; set;}
 
         [DataMember]
         public virtual DateTime CreatedDateTime {get; set;}
 
         [DataMember]
-        public virtual DateTime EndDateTime {get; set;}
+        public virtual string GroupType {get; set;}
 
         [DataMember]
-        public virtual Guid LocationID {get; set;}
+        public virtual bool Editable {get; set;}
 
         [DataMember]
-        public virtual string Lookup {get; set;}
-
-        [DataMember]
-        public virtual DateTime StartDateTime { get; set; }
+        public virtual string Title {get; set;}
     }
 }

@@ -11,18 +11,24 @@ namespace AmblOn.State.API.Users.Models
     {   
         
         [DataMember]
-        public virtual DateTime CreatedDateTime { get; set; }
-        
-        [DataMember]
-        public virtual DateTime EndDate {get; set;}
+        public virtual List<ActivityGroup> ActivityGroups {get; set;}
 
         [DataMember]
-        public virtual string Lookup {get; set;}
+        public virtual bool Editable {get; set;}
 
         [DataMember]
-        public virtual DateTime StartDate {get; set;}
+        public virtual DateTime CreatedDateTime {get; set;}
 
         [DataMember]
-        public string Title { get; set; }
+        public virtual bool Shared {get; set;}
+
+        [DataMember]
+        public virtual Guid SharedByUserID {get; set;}
+
+        [DataMember]
+        public virtual string SharedByUsername {get; set;}
+
+        [DataMember]
+        public virtual string Title {get; set;}
     }
 }
