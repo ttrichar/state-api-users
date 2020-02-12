@@ -145,7 +145,9 @@ namespace AmblOn.State.API.Users.Harness
                 itinerary.ActivityGroups.ForEach(
                     (activityGroup) =>
                     {
-                        var activityGroupResp = amblGraph.AddActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup).GetAwaiter().GetResult();
+                        activityGroup.CreatedDateTime = DateTime.Now;
+
+                        var activityGroupResp = amblGraph.AddActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup).GetAwaiter().GetResult();
 
                         if (activityGroupResp.Status)
                         {
@@ -154,13 +156,18 @@ namespace AmblOn.State.API.Users.Harness
                             activityGroup.Activities.ForEach(
                                 (activity) =>
                                 {
-                                    var activityResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity).GetAwaiter().GetResult();
+                                    activity.CreatedDateTime = DateTime.Now;
+                                    
+                                    var activityResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity).GetAwaiter().GetResult();
 
                                     if (activityResp.Status)
                                     {
                                         activity.ID = activityResp.Model;
+                                        activityGroup.Activities.Add(activity);
                                     }
                                 });
+
+                            itinerary.ActivityGroups.Add(activityGroup);
                         }
                     });
 
@@ -393,7 +400,7 @@ namespace AmblOn.State.API.Users.Harness
                         activityGroup.Activities.ForEach(
                             (activity) =>
                             {
-                                var actResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity.ID).GetAwaiter().GetResult();
+                                var actResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value).GetAwaiter().GetResult();
 
                                 if (!actResp.Status)
                                     success = false;
@@ -401,7 +408,7 @@ namespace AmblOn.State.API.Users.Harness
 
                         if (success)
                         {
-                            var actGroupResp = amblGraph.DeleteActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID).GetAwaiter().GetResult();
+                            var actGroupResp = amblGraph.DeleteActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value).GetAwaiter().GetResult();
 
                             if (!actGroupResp.Status)
                                 success = false;
@@ -712,7 +719,7 @@ namespace AmblOn.State.API.Users.Harness
 
                                 if (agExisting == null)
                                 {
-                                    var addActGResp = amblGraph.AddActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup).GetAwaiter().GetResult();
+                                    var addActGResp = amblGraph.AddActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup).GetAwaiter().GetResult();
 
                                     if (addActGResp.Status)
                                     {
@@ -721,7 +728,7 @@ namespace AmblOn.State.API.Users.Harness
                                         activityGroup.Activities.ForEach(
                                             (activity) =>
                                             {
-                                                var addActResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity).GetAwaiter().GetResult();
+                                                var addActResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity).GetAwaiter().GetResult();
 
                                                 activity.ID = addActResp.Model;
 
@@ -741,7 +748,7 @@ namespace AmblOn.State.API.Users.Harness
 
                                             if (aExisting == null)
                                             {
-                                                var addActResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity).GetAwaiter().GetResult();
+                                                var addActResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity).GetAwaiter().GetResult();
 
                                                 activity.ID = addActResp.Model;
 
@@ -774,7 +781,7 @@ namespace AmblOn.State.API.Users.Harness
                                 activityGroup.Activities.ForEach(
                                     (activity) =>
                                     {
-                                        var delActResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity.ID).GetAwaiter().GetResult();
+                                        var delActResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value).GetAwaiter().GetResult();
 
                                         if (!delActResp.Status)
                                             success = false;
@@ -782,7 +789,7 @@ namespace AmblOn.State.API.Users.Harness
                                 
                                 if (success)
                                 {
-                                    var delActGResp = amblGraph.DeleteActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID).GetAwaiter().GetResult();
+                                    var delActGResp = amblGraph.DeleteActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value).GetAwaiter().GetResult();
 
                                     if (!delActGResp.Status)
                                         success = false;
@@ -797,7 +804,7 @@ namespace AmblOn.State.API.Users.Harness
 
                                         if (aNew == null)
                                         {
-                                            var delActResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID, activityGroup.ID, activity.ID).GetAwaiter().GetResult();
+                                            var delActResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value).GetAwaiter().GetResult();
 
                                             if (!delActResp.Status)
                                                 success = false;
@@ -1226,7 +1233,7 @@ namespace AmblOn.State.API.Users.Harness
                     itineraries.ForEach(
                         (itinerary) =>
                         {
-                            var result = amblGraph.ShareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID, username).GetAwaiter().GetResult();
+                            var result = amblGraph.ShareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, username).GetAwaiter().GetResult();
 
                             if (!result.Status)
                                 success = false;
@@ -1253,7 +1260,7 @@ namespace AmblOn.State.API.Users.Harness
                     itineraries.ForEach(
                         (itinerary) =>
                         {
-                            var result = amblGraph.UnshareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID, username).GetAwaiter().GetResult();
+                            var result = amblGraph.UnshareItinerary(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, username).GetAwaiter().GetResult();
 
                             if (!result.Status)
                                 success = false;
@@ -1354,12 +1361,12 @@ namespace AmblOn.State.API.Users.Harness
             itineraries.ForEach(
                 async (itinerary) =>
                 {
-                    var activityGroups = await amblGraph.ListActivityGroups(email, entAPIKey, itinerary.ID);
+                    itinerary.ActivityGroups = await amblGraph.ListActivityGroups(email, entAPIKey, itinerary.ID.Value);
 
-                    activityGroups.ForEach(
+                    itinerary.ActivityGroups.ForEach(
                         (activityGroup) =>
                         {
-                            activityGroup.Activities = amblGraph.ListActivities(email, entAPIKey, itinerary.ID, activityGroup.ID).GetAwaiter().GetResult();
+                            activityGroup.Activities = amblGraph.ListActivities(email, entAPIKey, itinerary.ID.Value, activityGroup.ID.Value).GetAwaiter().GetResult();
                         });
                 });
 

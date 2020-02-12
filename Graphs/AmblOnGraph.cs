@@ -133,13 +133,13 @@ namespace AmblOn.State.API.Users.Graphs
 
                     return new BaseResponse<Guid>()
                     {
-                        Model = createdActivity.ID,
+                        Model = createdActivity.ID.Value,
                         Status = Status.Success
                     };
                 }
                 else
                     return new BaseResponse<Guid>() { 
-                        Model = existingActivity.ID,
+                        Model = existingActivity.ID.Value,
                         Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
                     };
             });
@@ -189,13 +189,13 @@ namespace AmblOn.State.API.Users.Graphs
 
                     return new BaseResponse<Guid>()
                     {
-                        Model = createdActivityGroup.ID,
+                        Model = createdActivityGroup.ID.Value,
                         Status = Status.Success
                     };
                 }
                 else
                     return new BaseResponse<Guid>() { 
-                        Model = existingActivityGroup.ID,
+                        Model = existingActivityGroup.ID.Value,
                         Status = Status.Conflict.Clone("An activity group with that title already exists for this user's itinerary.")
                     };
             });
@@ -282,13 +282,13 @@ namespace AmblOn.State.API.Users.Graphs
 
                     return new BaseResponse<Guid>()
                     {
-                        Model = createdItinerary.ID,
+                        Model = createdItinerary.ID.Value,
                         Status = Status.Success
                     };
                 }
                 else
                     return new BaseResponse<Guid>() { 
-                        Model = existingItinerary.ID,
+                        Model = existingItinerary.ID.Value,
                         Status = Status.Conflict.Clone("An itinerary with that title already exists for this user.")
                     };
             });
@@ -1401,7 +1401,7 @@ namespace AmblOn.State.API.Users.Graphs
                 }
                 else
                     return new BaseResponse<Guid>() { 
-                        Model = existingItinerary.ID,
+                        Model = existingItinerary.ID.Value,
                         Status = Status.Conflict.Clone("Itinerary not found.")
                     };
             });
@@ -2154,14 +2154,14 @@ namespace AmblOn.State.API.Users.Graphs
             return existingUser;
         }
 
-        public virtual async Task<Guid> getActivityLocationID(Guid userId, Guid activityId)
+        public virtual async Task<Guid> getActivityLocationID(Guid userId, Guid? activityId)
         {
             return await withG(async (client, g) =>
             {
                 var query = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.ActivityVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityId)
+                    .Has(AmblOnGraphConstants.IDPropertyName, activityId.HasValue ? activityId.Value : Guid.Empty)
                     .Out(AmblOnGraphConstants.OccursAtEdgeName)
                     .HasLabel(AmblOnGraphConstants.LocationVertexName);
 

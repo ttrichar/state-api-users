@@ -7,7 +7,7 @@ using Fathym.Business.Models;
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class Activity : BusinessModel<Guid>
+    public class Activity : BusinessModel<Guid?>
     {   
         [DataMember]
         public virtual bool Checked { get; set; }
@@ -22,7 +22,7 @@ namespace AmblOn.State.API.Users.Models
         public virtual bool Favorited { get; set; }
 
         [DataMember]
-        public virtual Guid LocationID {get; set;}
+        public virtual Guid? LocationID {get; set;}
 
         [DataMember]
         public virtual string Notes { get; set; }

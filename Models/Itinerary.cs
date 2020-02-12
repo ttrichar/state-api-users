@@ -7,7 +7,7 @@ using Fathym.Business.Models;
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class Itinerary : BusinessModel<Guid>
+    public class Itinerary : BusinessModel<Guid?>
     {   
         
         [DataMember]
