@@ -163,11 +163,8 @@ namespace AmblOn.State.API.Users.Harness
                                     if (activityResp.Status)
                                     {
                                         activity.ID = activityResp.Model;
-                                        activityGroup.Activities.Add(activity);
                                     }
                                 });
-
-                            itinerary.ActivityGroups.Add(activityGroup);
                         }
                     });
 
@@ -1171,7 +1168,7 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> SendInvite(List<string> emails)
+        public virtual async Task<UsersState> SendInvites(List<string> emails)
         {
             ensureStateObject();
 
@@ -1225,7 +1222,7 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> ShareItinerary(List<Itinerary> itineraries, List<string> usernames)
+        public virtual async Task<UsersState> ShareItineraries(List<Itinerary> itineraries, List<string> usernames)
         {
             ensureStateObject();
 
@@ -1252,7 +1249,7 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> UnshareItinerary(List<Itinerary> itineraries, List<string> usernames)
+        public virtual async Task<UsersState> UnshareItineraries(List<Itinerary> itineraries, List<string> usernames)
         {
             ensureStateObject();
 

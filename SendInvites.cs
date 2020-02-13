@@ -16,23 +16,23 @@ using System.Collections.Generic;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class SendInviteRequest
+    public class SendInvitesRequest
     {
         [DataMember]
-        public virtual List<string> Email {get; set;}
+        public virtual List<string> Emails {get; set;}
     }
     public static class SendInvite
     {
-        [FunctionName("SendInvite")]
+        [FunctionName("SendInvites")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<SendInviteRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<SendInvitesRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                log.LogInformation($"Sending Invite");
+                log.LogInformation($"Sending Invites");
 
-                await mgr.SendInvite(reqData.Email);
+                await mgr.SendInvites(reqData.Emails);
 
                 return await mgr.WhenAll(
                 );
