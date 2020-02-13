@@ -19,7 +19,7 @@ namespace AmblOn.State.API.Users
     public class SendInviteRequest
     {
         [DataMember]
-        public virtual string Email {get; set;}
+        public virtual List<string> Email {get; set;}
     }
     public static class SendInvite
     {

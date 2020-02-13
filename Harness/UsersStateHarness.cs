@@ -157,7 +157,7 @@ namespace AmblOn.State.API.Users.Harness
                                 (activity) =>
                                 {
                                     activity.CreatedDateTime = DateTime.Now;
-                                    
+
                                     var activityResp = amblGraph.AddActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity).GetAwaiter().GetResult();
 
                                     if (activityResp.Status)
@@ -1171,7 +1171,7 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> SendInvite(string email)
+        public virtual async Task<UsersState> SendInvite(List<string> emails)
         {
             ensureStateObject();
 
@@ -1179,17 +1179,21 @@ namespace AmblOn.State.API.Users.Harness
             var message = "";
             var from = "";
 
-            var mail = new {
-                EmailTo = email,
-                EmailFrom = from,
-                Subject = subject,
-                Content = message
-            };
+            emails.ForEach(
+                (email) =>
+                {
+                    var mail = new {
+                        EmailTo = email,
+                        EmailFrom = from,
+                        Subject = subject,
+                        Content = message
+                    };
 
-            var meta = new MetadataModel();
-            meta.Metadata["AccessRequestEmail"] = JToken.Parse(mail.ToJSON());
+                    var meta = new MetadataModel();
+                    meta.Metadata["AccessRequestEmail"] = JToken.Parse(mail.ToJSON());
 
-            var resp = await appMgr.SendAccessRequestEmail(meta, details.EnterpriseAPIKey);
+                    var resp = appMgr.SendAccessRequestEmail(meta, details.EnterpriseAPIKey).GetAwaiter().GetResult();
+                });
 
             state.Loading = false;
 

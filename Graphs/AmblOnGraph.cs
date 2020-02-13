@@ -127,9 +127,12 @@ namespace AmblOn.State.API.Users.Graphs
 
                     await Submit(activityGroupEdgeQuery);
 
-                     var locationEdgeQuery = g.V(createdActivity.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(activity.LocationID));
+                    if (activity.LocationID != null && activity.LocationID != Guid.Empty)
+                    {
+                        var locationEdgeQuery = g.V(createdActivity.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(activity.LocationID));
 
-                    await Submit(locationEdgeQuery);
+                        await Submit(locationEdgeQuery);
+                    }
 
                     return new BaseResponse<Guid>()
                     {
@@ -1226,7 +1229,6 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Checked", activity.Checked)
                         .Property("CreatedDateTime", activity.CreatedDateTime)
                         .Property("Favorited", activity.Favorited)
-                        .Property("LocationID", activity.LocationID)
                         .Property("Notes", activity.Notes ?? "")
                         .Property("Title", activity.Title ?? "")
                         .Property("TransportIcon", activity.TransportIcon ?? "")
@@ -1236,7 +1238,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                     var editedActivity = editActivityResults?.FirstOrDefault();
 
-                    if (existingActivity.LocationID != activity.LocationID)
+                    if (existingActivity.LocationID != activity.LocationID && activity.LocationID != null && activity.LocationID != Guid.Empty)
                     {
                          var deleteLocationEdgeQuery = g.V(activity.ID).OutE(AmblOnGraphConstants.OccursAtEdgeName).Drop();
 
