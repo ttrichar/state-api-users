@@ -738,6 +738,57 @@ namespace AmblOn.State.API.Users.Graphs
                     };
             });
         }
+
+        public virtual async Task<BaseResponse<Guid>> AddUserInfo(string email, string entAPIKey, UserInfo userInfo)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|UserInfo";
+
+                var existingUserInfoQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.UserInfoVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingUserInfos = await Submit<UserInfo>(existingUserInfoQuery);
+
+                var existingUserInfo = existingUserInfos?.FirstOrDefault();
+
+                if (existingUserInfo == null)
+                {
+                    var partKey = email?.Split('@')[1];
+
+                    var createQuery = g.AddV(AmblOnGraphConstants.UserInfoVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, partKey)
+                        .Property("Lookup", lookup)
+                        .Property("Country", userInfo.Country ?? "")
+                        .Property("FirstName", userInfo.FirstName ?? "")
+                        .Property("LastName", userInfo.LastName ?? "")
+                        .Property("Zip", userInfo.Zip);
+
+                    var createUserInfo = await Submit<UserInfo>(createQuery);
+
+                    var createdUserInfo = createUserInfo?.FirstOrDefault();
+
+                    // Add edge to from user vertex to newly created top list vertex
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdUserInfo.ID));
+                    await Submit(userEdgeQuery);
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdUserInfo.ID.Value,
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse<Guid>() { 
+                        Model = existingUserInfo.ID.Value,
+                        Status = Status.Conflict.Clone("A User Info record already exists for this user.")
+                    };
+            });
+        }
         #endregion
 
         #region Delete
@@ -1370,7 +1421,6 @@ namespace AmblOn.State.API.Users.Graphs
                     return new BaseResponse() { Status = Status.NotLocated.Clone("This album does not exist for this user")};
             });
         }
-
         public virtual async Task<BaseResponse> EditItinerary(string email, string entAPIKey, Itinerary itinerary)
         {
             return await withG(async (client, g) =>
@@ -1638,6 +1688,44 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> EditUserInfo(string email, string entAPIKey, UserInfo userInfo)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|UserInfo";
+
+                var existingUserInfoQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.UserInfoVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, userInfo.ID);
+                
+                var existingUserInfos = await Submit<UserInfo>(existingUserInfoQuery);
+
+                var existingUserInfo = existingUserInfos?.FirstOrDefault();
+
+                if (existingUserInfo != null)
+                {                               
+                    var editQuery = g.V(userInfo.ID)
+                        .Property("Country", userInfo.Country ?? "")
+                        .Property("FirstName", userInfo.FirstName ?? "")
+                        .Property("LastName", userInfo.LastName)
+                        .Property("Zip", userInfo.Zip);
+
+                    
+                    await Submit(editQuery);
+
+                    return new BaseResponse()
+                    {
+                        Status = Status.Success
+                    };
+                }
+                else
+                    return new BaseResponse() { Status = Status.NotLocated.Clone("This User Info record does not exist for this user")};
+            });
+        }
+
         public virtual async Task<BaseResponse> EditExcludedCurations(string email, string entAPIKey, ExcludedCurations curations)
         {
             return await withG(async (client, g) =>
@@ -1686,6 +1774,38 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion 
 
         #region List
+        public virtual async Task<BaseResponse<UserInfo>> GetUserInfo(string email, string entAPIKey)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var lookup = userId.ToString() + "|UserInfo";
+
+                var existingUserInfoQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.UserInfoVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingUserInfos = await Submit<UserInfo>(existingUserInfoQuery);
+
+                var existingUserInfo = existingUserInfos?.FirstOrDefault();
+
+                if (existingUserInfo != null)
+                {                               
+                    return new BaseResponse<UserInfo>()
+                    {
+                        Status = Status.Success,
+                        Model = existingUserInfo
+                    };
+                }
+                else
+                    return new BaseResponse<UserInfo>()
+                    {
+                        Status = Status.NotLocated
+                    };
+            });
+        }
         public virtual async Task<List<Activity>> ListActivities(string email, string entAPIKey, Guid itineraryId, Guid activityGroupId)
         {
             return await withG(async (client, g) =>

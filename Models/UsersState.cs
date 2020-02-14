@@ -41,6 +41,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual List<UserAlbum> UserAlbums {get; set;}
 
         [DataMember]
+        public virtual UserInfo UserInfo {get; set;}
+
+        [DataMember]
         public virtual List<Itinerary> UserItineraries {get; set;}
 
         [DataMember]

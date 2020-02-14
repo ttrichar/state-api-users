@@ -59,6 +59,8 @@ namespace AmblOn.State.API.Users.Graphs
 
 		public const string TopListVertexName = "TopList";
 
+		public const string UserInfoVertexName = "UserInfo";
+
 		public const string ExcludedCurationsName = "ExcludedCurations";
     }
 

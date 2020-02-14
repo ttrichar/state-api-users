@@ -304,6 +304,24 @@ namespace AmblOn.State.API.Users.Harness
 
             return state;
         }
+        
+        public virtual async Task<UsersState> AddUserInfo(UserInfo userInfo)
+        {
+            ensureStateObject();
+
+            var userInfoResp = await amblGraph.AddUserInfo(details.Username, details.EnterpriseAPIKey, userInfo);
+
+            if (userInfoResp.Status)
+            {
+                userInfo.ID = userInfoResp.Model;
+
+                state.UserInfo = userInfo;
+            }
+
+            state.Loading = false;
+
+            return state;
+        }
         #endregion
         public virtual async Task<UsersState> ChangeViewingArea(float[] coordinates)
         {
@@ -945,6 +963,29 @@ namespace AmblOn.State.API.Users.Harness
                     state.UserTopLists = state.UserTopLists.Distinct().ToList();
                 }
             }
+
+            state.Loading = false;
+
+            return state;
+        }
+
+        public virtual async Task<UsersState> EditUserInfo(UserInfo userInfo)
+        {
+            ensureStateObject();
+
+            var existing = state.UserInfo;
+
+            if (existing != null)
+            {
+                var userInfoResp = await amblGraph.EditUserInfo(details.Username, details.EnterpriseAPIKey, userInfo);
+
+                if (userInfoResp.Status)
+                {
+                    state.UserInfo = userInfo;
+                }
+            }
+            else
+                state.Error = "No User Info Record Exists";
 
             state.Loading = false;
 
