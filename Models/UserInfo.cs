@@ -12,6 +12,9 @@ namespace AmblOn.State.API.Users.Models
 
         [DataMember]
         public virtual string Country { get; set; }
+
+        [DataMember]
+        public virtual string Email {get; set;}
         
         [DataMember]
         public string FirstName { get; set; }

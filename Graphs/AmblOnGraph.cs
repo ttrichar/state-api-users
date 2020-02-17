@@ -111,6 +111,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("CreatedDateTime", activity.CreatedDateTime)
                         .Property("Favorited", activity.Favorited)
                         .Property("Notes", activity.Notes ?? "")
+                        .Property("Order", activity.Order)
                         .Property("Title", activity.Title ?? "")
                         .Property("TransportIcon", activity.TransportIcon ?? "")
                         .Property("WidgetIcon", activity.WidgetIcon ?? "");
@@ -175,6 +176,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Lookup", lookup)
                         .Property("GroupType", activityGroup.GroupType ?? "")
                         .Property("CreatedDateTime", activityGroup.CreatedDateTime)
+                        .Property("Order", activityGroup.Order)
                         .Property("Checked", activityGroup.Checked)
                         .Property("Title", activityGroup.Title ?? "");
 
@@ -1281,6 +1283,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("CreatedDateTime", activity.CreatedDateTime)
                         .Property("Favorited", activity.Favorited)
                         .Property("Notes", activity.Notes ?? "")
+                        .Property("Order", activity.Order)
                         .Property("Title", activity.Title ?? "")
                         .Property("TransportIcon", activity.TransportIcon ?? "")
                         .Property("WidgetIcon", activity.WidgetIcon ?? "");
@@ -1332,6 +1335,7 @@ namespace AmblOn.State.API.Users.Graphs
                     var editQuery = g.V(activityGroup.ID)
                         .Property("GroupType", activityGroup.GroupType ?? "")
                         .Property("CreatedDateTime", activityGroup.CreatedDateTime)
+                        .Property("Order", activityGroup.Order)
                         .Property("Title", activityGroup.Title ?? "");
 
                     var editActivityGroupResults = await Submit<ActivityGroup>(editQuery);

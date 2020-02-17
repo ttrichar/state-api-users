@@ -28,6 +28,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual string Notes { get; set; }
 
         [DataMember]
+        public virtual int Order {get; set;}
+
+        [DataMember]
         public virtual string Title {get; set;}
 
         [DataMember]

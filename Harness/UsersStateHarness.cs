@@ -981,7 +981,7 @@ namespace AmblOn.State.API.Users.Harness
 
                 if (userInfoResp.Status)
                 {
-                    state.UserInfo = userInfo;
+                    state.UserInfo = userInfo; 
                 }
             }
             else
@@ -996,6 +996,10 @@ namespace AmblOn.State.API.Users.Harness
         public virtual async Task<UsersState> Ensure()
         {
             ensureStateObject();
+
+            state.UserInfo = amblGraph.GetUserInfo(details.Username, details.EnterpriseAPIKey).GetAwaiter().GetResult().Model;
+
+            state.UserInfo.Email = details.Username;
 
             state.UserAlbums = await fetchUserAlbums(details.Username, details.EnterpriseAPIKey);
 

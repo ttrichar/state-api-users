@@ -25,6 +25,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual bool Editable {get; set;}
 
         [DataMember]
+        public virtual int Order {get; set;}
+
+        [DataMember]
         public virtual string Title {get; set;}
     }
 }
