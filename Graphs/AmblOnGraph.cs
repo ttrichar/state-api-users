@@ -2178,8 +2178,9 @@ namespace AmblOn.State.API.Users.Graphs
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
+                var shareUserId = await ensureAmblOnUser(g, shareWithUsername, entAPIKey);
 
-                var existingItineraryQuery = g.V(userId)
+                var existingItineraryQuery = g.V(shareUserId)
                     .Out(AmblOnGraphConstants.CanViewEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, itineraryId);
@@ -2190,7 +2191,10 @@ namespace AmblOn.State.API.Users.Graphs
 
                 if (existingItinerary == null)
                 {
-                    var objectQuery = g.V(itineraryId);
+                    var objectQuery = g.V(userId)
+                        .Out(AmblOnGraphConstants.OwnsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                        .Has(AmblOnGraphConstants.IDPropertyName, itineraryId);
 
                     var existingObjects = await Submit<Itinerary>(objectQuery);
 
@@ -2198,7 +2202,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                     if (existingObject != null)
                     {
-                        var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.CanViewEdgeName).To(g.V(itineraryId));
+                        var userEdgeQuery = g.V(shareUserId).AddE(AmblOnGraphConstants.CanViewEdgeName).To(g.V(itineraryId));
 
                         await Submit(userEdgeQuery);
 

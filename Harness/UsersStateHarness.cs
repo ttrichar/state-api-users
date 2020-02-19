@@ -1223,9 +1223,9 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
-            var subject = "";
-            var message = "";
-            var from = "";
+            var subject = Environment.GetEnvironmentVariable("INVITE-EMAIL-SUBJECT");
+            var message = Environment.GetEnvironmentVariable("INVITE-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
+            var from = Environment.GetEnvironmentVariable("FROM-EMAIL");
 
             emails.ForEach(
                 (email) =>
@@ -1277,6 +1277,16 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
+            var name = details.Username;
+            if (state.UserInfo != null)
+                name = state.UserInfo.FirstName + " " + state.UserInfo.LastName;
+
+            var subject = Environment.GetEnvironmentVariable("SHARE-ITINERARY-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
+            var message = Environment.GetEnvironmentVariable("SHARE-ITINERARY-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
+            var from = Environment.GetEnvironmentVariable("FROM-EMAIL");
+
+            Dictionary<string, string> results = new Dictionary<string, string>();
+
             var success = true;
 
             usernames.ForEach(
@@ -1289,6 +1299,23 @@ namespace AmblOn.State.API.Users.Harness
 
                             if (!result.Status)
                                 success = false;
+                            else
+                            {
+                                var mail = new {
+                                    EmailTo = username,
+                                    EmailFrom = from,
+                                    Subject = subject,
+                                    Content = message
+                                };
+
+                                var meta = new MetadataModel();
+                                meta.Metadata["AccessRequestEmail"] = JToken.Parse(mail.ToJSON());
+
+                                var resp = appMgr.SendAccessRequestEmail(meta, details.EnterpriseAPIKey).GetAwaiter().GetResult();
+
+                                if (!resp.Status)
+                                    success = false;
+                            }
                         });
                 });
 
@@ -1345,6 +1372,8 @@ namespace AmblOn.State.API.Users.Harness
         protected virtual void ensureStateObject()
         {
             state.Error = "";
+
+            state.Status = "";
 
             if (state.SelectedUserLayerIDs == null)
                 state.SelectedUserLayerIDs = new List<Guid>();

@@ -61,5 +61,8 @@ namespace AmblOn.State.API.Users.Models
         [DataMember]
         public virtual ExcludedCurations ExcludedCuratedLocations { get; set; }
 
+        [DataMember]
+        public virtual string Status {get; set;}
+
     }
 }
