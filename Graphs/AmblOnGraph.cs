@@ -85,7 +85,8 @@ namespace AmblOn.State.API.Users.Graphs
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var lookup = userId.ToString() + "|" + itineraryId.ToString() + "|" + activityGroupId.ToString() + "|" + activity.Title.Replace(" ", "_") + "|" + (activity.LocationID.HasValue ? activity.LocationID.Value.ToString() : Guid.Empty.ToString());
+                var lookup = userId.ToString() + "|" + itineraryId.ToString() + "|" + activityGroupId.ToString() + "|" + activity.Title.Replace(" ", "_") + "|" + 
+                (activity.LocationID.HasValue ? activity.LocationID.Value.ToString() : Guid.Empty.ToString()) + "|" + activity.Order.ToString();
 
                 var existingActivityQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
