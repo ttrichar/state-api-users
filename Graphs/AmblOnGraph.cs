@@ -275,6 +275,10 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property(AmblOnGraphConstants.PartitionKeyName, "Itinerary|" + itinerary.Title.Substring(0,1))
                         .Property("Lookup", lookup)
                         .Property("CreatedDateTime", itinerary.CreatedDateTime)
+                        .Property("Shared", itinerary.Shared)
+                        .Property("SharedByUsername", "")
+                        .Property("SharedByUserID", Guid.Empty)
+                        .Property("Editable", itinerary.Editable)
                         .Property("Title", itinerary.Title ?? "");
 
                     var createItineraryResults = await Submit<Itinerary>(createQuery);
@@ -1444,7 +1448,11 @@ namespace AmblOn.State.API.Users.Graphs
                 {
                     var editQuery = g.V(itinerary.ID)
                         .Property("CreatedDateTime", itinerary.CreatedDateTime)
-                        .Property("Title", itinerary.Title ?? "");
+                        .Property("Title", itinerary.Title ?? "")
+                        .Property("Shared", itinerary.Shared)
+                        .Property("SharedByUsername", itinerary.SharedByUsername ?? "")
+                        .Property("SharedByUserID", itinerary.SharedByUserID)
+                        .Property("Editable", itinerary.Editable);
 
                     var editItineraryResults = await Submit<Itinerary>(editQuery);
 

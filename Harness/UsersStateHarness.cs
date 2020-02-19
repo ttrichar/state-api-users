@@ -135,6 +135,8 @@ namespace AmblOn.State.API.Users.Harness
             ensureStateObject();
 
             itinerary.CreatedDateTime = DateTime.Now;
+            itinerary.Shared = false;
+            itinerary.Editable = true;
 
             var itineraryResp = await amblGraph.AddItinerary(details.Username, details.EnterpriseAPIKey, itinerary);
 
@@ -997,9 +999,13 @@ namespace AmblOn.State.API.Users.Harness
         {
             ensureStateObject();
 
-            state.UserInfo = amblGraph.GetUserInfo(details.Username, details.EnterpriseAPIKey).GetAwaiter().GetResult().Model;
+            var userInfoResp = amblGraph.GetUserInfo(details.Username, details.EnterpriseAPIKey).GetAwaiter().GetResult();
 
-            state.UserInfo.Email = details.Username;
+            if (userInfoResp.Status)
+            {
+                state.UserInfo = userInfoResp.Model;
+                state.UserInfo.Email = details.Username;
+            }
 
             state.UserAlbums = await fetchUserAlbums(details.Username, details.EnterpriseAPIKey);
 
@@ -1405,9 +1411,9 @@ namespace AmblOn.State.API.Users.Harness
             var itineraries = await amblGraph.ListItineraries(email, entAPIKey);
 
             itineraries.ForEach(
-                async (itinerary) =>
+                (itinerary) =>
                 {
-                    itinerary.ActivityGroups = await amblGraph.ListActivityGroups(email, entAPIKey, itinerary.ID.Value);
+                    itinerary.ActivityGroups = amblGraph.ListActivityGroups(email, entAPIKey, itinerary.ID.Value).GetAwaiter().GetResult();
 
                     itinerary.ActivityGroups.ForEach(
                         (activityGroup) =>
