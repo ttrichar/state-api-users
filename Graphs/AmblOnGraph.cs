@@ -1297,15 +1297,18 @@ namespace AmblOn.State.API.Users.Graphs
 
                     var editedActivity = editActivityResults?.FirstOrDefault();
 
-                    if (existingActivity.LocationID != activity.LocationID && activity.LocationID != null && activity.LocationID != Guid.Empty)
+                    if (existingActivity.LocationID != activity.LocationID)
                     {
                          var deleteLocationEdgeQuery = g.V(activity.ID).OutE(AmblOnGraphConstants.OccursAtEdgeName).Drop();
 
                         await Submit(deleteLocationEdgeQuery);
 
-                        var locationEdgeQuery = g.V(activity.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(activity.LocationID));
+                        if (activity.LocationID != null && activity.LocationID != Guid.Empty)
+                        {
+                            var locationEdgeQuery = g.V(activity.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(activity.LocationID));
 
-                        await Submit(locationEdgeQuery);
+                            await Submit(locationEdgeQuery);
+                        }
                     }
 
                     return new BaseResponse()
