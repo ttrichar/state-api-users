@@ -401,59 +401,64 @@ namespace AmblOn.State.API.Users.Harness
             return state;
         }
 
-        public virtual async Task<UsersState> DeleteItinerary(Guid itineraryID)
+        public virtual async Task<UsersState> DeleteItineraries(List<Guid> itineraryIDs)
         {
             ensureStateObject();
 
-            var itinerary = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
+            var success = true;
 
-            if (itinerary != null)
-            {
-                var success = true;
+            itineraryIDs.ForEach(
+                (itineraryID) =>
+                {
+                    var itinerary = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
 
-                itinerary.ActivityGroups.ForEach(
-                    (activityGroup) =>
+                    if (itinerary != null)
                     {
-                        activityGroup.Activities.ForEach(
-                            (activity) =>
+                        itinerary.ActivityGroups.ForEach(
+                            (activityGroup) =>
                             {
-                                var actResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value).GetAwaiter().GetResult();
+                                activityGroup.Activities.ForEach(
+                                    (activity) =>
+                                    {
+                                        var actResp = amblGraph.DeleteActivity(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value).GetAwaiter().GetResult();
 
-                                if (!actResp.Status)
-                                    success = false;
+                                        if (!actResp.Status)
+                                            success = false;
+                                    });
+
+                                if (success)
+                                {
+                                    var actGroupResp = amblGraph.DeleteActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value).GetAwaiter().GetResult();
+
+                                    if (!actGroupResp.Status)
+                                        success = false;
+                                }
                             });
 
                         if (success)
                         {
-                            var actGroupResp = amblGraph.DeleteActivityGroup(details.Username, details.EnterpriseAPIKey, itinerary.ID.Value, activityGroup.ID.Value).GetAwaiter().GetResult();
+                            var itineraryResp = amblGraph.DeleteItinerary(details.Username, details.EnterpriseAPIKey, itineraryID).GetAwaiter().GetResult();
 
-                            if (!actGroupResp.Status)
+                            if (!itineraryResp.Status)
                                 success = false;
                         }
-                    });
 
-                if (success)
-                {
-                    var itineraryResp = await amblGraph.DeleteItinerary(details.Username, details.EnterpriseAPIKey, itineraryID);
+                        if (success)
+                        {
+                            var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
 
-                    if (!itineraryResp.Status)
+                            if (existing != null)
+                                state.UserItineraries.Remove(existing);
+
+                            state.UserItineraries = state.UserItineraries.Distinct().ToList();
+                        }
+                    }
+                    else
                         success = false;
-                }
-
-                if (success)
-                {
-                    var existing = state.UserItineraries.FirstOrDefault(x => x.ID == itineraryID);
-
-                    if (existing != null)
-                        state.UserItineraries.Remove(existing);
-
-                    state.UserItineraries = state.UserItineraries.Distinct().ToList();
-                }
-                else
-                    state.Error = "Error deleting itinerary.";
-            }
-            else
-                state.Error = "Itinerary not found.";
+                });
+            
+            if (!success)
+                state.Error = "General Error";
 
             state.Loading = false;
 

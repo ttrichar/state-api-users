@@ -16,23 +16,23 @@ using System.Collections.Generic;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class DeleteItineraryRequest
+    public class DeleteItinerariesRequest
     {
         [DataMember]
-        public virtual Guid ItineraryID { get; set; }
+        public virtual List<Guid> ItineraryIDs { get; set; }
     }
-    public static class DeleteItinerary
+    public static class DeleteItineraries
     {
-        [FunctionName("DeleteItinerary")]
+        [FunctionName("DeleteItineraries")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            return await req.Manage<DeleteItineraryRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await req.Manage<DeleteItinerariesRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
             {
-                log.LogInformation($"Deleting Itinerary: {reqData.ItineraryID}");
+                log.LogInformation($"Deleting Itineraries");
 
-                await mgr.DeleteItinerary(reqData.ItineraryID);
+                await mgr.DeleteItineraries(reqData.ItineraryIDs);
 
                 return await mgr.WhenAll(
                 );
