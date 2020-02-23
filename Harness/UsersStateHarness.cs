@@ -1235,17 +1235,29 @@ namespace AmblOn.State.API.Users.Harness
             emails.ForEach(
                 (email) =>
                 {
-                    var mail = new {
-                        EmailTo = email,
+                   
+                    var meta = new MetadataModel();
+
+                    var mail = new
+                    {
                         EmailFrom = from,
+                        EmailTo = email,
                         Subject = subject,
                         Content = message
                     };
+                    
+                    var obj = JToken.FromObject(mail);
+                    
+                    meta.Metadata["AccessRequestEmail"] = obj;
 
-                    var meta = new MetadataModel();
-                    meta.Metadata["AccessRequestEmail"] = JToken.Parse(mail.ToJSON());
+                    try
+                    {
+                        var resp = appMgr.SendAccessRequestEmail(meta, details.EnterpriseAPIKey).GetAwaiter().GetResult();
+                    }
+                    catch(Exception ex)
+                    {
 
-                    var resp = appMgr.SendAccessRequestEmail(meta, details.EnterpriseAPIKey).GetAwaiter().GetResult();
+                    }
                 });
 
             state.Loading = false;
@@ -1286,8 +1298,8 @@ namespace AmblOn.State.API.Users.Harness
             if (state.UserInfo != null)
                 name = state.UserInfo.FirstName + " " + state.UserInfo.LastName;
 
-            var subject = Environment.GetEnvironmentVariable("SHARE-ITINERARY-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
-            var message = Environment.GetEnvironmentVariable("SHARE-ITINERARY-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
+            var subject = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
+            var message = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
             var from = Environment.GetEnvironmentVariable("FROM-EMAIL");
 
             Dictionary<string, string> results = new Dictionary<string, string>();
@@ -1314,7 +1326,8 @@ namespace AmblOn.State.API.Users.Harness
                                 };
 
                                 var meta = new MetadataModel();
-                                meta.Metadata["AccessRequestEmail"] = JToken.Parse(mail.ToJSON());
+                                
+                                meta.Metadata["AccessRequestEmail"] = JToken.FromObject(mail);
 
                                 var resp = appMgr.SendAccessRequestEmail(meta, details.EnterpriseAPIKey).GetAwaiter().GetResult();
 
