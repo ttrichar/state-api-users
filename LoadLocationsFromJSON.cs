@@ -8,28 +8,28 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
 
 namespace AmblOn.State.API.Users
 {
-    public static class LoadLocationsFromJSON
+    public class LoadLocationsFromJSON
     {
         [Disable]
         [FunctionName("LoadLocationsFromJSON")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await req.Manage<dynamic, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await stateBlob.WithStateHarness<UsersState, RemoveSelectedLayerRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Loading Locations from JSON");
+                log.LogInformation($"LoadLocationsFromJSON");
 
-                var json = String.Empty;
-                
-                //await mgr.LoadCuratedLocationsIntoDB("moxhay@gmail.com", json, new Guid("4704a25b-049b-49a9-90b0-2551b40045c3"));
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                //await harness.LoadCuratedLocationsIntoDB("moxhay@gmail.com", json, new Guid("4704a25b-049b-49a9-90b0-2551b40045c3"));
+
+                return Status.Success;
             });
         }
     }

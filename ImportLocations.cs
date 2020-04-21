@@ -10,13 +10,12 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
 using System.Runtime.Serialization;
+using AmblOn.State.API.Users.Graphs;
 
 namespace AmblOn.State.API.Users
 {
-    public static class ImportLocations
-    {
         public class ImportLocationsRequest
         {
             [DataMember]
@@ -32,21 +31,36 @@ namespace AmblOn.State.API.Users
             public virtual List<string> AccoladeList {get; set;}
         }
 
+    public class ImportLocations
+    {
+        #region Fields
+        protected AmblOnGraph amblGraph;
+        #endregion
+
+        #region Constructors
+        public ImportLocations(AmblOnGraph amblGraph)
+        {
+            this.amblGraph = amblGraph;
+        }
+        #endregion
+
         [FunctionName("ImportLocations")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
-        {            
-            return await req.Manage<ImportLocationsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+        {
+            return await stateBlob.WithStateHarness<UsersState, ImportLocationsRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Importing Locations");
+                log.LogInformation($"ImportLocations");
 
-                await mgr.LoadCuratedLocationsIntoDB(reqData.OwnerEmail, reqData.LocationImportJSON, reqData.AccoladeList, new Guid(reqData.LayerID));
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                await harness.LoadCuratedLocationsIntoDB(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, 
+                    reqData.LocationImportJSON, reqData.AccoladeList, new Guid(reqData.LayerID));
+
+                return Status.Success;
             });
-
         }
     }
 }

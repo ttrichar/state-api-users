@@ -8,12 +8,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
 using System.Drawing;
 using LCU.Presentation;
+using AmblOn.State.API.Users.Graphs;
+using LCU.Personas.Client.Enterprises;
+using LCU.Personas.Client.Applications;
 
 namespace AmblOn.State.API.Users
 {
@@ -26,21 +29,43 @@ namespace AmblOn.State.API.Users
         [DataMember]
         public virtual List<ImageMessage> Images {get; set;}
     }
-    public static class AddAlbum
+
+    public class AddAlbum
     {
-        [FunctionName("AddAlbum")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        #region Fields
+        protected AmblOnGraph amblGraph;
+        
+        protected ApplicationManagerClient appMgr;
+        
+        protected EnterpriseManagerClient entMgr;
+        #endregion
+
+        #region Constructors
+        public AddAlbum(AmblOnGraph amblGraph, EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr)
         {
-            return await req.Manage<AddAlbumRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            this.amblGraph = amblGraph;
+            
+            this.appMgr = appMgr;
+            
+            this.entMgr = entMgr;
+        }
+        #endregion
+
+        [FunctionName("AddAlbum")]
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+        {
+            return await stateBlob.WithStateHarness<UsersState, AddAlbumRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Adding Album");
+                log.LogInformation($"AddAlbum");
 
-                await mgr.AddAlbum(reqData.Album, reqData.Images);
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                await harness.AddAlbum(entMgr, appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, stateDetails.ApplicationID, reqData.Album, reqData.Images);
+
+                return Status.Success;
             });
         }
     }

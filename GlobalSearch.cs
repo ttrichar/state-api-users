@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
@@ -21,21 +21,24 @@ namespace AmblOn.State.API.Users
         [DataMember]
         public virtual string SearchTerm { get; set; }
     }
-    public static class GlobalSearch
+
+    public class GlobalSearch
     {
         [FunctionName("GlobalSearch")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await req.Manage<GlobalSearchRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await stateBlob.WithStateHarness<UsersState, GlobalSearchRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Executing Global Search: {reqData.SearchTerm}");
+                log.LogInformation($"GlobalSearch");
 
-                await mgr.GlobalSearch(reqData.SearchTerm);
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                await harness.GlobalSearch(reqData.SearchTerm);
+
+                return Status.Success;
             });
         }
     }

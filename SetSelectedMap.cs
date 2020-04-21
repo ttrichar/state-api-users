@@ -9,7 +9,12 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Runtime.Serialization;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;
+using Microsoft.Azure.WebJobs.Extensions.SignalRService;
+using AmblOn.State.API.Users.State;
+using Microsoft.WindowsAzure.Storage.Blob;
+using LCU.StateAPI.Utilities;
+using AmblOn.State.API.Users.Graphs;
 
 namespace AmblOn.State.API.Users
 {
@@ -20,18 +25,21 @@ namespace AmblOn.State.API.Users
         public virtual Guid MapID { get; set; }
     }
 
-    public static class SetSelectedMap
+    public class SetSelectedMap
     {
         [FunctionName("SetSelectedMap")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await req.Manage<SetSelectedMapRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            return await stateBlob.WithStateHarness<UsersState, SetSelectedMapRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Setting Selected Map: {reqData.MapID}");
+                log.LogInformation($"SetSelectedMap");
 
-                return await mgr.SetSelectedMap(reqData.MapID);
+                await harness.SetSelectedMap(reqData.MapID);
+
+                return Status.Success;
             });
         }
     }

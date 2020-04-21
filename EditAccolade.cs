@@ -8,12 +8,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
 using System.Drawing;
 using LCU.Presentation;
+using AmblOn.State.API.Users.Graphs;
 
 namespace AmblOn.State.API.Users
 {
@@ -27,21 +28,34 @@ namespace AmblOn.State.API.Users
         public virtual Guid LocationID { get; set; }
     }
 
-    public static class EditAccolade
+    public class EditAccolade
     {
-        [FunctionName("EditAccolade")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        #region Fields
+        protected AmblOnGraph amblGraph;
+        #endregion
+
+        #region Constructors
+        public EditAccolade(AmblOnGraph amblGraph)
         {
-            return await req.Manage<AddAccoladeRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            this.amblGraph = amblGraph;
+        }
+        #endregion
+
+        [FunctionName("EditAccolade")]
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+        {
+            return await stateBlob.WithStateHarness<UsersState, AddAccoladeRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Editing Accolade");
+                log.LogInformation($"EditAccolade");
 
-                await mgr.EditAccolade(reqData.Accolade, reqData.LocationID);
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                await harness.EditAccolade(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Accolade, reqData.LocationID);
+
+                return Status.Success;
             });
         }
     }

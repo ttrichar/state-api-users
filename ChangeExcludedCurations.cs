@@ -9,7 +9,8 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Runtime.Serialization;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
+using AmblOn.State.API.Users.Graphs;
 
 namespace AmblOn.State.API.Users
 {
@@ -20,22 +21,39 @@ namespace AmblOn.State.API.Users
         public virtual string LocationIDs { get; set; }
     }
 
-    public static class ChangeExcludedCurations
+    public class ChangeExcludedCurations
     {
-        [FunctionName("ChangeExcludedCurations")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        #region Fields
+        protected AmblOnGraph amblGraph;
+        #endregion
+
+        #region Constructors
+        public ChangeExcludedCurations(AmblOnGraph amblGraph)
         {
-            return await req.Manage<ChangeExcludedCurationsRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            this.amblGraph = amblGraph;
+        }
+        #endregion
+
+        [FunctionName("ChangeExcludedCurations")]
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+        {
+            return await stateBlob.WithStateHarness<UsersState, ChangeExcludedCurationsRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                var curationList = new ExcludedCurations(){
-                        LocationIDs = reqData.LocationIDs
+                log.LogInformation($"ChangeExcludedCurations");
+
+                var stateDetails = StateUtils.LoadStateDetails(req);
+
+                var curationList = new ExcludedCurations()
+                {
+                    LocationIDs = reqData.LocationIDs
                 };
 
-                log.LogInformation($"Change excluded curated locations: {curationList}");
+                await harness.ChangeExcludedCurations(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, curationList);
 
-                return await mgr.ChangeExcludedCurations(curationList);
+                return Status.Success;
             });
         }
     }

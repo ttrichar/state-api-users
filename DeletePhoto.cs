@@ -8,10 +8,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
+using AmblOn.State.API.Users.Graphs;
 
 namespace AmblOn.State.API.Users
 {
@@ -21,21 +22,35 @@ namespace AmblOn.State.API.Users
         [DataMember]
         public virtual Guid PhotoID { get; set; }
     }
-    public static class DeletePhoto
+
+    public class DeletePhoto
     {
-        [FunctionName("DeletePhoto")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        #region Fields
+        protected AmblOnGraph amblGraph;
+        #endregion
+
+        #region Constructors
+        public DeletePhoto(AmblOnGraph amblGraph)
         {
-            return await req.Manage<DeletePhotoRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            this.amblGraph = amblGraph;
+        }
+        #endregion
+
+        [FunctionName("DeletePhoto")]
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+        {
+            return await stateBlob.WithStateHarness<UsersState, DeletePhotoRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Deleting Photo: {reqData.PhotoID}");
+                log.LogInformation($"DeletePhoto");
 
-                await mgr.DeletePhoto(reqData.PhotoID);
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                await harness.DeletePhoto(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.PhotoID);
+
+                return Status.Success;
             });
         }
     }

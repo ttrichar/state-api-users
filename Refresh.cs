@@ -8,27 +8,52 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
 using Microsoft.WindowsAzure.Storage;
+using Fathym;
+using Microsoft.Azure.WebJobs.Extensions.SignalRService;
+using AmblOn.State.API.Users.State;
+using Microsoft.WindowsAzure.Storage.Blob;
+using Fathym.API;
+using System.Runtime.Serialization;
+using LCU.StateAPI.Utilities;
+using AmblOn.State.API.Users.Graphs;
 
 namespace AmblOn.State.API.Users
 {
-    public static class Refresh
+    [Serializable]
+    [DataContract]
+    public class RefreshRequest : BaseRequest
+    { }
+
+    public class Refresh
     {
-        [FunctionName("Refresh")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        #region Fields
+        protected AmblOnGraph amblGraph;
+        #endregion
+
+        #region Constructors
+        public Refresh(AmblOnGraph amblGraph)
         {
-            return await req.Manage<dynamic, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            this.amblGraph = amblGraph;
+        }
+        #endregion
+
+        [FunctionName("Refresh")]
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+        {
+            return await stateBlob.WithStateHarness<UsersState, RefreshRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Refreshing");
+                log.LogInformation($"Refresh");
 
-                await mgr.Ensure();
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                await harness.Ensure(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
+
+                return Status.Success;
             });
-          }
+        }
     }
 }

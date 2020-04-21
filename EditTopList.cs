@@ -8,10 +8,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
+using AmblOn.State.API.Users.Graphs;
 
 namespace AmblOn.State.API.Users
 {
@@ -22,21 +23,35 @@ namespace AmblOn.State.API.Users
         [DataMember]
         public virtual UserTopList TopList { get; set; }
     }
-    public static class EditTopList
+
+    public class EditTopList
     {
-        [FunctionName("EditTopList")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        #region Fields
+        protected AmblOnGraph amblGraph;
+        #endregion
+
+        #region Constructors
+        public EditTopList(AmblOnGraph amblGraph)
         {
-            return await req.Manage<EditTopListRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            this.amblGraph = amblGraph;
+        }
+        #endregion
+
+        [FunctionName("EditTopList")]
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+        {
+            return await stateBlob.WithStateHarness<UsersState, EditTopListRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Editing Top List");
+                log.LogInformation($"EditTopList");
 
-                await mgr.EditTopList(reqData.TopList);
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                await harness.EditTopList(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.TopList);
+
+                return Status.Success;
             });
         }
     }

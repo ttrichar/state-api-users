@@ -8,10 +8,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using AmblOn.State.API.Users.Harness;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
+using Fathym;
+using Microsoft.Azure.WebJobs.Extensions.SignalRService;
+using AmblOn.State.API.Users.State;
+using Microsoft.WindowsAzure.Storage.Blob;
+using LCU.StateAPI.Utilities;
+using AmblOn.State.API.Users.Graphs;
+using LCU.Personas.Client.Applications;
 
 namespace AmblOn.State.API.Users
 {
@@ -24,21 +30,39 @@ namespace AmblOn.State.API.Users
         [DataMember]
         public virtual List<string> Usernames {get; set;}
     }
-    public static class ShareItineraries
+
+    public class ShareItineraries
     {
-        [FunctionName("ShareItineraries")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        #region Fields
+        protected AmblOnGraph amblGraph;
+        
+        protected ApplicationManagerClient appMgr;
+        #endregion
+
+        #region Constructors
+        public ShareItineraries(AmblOnGraph amblGraph, ApplicationManagerClient appMgr)
         {
-            return await req.Manage<ShareItinerariesRequest, UsersState, UsersStateHarness>(log, async (mgr, reqData) =>
+            this.amblGraph = amblGraph;
+
+            this.appMgr = appMgr;
+        }
+        #endregion
+
+        [FunctionName("ShareItineraries")]
+        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+        {
+            return await stateBlob.WithStateHarness<UsersState, ShareItinerariesRequest, UsersStateHarness>(req, signalRMessages, log,
+                async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"Sharing Itineraries");
+                log.LogInformation($"ShareItineraries");
 
-                await mgr.ShareItineraries(reqData.Itineraries, reqData.Usernames);
+                var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await mgr.WhenAll(
-                );
+                await harness.ShareItineraries(appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itineraries, reqData.Usernames);
+
+                return Status.Success;
             });
         }
     }
