@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using AmblOn.State.API.Users.State;
 
-namespace LCU.State.API.NapkinIDE.InfrastructureManagement.Host
+namespace AmblOn.State.API.Users.Host
 {
     public class Negotiate
     {

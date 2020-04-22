@@ -7,5 +7,14 @@
           "Function": "Information",
           "Host.Aggregator": "Information"
         }
+    },
+    "extensions": {
+        "durableTask": {
+            "hubName": "users",
+            "storageProvider": {
+              "connectionStringName": "LCU-STORAGE-CONNECTION",
+              "partitionCount": 4
+            }
+        }
     }
 }

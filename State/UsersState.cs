@@ -12,7 +12,7 @@ namespace AmblOn.State.API.Users.State
     public class UsersState
     {
         #region Constants
-        public const string HUB_NAME = "usersstate";
+        public const string HUB_NAME = "users";
         #endregion
         
         [DataMember]

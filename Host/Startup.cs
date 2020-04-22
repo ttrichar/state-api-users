@@ -14,10 +14,11 @@ using System;
 using LCU.StateAPI;
 using AmblOn.State.API.Users.Graphs;
 using LCU.Graphs;
+using LCU;
 
-[assembly: FunctionsStartup(typeof(LCU.State.API.NapkinIDE.InfrastructureManagement.Host.Startup))]
+[assembly: FunctionsStartup(typeof(AmblOn.State.API.Users.Host.Startup))]
 
-namespace LCU.State.API.NapkinIDE.InfrastructureManagement.Host
+namespace AmblOn.State.API.Users.Host
 {
     public class Startup : StateAPIStartup
     {
