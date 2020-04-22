@@ -1648,10 +1648,10 @@ namespace AmblOn.State.API.Users.State
         protected virtual UserMap mapUserMap(Map map)
         {
             bool hasCoords = false;
-            var coords = map.Coordinates.Split(",");
+            var coords = map.Coordinates?.Split(",");
             var fCoords = new float[4];
 
-            if (coords.Count() == 4)
+            if (coords != null && coords.Count() == 4)
             {
                 hasCoords = true;
                 var count = 0;
@@ -1683,10 +1683,10 @@ namespace AmblOn.State.API.Users.State
         protected virtual UserMap mapUserMap(SharedMap map, Map parent)
         {
             bool hasCoords = false;
-            var coords = parent.Coordinates.Split(",");
+            var coords = parent.Coordinates?.Split(",");
             var fCoords = new float[4];
 
-            if (coords.Count() == 4)
+            if (coords != null && coords.Count() == 4)
             {
                 hasCoords = true;
                 var count = 0;

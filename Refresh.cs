@@ -50,10 +50,10 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.Ensure(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
-                
                 await harness.Load(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
 
+                await harness.Ensure(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
+                
                 return Status.Success;
             });
         }
