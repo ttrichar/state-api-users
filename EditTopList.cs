@@ -38,7 +38,7 @@ namespace AmblOn.State.API.Users
         #endregion
 
         [FunctionName("EditTopList")]
-        public virtual async Task<Status> Run([HttpTrigger] HttpRequest req, ILogger log,
+        public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
