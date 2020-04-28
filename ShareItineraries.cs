@@ -62,7 +62,14 @@ namespace AmblOn.State.API.Users
 
                 await harness.ShareItineraries(appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itineraries, reqData.Usernames);
 
-                return Status.Success;
+                if (harness.State.Error.IsNullOrEmpty()){
+                    return Status.Success;
+                }
+
+                else{
+                    return Status.GeneralError.Clone("Itinerary failed to share");
+                }
+                
             });
         }
     }
