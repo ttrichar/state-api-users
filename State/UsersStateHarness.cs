@@ -1214,11 +1214,11 @@ namespace AmblOn.State.API.Users.State
 
             var success = true;
 
-            await usernames.Each(async (username) =>
+            await usernames.Each(async (user) =>
             {
                 await itineraries.Each(async (itinerary) =>
                 {
-                    var result = await amblGraph.ShareItinerary(username, entApiKey, itinerary.ID.Value, username);
+                    var result = await amblGraph.ShareItinerary(username, entApiKey, itinerary.ID.Value, user);
 
                     if (!result.Status)
                         success = false;
@@ -1226,7 +1226,7 @@ namespace AmblOn.State.API.Users.State
                     {
                         var mail = new
                         {
-                            EmailTo = username,
+                            EmailTo = user,
                             EmailFrom = from,
                             Subject = subject,
                             Content = message
