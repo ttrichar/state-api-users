@@ -15,6 +15,7 @@ using LCU.StateAPI;
 using AmblOn.State.API.Users.Graphs;
 using LCU.Graphs;
 using LCU;
+using LCU.StateAPI.Hosting;
 
 [assembly: FunctionsStartup(typeof(AmblOn.State.API.Users.Host.Startup))]
 
