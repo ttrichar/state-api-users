@@ -1220,10 +1220,9 @@ namespace AmblOn.State.API.Users.State
                 {
                     var result = await amblGraph.ShareItinerary(username, entApiKey, itinerary.ID.Value, user);
 
-                    if (!result.Status)
-                        success = false;
-                    else
-                    {
+                    State.SharedStatus = result.Status;
+
+                    if (State.SharedStatus){
                         var mail = new
                         {
                             EmailTo = user,
@@ -1238,14 +1237,10 @@ namespace AmblOn.State.API.Users.State
 
                         var resp = await appMgr.SendAccessRequestEmail(meta, entApiKey);
 
-                        if (!resp.Status)
-                            success = false;
+                        State.SharedStatus = resp.Status;
                     }
                 });
             });
-
-            if (!success)
-                State.Error = "General Error sharing itinerary.";
 
             State.Loading = false;
         }
@@ -1293,7 +1288,9 @@ namespace AmblOn.State.API.Users.State
         {
             State.Error = "";
 
-            State.Status = "";
+            State.SharedStatus = null;
+
+            //State.Status = "";
 
             if (State.SelectedUserLayerIDs == null)
                 State.SelectedUserLayerIDs = new List<Guid>();
