@@ -1357,11 +1357,11 @@ namespace AmblOn.State.API.Users.State
 
             await itineraries.Each(async (itinerary) =>
             {
-                itinerary.ActivityGroups = await amblGraph.ListActivityGroups(username, entApiKey, itinerary.ID.Value);
+                itinerary.ActivityGroups = await amblGraph.ListActivityGroups(username, entApiKey, itinerary);
 
                 await itinerary.ActivityGroups.Each(async (activityGroup) =>
                 {
-                    activityGroup.Activities = await amblGraph.ListActivities(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value);
+                    activityGroup.Activities = await amblGraph.ListActivities(username, entApiKey, activityGroup.ID.Value);
                 });
             });
 
