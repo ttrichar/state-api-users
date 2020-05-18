@@ -1951,8 +1951,20 @@ namespace AmblOn.State.API.Users.Graphs
 
                         var user = userResults?.FirstOrDefault();
 
-                        if (user != null)
+                        var userInfoQuery = g.V(user.ID)
+                                .Out(AmblOnGraphConstants.OwnsEdgeName)
+                                .HasLabel(AmblOnGraphConstants.UserInfoVertexName);
+
+                        var userInfoResults = Submit<UserInfo>(userInfoQuery).GetAwaiter().GetResult();
+
+                        var userInfo = userInfoResults?.FirstOrDefault();
+
+                        if (userInfo != null)
                         {
+                            shared.SharedByUserID = user.ID;
+                            shared.SharedByUsername = userInfo.FirstName + " " + userInfo.LastName;
+                        }
+                        else{
                             shared.SharedByUserID = user.ID;
                             shared.SharedByUsername = user.Email;
                         }
