@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using AmblOn.State.API.Users.Models;
+using Fathym;
 using LCU.Graphs.Registry.Enterprises;
 
 namespace AmblOn.State.API.Users.State
@@ -25,6 +26,9 @@ namespace AmblOn.State.API.Users.State
         public virtual string Error {get; set;}
 
         [DataMember]
+        public virtual ExcludedCurations ExcludedCuratedLocations { get; set; }
+
+        [DataMember]
         public virtual bool Loading { get; set; }
 
         [DataMember]
@@ -39,6 +43,8 @@ namespace AmblOn.State.API.Users.State
         [DataMember]
         public virtual Guid SelectedUserMapID {get; set;}
 
+        [DataMember]
+        public virtual Status SharedStatus {get; set;}
 
         [DataMember]
         public virtual List<UserAccolade> UserAccolades { get; set; }
@@ -63,12 +69,5 @@ namespace AmblOn.State.API.Users.State
         
         [DataMember]
         public virtual List<UserLocation> VisibleUserLocations {get; set;}
-
-        [DataMember]
-        public virtual ExcludedCurations ExcludedCuratedLocations { get; set; }
-
-        [DataMember]
-        public virtual string Status {get; set;}
-
     }
 }

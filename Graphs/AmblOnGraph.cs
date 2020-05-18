@@ -1822,19 +1822,13 @@ namespace AmblOn.State.API.Users.Graphs
                     };
             });
         }
-        public virtual async Task<List<Activity>> ListActivities(string email, string entAPIKey, Guid itineraryId, Guid activityGroupId)
+        public virtual async Task<List<Activity>> ListActivities(string email, string entAPIKey, Guid activityGroupId)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var query = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityGroupId)
+                var query = g.V(activityGroupId)
                     .Out(AmblOnGraphConstants.ContainsEdgeName)
                     .HasLabel(AmblOnGraphConstants.ActivityVertexName);
 
@@ -1851,16 +1845,26 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<List<ActivityGroup>> ListActivityGroups(string email, string entAPIKey, Guid itineraryID)
+        public virtual async Task<List<ActivityGroup>> ListActivityGroups(string email, string entAPIKey, Itinerary itinerary)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
+                // Check to see if the itinerary is shared. If shared, switch the "Out" part of the query to "CanView" instead of "Owns"
+                var outVertexName = "";
+
+                if(itinerary.Shared){
+                    outVertexName = "CanView";               
+                }
+                else{
+                    outVertexName = "Owns";
+                }
+
                 var query = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .Out(outVertexName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryID)
+                    .Has(AmblOnGraphConstants.IDPropertyName, itinerary.ID)
                     .Out(AmblOnGraphConstants.ContainsEdgeName)
                     .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName);
 
@@ -1947,8 +1951,20 @@ namespace AmblOn.State.API.Users.Graphs
 
                         var user = userResults?.FirstOrDefault();
 
-                        if (user != null)
+                        var userInfoQuery = g.V(user.ID)
+                                .Out(AmblOnGraphConstants.OwnsEdgeName)
+                                .HasLabel(AmblOnGraphConstants.UserInfoVertexName);
+
+                        var userInfoResults = Submit<UserInfo>(userInfoQuery).GetAwaiter().GetResult();
+
+                        var userInfo = userInfoResults?.FirstOrDefault();
+
+                        if (userInfo != null)
                         {
+                            shared.SharedByUserID = user.ID;
+                            shared.SharedByUsername = userInfo.FirstName + " " + userInfo.LastName;
+                        }
+                        else{
                             shared.SharedByUserID = user.ID;
                             shared.SharedByUsername = user.Email;
                         }
