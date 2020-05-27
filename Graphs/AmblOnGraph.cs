@@ -259,7 +259,7 @@ namespace AmblOn.State.API.Users.Graphs
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var lookup = userId.ToString() + "|" + itinerary.Title.Replace(" ", "_");
+                var lookup = $"{userId.ToString()}|{itinerary.Title.Replace(" ", "_")}";
 
                 var existingItineraryQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
@@ -1439,7 +1439,7 @@ namespace AmblOn.State.API.Users.Graphs
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var lookup = userId.ToString() + "|" + itinerary.Title.Replace(" ", "_");
+                var lookup = $"{userId.ToString()}|{itinerary.Title.Replace(" ", "_")}";
 
                 var existingItineraryQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
