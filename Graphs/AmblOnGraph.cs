@@ -1439,6 +1439,8 @@ namespace AmblOn.State.API.Users.Graphs
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
+                var lookup = userId.ToString() + "|" + itinerary.Title.Replace(" ", "_");
+
                 var existingItineraryQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
@@ -1456,7 +1458,8 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Shared", itinerary.Shared)
                         .Property("SharedByUsername", itinerary.SharedByUsername ?? "")
                         .Property("SharedByUserID", itinerary.SharedByUserID)
-                        .Property("Editable", itinerary.Editable);
+                        .Property("Editable", itinerary.Editable)
+                        .Property("Lookup", lookup);
 
                     var editItineraryResults = await Submit<Itinerary>(editQuery);
 
