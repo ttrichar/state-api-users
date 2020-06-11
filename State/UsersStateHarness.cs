@@ -643,7 +643,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task EditItinerary(AmblOnGraph amblGraph, string username, string entApiKey, Itinerary itinerary)
+        public virtual async Task EditItinerary(AmblOnGraph amblGraph, string username, string entApiKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocation)
         {
             ensureStateObject();
 
