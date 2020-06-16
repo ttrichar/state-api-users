@@ -111,6 +111,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Checked", activity.Checked)
                         .Property("CreatedDateTime", activity.CreatedDateTime)
                         .Property("Favorited", activity.Favorited)
+                        .Property("LocationID", activity.LocationID)
                         .Property("Notes", activity.Notes ?? "")
                         .Property("Order", activity.Order)
                         .Property("Title", activity.Title ?? "")
@@ -413,6 +414,61 @@ namespace AmblOn.State.API.Users.Graphs
                         Model = existingLocation.ID,
                         Status = Status.Conflict.Clone("A location by that lat/long already exists in selected layer.")                        
                     };
+            });
+        }
+
+        public virtual async Task<List<Activity>> AddLocationFromActivity(string email, string entAPIKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                var AG = itinerary.ActivityGroups;
+
+                var activities = new List<Activity>();
+
+                foreach (ActivityLocationLookup acLoc in activityLocations){
+                    var existing = await checkExistingLocation(email, entAPIKey, acLoc.Location);
+
+                    //var test = acLoc.Location.Latitude.ToString();
+
+                    var lookup = acLoc.Location.Latitude.ToString() + "|" + acLoc.Location.Longitude.ToString();
+
+                    if(existing.IsEmpty()){
+                        var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(acLoc.Location.Latitude).ToString() + Convert.ToInt32(acLoc.Location.Longitude).ToString())
+                        .Property("Lookup", lookup ?? "")
+                        .Property("Address", acLoc.Location.Address ?? "")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+                        .Property("Country", acLoc.Location.Country ?? "")
+                        .Property("GoogleLocationName", acLoc.Location.GoogleLocationName ?? "")
+                        .Property("Icon", acLoc.Location.Icon ?? "")
+                        .Property("Instagram", acLoc.Location.Instagram ?? "")
+                        .Property("IsHidden", acLoc.Location.IsHidden)
+                        .Property("Latitude", acLoc.Location.Latitude)
+                        .Property("Longitude", acLoc.Location.Longitude)
+                        .Property("State", acLoc.Location.State ?? "")
+                        .Property("Telephone", acLoc.Location.Telephone ?? "")
+                        .Property("Title", acLoc.Location.Title ?? "")
+                        .Property("Town", acLoc.Location.Town ?? "")
+                        .Property("Website", acLoc.Location.Website ?? "")
+                        .Property("ZipCode", acLoc.Location.ZipCode ?? "");
+
+                        var createLocationResults = await Submit<UserLocation>(createQuery);
+
+                        var createdLocation = createLocationResults?.FirstOrDefault();
+
+                        acLoc.Activity.LocationID = createdLocation.ID;
+
+                        var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
+
+                        await Submit(userEdgeQuery);                   
+                    }
+                    else{
+                        acLoc.Activity.LocationID = existing;
+                    }
+                    activities.Add(acLoc.Activity);                   
+                }
+                return activities;                              
             });
         }
 
@@ -1287,6 +1343,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Checked", activity.Checked)
                         .Property("CreatedDateTime", activity.CreatedDateTime)
                         .Property("Favorited", activity.Favorited)
+                        .Property("LocationID", activity.LocationID)
                         .Property("Notes", activity.Notes ?? "")
                         .Property("Order", activity.Order)
                         .Property("Title", activity.Title ?? "")
@@ -2295,6 +2352,37 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region Helpers
+        public virtual async Task<Guid> checkExistingLocation(string email, string entAPIKey, UserLocation location)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+        
+                string lookup = location.Latitude.ToString() + "|" + location.Longitude.ToString();
+
+                var existingLocationQuery = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                
+                var existingLocations = await Submit<Location>(existingLocationQuery);
+
+                var existingLocation = existingLocations?.FirstOrDefault();
+
+                if (existingLocation != null){
+                    return existingLocation.ID;
+                }
+
+                else{
+                    return Guid.Empty;
+                }            
+            });
+        }
+
+        // public virtual async Task<Itinerary> matchLocationandActivity(Itinerary itinerary, ActivityLocationLookup activityLocation){
+        //     itinerary.ActivityGroups
+
+        // }
         public virtual async Task<Guid> ensureAmblOnUser(GraphTraversalSource g, string email, string entAPIKey)
         {
             var partKey = email?.Split('@')[1];

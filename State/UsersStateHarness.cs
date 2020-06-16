@@ -643,9 +643,15 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task EditItinerary(AmblOnGraph amblGraph, string username, string entApiKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocation)
+        public virtual async Task EditItinerary(AmblOnGraph amblGraph, string username, string entApiKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
         {
             ensureStateObject();
+
+            var activitiesList = new List<Activity>();
+
+            if(activityLocations.Any()){       
+                activitiesList = await amblGraph.AddLocationFromActivity(username, entApiKey, itinerary, activityLocations);           
+            }
 
             var existing = State.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
 
@@ -676,7 +682,9 @@ namespace AmblOn.State.API.Users.State
 
                                     await activityGroup.Activities.Each(async (activity) =>
                                     {
-                                        var addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
+                                        var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
+
+                                        var addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists ?? activity);
 
                                         activity.ID = addActResp.Model;
 
@@ -695,7 +703,9 @@ namespace AmblOn.State.API.Users.State
 
                                     if (aExisting == null)
                                     {
-                                        var addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
+                                        var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
+
+                                        var addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists ?? activity);
 
                                         activity.ID = addActResp.Model;
 
@@ -704,7 +714,9 @@ namespace AmblOn.State.API.Users.State
                                     }
                                     else
                                     {
-                                        var editActResp = await amblGraph.EditActivity(username, entApiKey, activity);
+                                        var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
+
+                                        var editActResp = await amblGraph.EditActivity(username, entApiKey, exists ?? activity);
 
                                         if (!editActResp.Status)
                                             success = false;

@@ -13,6 +13,6 @@ namespace AmblOn.State.API.Users.Models
         public virtual Activity Activity {get; set;}
 
         [DataMember]
-        public virtual Location Location {get; set;}
+        public virtual UserLocation Location {get; set;}
     }
 }
