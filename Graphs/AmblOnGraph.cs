@@ -417,60 +417,60 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<List<Activity>> AddLocationFromActivity(string email, string entAPIKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
-        {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+        // public virtual async Task<Activity> AddLocationFromActivity(string email, string entAPIKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var AG = itinerary.ActivityGroups;
+        //         var AG = itinerary.ActivityGroups;
 
-                var activities = new List<Activity>();
+        //         var activities = new List<Activity>();
 
-                foreach (ActivityLocationLookup acLoc in activityLocations){
-                    var existing = await checkExistingLocation(email, entAPIKey, acLoc.Location);
+        //         foreach (ActivityLocationLookup acLoc in activityLocations){
+        //             var existing = await checkExistingLocation(email, entAPIKey, acLoc.Location);
 
-                    //var test = acLoc.Location.Latitude.ToString();
+        //             //var test = acLoc.Location.Latitude.ToString();
 
-                    var lookup = acLoc.Location.Latitude.ToString() + "|" + acLoc.Location.Longitude.ToString();
+        //             var lookup = acLoc.Location.Latitude.ToString() + "|" + acLoc.Location.Longitude.ToString();
 
-                    if(existing.IsEmpty()){
-                        var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(acLoc.Location.Latitude).ToString() + Convert.ToInt32(acLoc.Location.Longitude).ToString())
-                        .Property("Lookup", lookup ?? "")
-                        .Property("Address", acLoc.Location.Address ?? "")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
-                        .Property("Country", acLoc.Location.Country ?? "")
-                        .Property("GoogleLocationName", acLoc.Location.GoogleLocationName ?? "")
-                        .Property("Icon", acLoc.Location.Icon ?? "")
-                        .Property("Instagram", acLoc.Location.Instagram ?? "")
-                        .Property("IsHidden", acLoc.Location.IsHidden)
-                        .Property("Latitude", acLoc.Location.Latitude)
-                        .Property("Longitude", acLoc.Location.Longitude)
-                        .Property("State", acLoc.Location.State ?? "")
-                        .Property("Telephone", acLoc.Location.Telephone ?? "")
-                        .Property("Title", acLoc.Location.Title ?? "")
-                        .Property("Town", acLoc.Location.Town ?? "")
-                        .Property("Website", acLoc.Location.Website ?? "")
-                        .Property("ZipCode", acLoc.Location.ZipCode ?? "");
+        //             if(existing.IsEmpty()){
+        //                 var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
+        //                 .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(acLoc.Location.Latitude).ToString() + Convert.ToInt32(acLoc.Location.Longitude).ToString())
+        //                 .Property("Lookup", lookup ?? "")
+        //                 .Property("Address", acLoc.Location.Address ?? "")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+        //                 .Property("Country", acLoc.Location.Country ?? "")
+        //                 .Property("GoogleLocationName", acLoc.Location.GoogleLocationName ?? "")
+        //                 .Property("Icon", acLoc.Location.Icon ?? "")
+        //                 .Property("Instagram", acLoc.Location.Instagram ?? "")
+        //                 .Property("IsHidden", acLoc.Location.IsHidden)
+        //                 .Property("Latitude", acLoc.Location.Latitude)
+        //                 .Property("Longitude", acLoc.Location.Longitude)
+        //                 .Property("State", acLoc.Location.State ?? "")
+        //                 .Property("Telephone", acLoc.Location.Telephone ?? "")
+        //                 .Property("Title", acLoc.Location.Title ?? "")
+        //                 .Property("Town", acLoc.Location.Town ?? "")
+        //                 .Property("Website", acLoc.Location.Website ?? "")
+        //                 .Property("ZipCode", acLoc.Location.ZipCode ?? "");
 
-                        var createLocationResults = await Submit<UserLocation>(createQuery);
+        //                 var createLocationResults = await Submit<UserLocation>(createQuery);
 
-                        var createdLocation = createLocationResults?.FirstOrDefault();
+        //                 var createdLocation = createLocationResults?.FirstOrDefault();
 
-                        acLoc.Activity.LocationID = createdLocation.ID;
+        //                 acLoc.Activity.LocationID = createdLocation.ID;
 
-                        var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
+        //                 var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
 
-                        await Submit(userEdgeQuery);                   
-                    }
-                    else{
-                        acLoc.Activity.LocationID = existing;
-                    }
-                    activities.Add(acLoc.Activity);                   
-                }
-                return activities;                              
-            });
-        }
+        //                 await Submit(userEdgeQuery);                   
+        //             }
+        //             else{
+        //                 acLoc.Activity.LocationID = existing;
+        //             }
+        //             activities.Add(acLoc.Activity);                   
+        //         }
+        //         return activities;                              
+        //     });
+        // }
 
         public virtual async Task<BaseResponse<Guid>> AddMap(string email, string entAPIKey, UserMap map)
         {
@@ -2352,7 +2352,7 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region Helpers
-        public virtual async Task<Guid> checkExistingLocation(string email, string entAPIKey, UserLocation location)
+        public virtual async Task<UserLocation> ensureLocation(string email, string entAPIKey, UserLocation location)
         {
             return await withG(async (client, g) =>
             {
@@ -2365,24 +2365,48 @@ namespace AmblOn.State.API.Users.Graphs
                     .HasLabel(AmblOnGraphConstants.LocationVertexName)
                     .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
-                var existingLocations = await Submit<Location>(existingLocationQuery);
+                var existingLocations = await Submit<UserLocation>(existingLocationQuery);
 
                 var existingLocation = existingLocations?.FirstOrDefault();
 
                 if (existingLocation != null){
-                    return existingLocation.ID;
+                    return existingLocation;
                 }
 
                 else{
-                    return Guid.Empty;
+                    var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
+                    .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(location.Latitude).ToString() + Convert.ToInt32(location.Longitude).ToString())
+                    .Property("Lookup", lookup ?? "")
+                    .Property("Address", location.Address ?? "")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+                    .Property("Country", location.Country ?? "")
+                    .Property("GoogleLocationName", location.GoogleLocationName ?? "")
+                    .Property("Icon", location.Icon ?? "")
+                    .Property("Instagram", location.Instagram ?? "")
+                    .Property("IsHidden", location.IsHidden)
+                    .Property("Latitude", location.Latitude)
+                    .Property("Longitude", location.Longitude)
+                    .Property("State", location.State ?? "")
+                    .Property("Telephone", location.Telephone ?? "")
+                    .Property("Title", location.Title ?? "")
+                    .Property("Town", location.Town ?? "")
+                    .Property("Website", location.Website ?? "")
+                    .Property("ZipCode", location.ZipCode ?? "");
+
+                    var createLocationResults = await Submit<UserLocation>(createQuery);
+
+                    var createdLocation = createLocationResults?.FirstOrDefault();
+
+                    //acLoc.Activity.LocationID = createdLocation.ID;
+
+                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
+
+                    await Submit(userEdgeQuery);
+
+                    return createdLocation;                 
                 }            
             });
         }
 
-        // public virtual async Task<Itinerary> matchLocationandActivity(Itinerary itinerary, ActivityLocationLookup activityLocation){
-        //     itinerary.ActivityGroups
-
-        // }
         public virtual async Task<Guid> ensureAmblOnUser(GraphTraversalSource g, string email, string entAPIKey)
         {
             var partKey = email?.Split('@')[1];

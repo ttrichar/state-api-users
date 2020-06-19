@@ -650,7 +650,7 @@ namespace AmblOn.State.API.Users.State
             var activitiesList = new List<Activity>();
 
             if(activityLocations.Any()){       
-                activitiesList = await amblGraph.AddLocationFromActivity(username, entApiKey, itinerary, activityLocations);           
+                activitiesList =  await addLocationFromActivity(amblGraph, username, entApiKey, itinerary, activityLocations);           
             }
 
             var existing = State.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
@@ -1282,6 +1282,26 @@ namespace AmblOn.State.API.Users.State
         #endregion
 
         #region Helpers
+
+        protected virtual async Task<List<Activity>> addLocationFromActivity(AmblOnGraph amblGraph, string email, string entAPIKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
+        {
+            var activities = new List<Activity>();
+
+            foreach (ActivityLocationLookup acLoc in activityLocations){
+                var location = await amblGraph.ensureLocation(email, entAPIKey, acLoc.Location);
+
+                acLoc.Activity.LocationID = location.ID;
+                
+                activities.Add(acLoc.Activity);
+
+                var existing = State.AllUserLocations.FirstOrDefault(x => x.ID == location.ID);
+
+                if (existing == null){
+                    State.AllUserLocations.Add(location);
+                }                   
+            }
+            return activities;                              
+        }
 
         // Returns the radius and center of a circle inscribed within the bounded box
         protected virtual Tuple<float, float, float> computeCircle(float lat1, float long1, float lat2, float long2)
