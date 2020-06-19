@@ -111,7 +111,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Checked", activity.Checked)
                         .Property("CreatedDateTime", activity.CreatedDateTime)
                         .Property("Favorited", activity.Favorited)
-                        .Property("LocationID", activity.LocationID)
+                        .Property("LocationID", activity.LocationID ?? Guid.Empty)
                         .Property("Notes", activity.Notes ?? "")
                         .Property("Order", activity.Order)
                         .Property("Title", activity.Title ?? "")
