@@ -649,8 +649,8 @@ namespace AmblOn.State.API.Users.State
 
             var activitiesList = new List<Activity>();
 
-            if(activityLocations.Any()){       
-                activitiesList =  await addLocationFromActivity(amblGraph, username, entApiKey, itinerary, activityLocations);           
+            if(!activityLocations.IsNullOrEmpty()){       
+                activitiesList =  await addLocationFromActivity(amblGraph, username, entApiKey, activityLocations);           
             }
 
             var existing = State.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
@@ -1230,7 +1230,10 @@ namespace AmblOn.State.API.Users.State
             {
                 await itineraries.Each(async (itinerary) =>
                 {
-                    var result = await amblGraph.ShareItinerary(username, entApiKey, itinerary.ID.Value, user);
+
+                    var result = await amblGraph.ShareItinerary(username, entApiKey, itinerary, user);
+
+                    await addLocationFromSharedItinerary(amblGraph, user, entApiKey, itinerary);
 
                     State.SharedStatus = result.Status;
 
@@ -1267,7 +1270,7 @@ namespace AmblOn.State.API.Users.State
             {
                 await itineraries.Each(async (itinerary) =>
                 {
-                    var result = await amblGraph.UnshareItinerary(username, entApiKey, itinerary.ID.Value, username);
+                    var result = await amblGraph.UnshareItinerary(username, entApiKey, itinerary, username);
 
                     if (!result.Status)
                         success = false;
@@ -1283,12 +1286,12 @@ namespace AmblOn.State.API.Users.State
 
         #region Helpers
 
-        protected virtual async Task<List<Activity>> addLocationFromActivity(AmblOnGraph amblGraph, string email, string entAPIKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
+        protected virtual async Task<List<Activity>> addLocationFromActivity(AmblOnGraph amblGraph, string email, string entAPIKey, List<ActivityLocationLookup> activityLocations)
         {
             var activities = new List<Activity>();
 
             foreach (ActivityLocationLookup acLoc in activityLocations){
-                var location = await amblGraph.ensureLocation(email, entAPIKey, acLoc.Location);
+                var location = await amblGraph.ensureLocation(email, entAPIKey, Guid.Empty, acLoc.Location);
 
                 acLoc.Activity.LocationID = location.ID;
                 
@@ -1301,6 +1304,26 @@ namespace AmblOn.State.API.Users.State
                 }                   
             }
             return activities;                              
+        }
+
+        protected virtual async Task<Status> addLocationFromSharedItinerary(AmblOnGraph amblGraph, string email, string entAPIKey, Itinerary itinerary)
+        {
+            await itinerary.ActivityGroups.Each(async (activityGroup) =>
+            {
+                await activityGroup.Activities.Each(async (activity) =>
+                {   
+                    if (activity.LocationID.HasValue){
+                        var location = await amblGraph.ensureLocation(email, entAPIKey, activity.LocationID);
+
+                        var existing = State.AllUserLocations.FirstOrDefault(x => x.ID == location.ID);
+
+                        if (existing == null){
+                            State.AllUserLocations.Add(location);
+                        }     
+                    }                      
+                });
+            });                    
+            return Status.Success;                              
         }
 
         // Returns the radius and center of a circle inscribed within the bounded box
