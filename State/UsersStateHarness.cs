@@ -1046,7 +1046,9 @@ namespace AmblOn.State.API.Users.State
 
                     State.SelectedUserLayerIDs.Add(layerID);
 
-                    State.AllUserLocations = await fetchVisibleUserLocations(amblGraph, username, entApiKey, State.SelectedUserLayerIDs);
+                    if(State.AllUserLocations.Count == 0){
+                        State.AllUserLocations = await fetchVisibleUserLocations(amblGraph, username, entApiKey, State.SelectedUserLayerIDs);
+                    }
 
                     State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
                                                     .Distinct()
