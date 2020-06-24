@@ -111,6 +111,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Checked", activity.Checked)
                         .Property("CreatedDateTime", activity.CreatedDateTime)
                         .Property("Favorited", activity.Favorited)
+                        .Property("LocationID", activity.LocationID ?? Guid.Empty)
                         .Property("Notes", activity.Notes ?? "")
                         .Property("Order", activity.Order)
                         .Property("Title", activity.Title ?? "")
@@ -1287,6 +1288,7 @@ namespace AmblOn.State.API.Users.Graphs
                         .Property("Checked", activity.Checked)
                         .Property("CreatedDateTime", activity.CreatedDateTime)
                         .Property("Favorited", activity.Favorited)
+                        .Property("LocationID", activity.LocationID ?? Guid.Empty)
                         .Property("Notes", activity.Notes ?? "")
                         .Property("Order", activity.Order)
                         .Property("Title", activity.Title ?? "")
@@ -2196,7 +2198,7 @@ namespace AmblOn.State.API.Users.Graphs
         }
         #endregion
 
-        public virtual async Task<BaseResponse> ShareItinerary(string email, string entAPIKey, Guid itineraryId, string shareWithUsername)
+        public virtual async Task<BaseResponse> ShareItinerary(string email, string entAPIKey, Itinerary itinerary, string shareWithUsername)
         {
             return await withG(async (client, g) =>
             {
@@ -2206,7 +2208,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var existingItineraryQuery = g.V(shareUserId)
                     .Out(AmblOnGraphConstants.CanViewEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId);
+                    .Has(AmblOnGraphConstants.IDPropertyName, itinerary.ID);
                 
                 var existingItineraries = await Submit<Itinerary>(existingItineraryQuery);
 
@@ -2217,7 +2219,7 @@ namespace AmblOn.State.API.Users.Graphs
                     var objectQuery = g.V(userId)
                         .Out(AmblOnGraphConstants.OwnsEdgeName)
                         .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                        .Has(AmblOnGraphConstants.IDPropertyName, itineraryId);
+                        .Has(AmblOnGraphConstants.IDPropertyName, itinerary.ID);
 
                     var existingObjects = await Submit<Itinerary>(objectQuery);
 
@@ -2225,7 +2227,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                     if (existingObject != null)
                     {
-                        var userEdgeQuery = g.V(shareUserId).AddE(AmblOnGraphConstants.CanViewEdgeName).To(g.V(itineraryId));
+                        var userEdgeQuery = g.V(shareUserId).AddE(AmblOnGraphConstants.CanViewEdgeName).To(g.V(itinerary.ID));
 
                         await Submit(userEdgeQuery);
 
@@ -2246,7 +2248,7 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<BaseResponse> UnshareItinerary(string email, string entAPIKey, Guid itineraryId, string shareWithUsername)
+        public virtual async Task<BaseResponse> UnshareItinerary(string email, string entAPIKey, Itinerary itinerary, string shareWithUsername)
         {
             return await withG(async (client, g) =>
             {
@@ -2255,7 +2257,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var existingItineraryQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.CanViewEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId);
+                    .Has(AmblOnGraphConstants.IDPropertyName, itinerary.ID);
                 
                 var existingItineraries = await Submit<Itinerary>(existingItineraryQuery);
 
@@ -2263,7 +2265,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                 if (existingItinerary != null)
                 {
-                    var objectQuery = g.V(itineraryId);
+                    var objectQuery = g.V(itinerary.ID);
 
                     var existingObjects = await Submit<Itinerary>(objectQuery);
 
@@ -2271,7 +2273,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                     if (existingObject != null)
                     {
-                        var userEdgeQuery = g.V(userId).Out(AmblOnGraphConstants.CanViewEdgeName).To(g.V(itineraryId)).Drop();
+                        var userEdgeQuery = g.V(userId).Out(AmblOnGraphConstants.CanViewEdgeName).To(g.V(itinerary.ID)).Drop();
 
                         await Submit(userEdgeQuery);
 
@@ -2295,6 +2297,75 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region Helpers
+        public virtual async Task<UserLocation> ensureLocation(string email, string entAPIKey, Guid? locationID, UserLocation location = null)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                if(location == null){
+                    var existingLocationIdQuery = g.V(userId)
+                        .Out(AmblOnGraphConstants.OwnsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                        .Has(AmblOnGraphConstants.IDPropertyName, locationID);
+                
+                    var existingLocationsId = await Submit<UserLocation>(existingLocationIdQuery);
+
+                    var existingLocationId = existingLocationsId?.FirstOrDefault();
+
+                    return existingLocationId;               
+                }
+                else{               
+                    string lookup = location.Latitude.ToString() + "|" + location.Longitude.ToString();
+
+                    var existingLocationQuery = g.V(userId)
+                        .Out(AmblOnGraphConstants.OwnsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                        .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+                    
+                    var existingLocations = await Submit<UserLocation>(existingLocationQuery);
+
+                    var existingLocation = existingLocations?.FirstOrDefault();
+
+                    if (existingLocation != null){
+                        return existingLocation;
+                    }
+
+                    else{
+                        var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
+                        .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(location.Latitude).ToString() + Convert.ToInt32(location.Longitude).ToString())
+                        .Property("Lookup", lookup ?? "")
+                        .Property("Address", location.Address ?? "")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+                        .Property("Country", location.Country ?? "")
+                        .Property("GoogleLocationName", location.GoogleLocationName ?? "")
+                        .Property("Icon", location.Icon ?? "")
+                        .Property("Instagram", location.Instagram ?? "")
+                        .Property("IsHidden", location.IsHidden)
+                        .Property("Latitude", location.Latitude)
+                        .Property("Longitude", location.Longitude)
+                        .Property("State", location.State ?? "")
+                        .Property("Telephone", location.Telephone ?? "")
+                        .Property("Title", location.Title ?? "")
+                        .Property("Town", location.Town ?? "")
+                        .Property("Website", location.Website ?? "")
+                        .Property("ZipCode", location.ZipCode ?? "");
+
+                        var createLocationResults = await Submit<UserLocation>(createQuery);
+
+                        var createdLocation = createLocationResults?.FirstOrDefault();
+
+                        //acLoc.Activity.LocationID = createdLocation.ID;
+
+                        var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
+
+                        await Submit(userEdgeQuery);
+
+                        return createdLocation;                 
+                    } 
+                }           
+            });
+        }
+
         public virtual async Task<Guid> ensureAmblOnUser(GraphTraversalSource g, string email, string entAPIKey)
         {
             var partKey = email?.Split('@')[1];
