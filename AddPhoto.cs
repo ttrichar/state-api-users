@@ -27,8 +27,8 @@ namespace AmblOn.State.API.Users
         [DataMember]
         public virtual UserPhoto Photo { get; set; }
 
-        [DataMember]
-        public virtual Guid LocationID { get; set; }
+        // [DataMember]
+        // public virtual Guid LocationID { get; set; }
     }
 
     public class AddPhoto
@@ -64,7 +64,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.AddPhoto(entMgr, appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, stateDetails.ApplicationID, reqData.Photo, reqData.AlbumID, reqData.LocationID);
+                await harness.AddPhoto(entMgr, appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, stateDetails.ApplicationID, reqData.Photo, reqData.AlbumID);
 
                 return Status.Success;
             });

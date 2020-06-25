@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -91,7 +92,7 @@ namespace AmblOn.State.API.Users.State
                     await album.Photos.Each(async (photo) =>
                     {
                         await AddPhoto(entMgr, appMgr, amblGraph, username, entApiKey, appId, photo,
-                            album.ID.HasValue ? album.ID.Value : Guid.Empty, photo.LocationID.HasValue ? photo.LocationID.Value : Guid.Empty);
+                            album.ID.HasValue ? album.ID.Value : Guid.Empty);
                     });
                 }
             }
@@ -200,11 +201,13 @@ namespace AmblOn.State.API.Users.State
         }
 
         public virtual async Task AddPhoto(EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entApiKey, string appId, 
-            UserPhoto photo, Guid albumID, Guid locationID)
+            UserPhoto photo, Guid albumID)
         {
             ensureStateObject();
 
             var ent = await entMgr.GetEnterprise(entApiKey);
+
+            photo.ImageData.Data = Encoding.ASCII.GetBytes(photo.ImageData.DataString);
 
             await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "admin/" + username + "/albums/" + albumID.ToString(), QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
                 new Guid(appId), "/");
@@ -213,7 +216,7 @@ namespace AmblOn.State.API.Users.State
 
             photo.ImageData = null;
 
-            var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, albumID, locationID);
+            var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, albumID);
 
             if (photoResp.Status)
             {
@@ -1606,7 +1609,7 @@ namespace AmblOn.State.API.Users.State
             photos.Each(
                 (photo) =>
                 {
-                    var img = images.FirstOrDefault(x => QueryHelpers.ParseQuery(x.Headers)["ID"] == photo.ID);
+                    var img = images?.FirstOrDefault(x => QueryHelpers.ParseQuery(x.Headers)["ID"] == photo.ID);
 
                     if (img == null)
                         img = images[photoCount];
