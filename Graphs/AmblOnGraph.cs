@@ -471,13 +471,13 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<BaseResponse<Guid>> AddPhoto(string email, string entAPIKey, UserPhoto photo, Guid albumID, Guid locationID)
+        public virtual async Task<BaseResponse<Guid>> AddPhoto(string email, string entAPIKey, UserPhoto photo, Guid albumID)
         {
             return await withG(async (client, g) =>
             {
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL + "|" + photo.LocationID.ToString();
+                var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL;
 
                 var existingPhotoQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
@@ -511,9 +511,9 @@ namespace AmblOn.State.API.Users.Graphs
 
                     await Submit(albumEdgeQuery);
 
-                    var locationEdgeQuery = g.V(createdPhoto.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(locationID));
+                    //var locationEdgeQuery = g.V(createdPhoto.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(locationID));
 
-                    await Submit(locationEdgeQuery);
+                    //await Submit(locationEdgeQuery);
 
                     return new BaseResponse<Guid>()
                     {
@@ -2028,7 +2028,11 @@ namespace AmblOn.State.API.Users.Graphs
                     .Out(AmblOnGraphConstants.ContainsEdgeName)
                     .HasLabel(AmblOnGraphConstants.LocationVertexName);
 
-                var results = await Submit<Location>(query);
+                var query2 = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                var results = await Submit<Location>(query);               
 
                 if (results.ToList().Count == 0)
                 {
@@ -2041,12 +2045,16 @@ namespace AmblOn.State.API.Users.Graphs
                         .Out(AmblOnGraphConstants.ContainsEdgeName)
                         .HasLabel(AmblOnGraphConstants.LocationVertexName);
 
-                    results = await Submit<Location>(query);
-
-                   
+                    results = await Submit<Location>(query);                  
                 }
+                //Query to return locations directly associated with AmblOnUser account
+                var otherResults = await Submit<Location>(query2);
 
-                return results.ToList();
+                var totalResults = results.ToList();
+
+                totalResults.AddRange(otherResults.ToList());
+
+                return totalResults;
             });
         }
 
@@ -2313,6 +2321,23 @@ namespace AmblOn.State.API.Users.Graphs
 
                     var existingLocationId = existingLocationsId?.FirstOrDefault();
 
+                    var editQuery = g.V(existingLocationId.ID)
+                        .Property("Address", location.Address ?? "")
+                        .Property("Country", location.Country ?? "")
+                        .Property("Icon", location.Icon ?? "")
+                        .Property("Instagram", location.Instagram ?? "")
+                        .Property("IsHidden", location.IsHidden)
+                        .Property("Latitude", location.Latitude)
+                        .Property("Longitude", location.Longitude)
+                        .Property("State", location.State ?? "")
+                        .Property("Telephone", location.Telephone ?? "")
+                        .Property("Title", location.Title ?? "")
+                        .Property("Town", location.Town ?? "")
+                        .Property("Website", location.Website ?? "")
+                        .Property("ZipCode", location.ZipCode ?? "");
+
+                    await Submit(editQuery);
+
                     return existingLocationId;               
                 }
                 else{               
@@ -2328,6 +2353,23 @@ namespace AmblOn.State.API.Users.Graphs
                     var existingLocation = existingLocations?.FirstOrDefault();
 
                     if (existingLocation != null){
+                        var editQuery = g.V(existingLocation.ID)
+                        .Property("Address", location.Address ?? "")
+                        .Property("Country", location.Country ?? "")
+                        .Property("Icon", location.Icon ?? "")
+                        .Property("Instagram", location.Instagram ?? "")
+                        .Property("IsHidden", location.IsHidden)
+                        .Property("Latitude", location.Latitude)
+                        .Property("Longitude", location.Longitude)
+                        .Property("State", location.State ?? "")
+                        .Property("Telephone", location.Telephone ?? "")
+                        .Property("Title", location.Title ?? "")
+                        .Property("Town", location.Town ?? "")
+                        .Property("Website", location.Website ?? "")
+                        .Property("ZipCode", location.ZipCode ?? "");
+
+                        await Submit(editQuery);
+
                         return existingLocation;
                     }
 
