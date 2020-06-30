@@ -2028,7 +2028,11 @@ namespace AmblOn.State.API.Users.Graphs
                     .Out(AmblOnGraphConstants.ContainsEdgeName)
                     .HasLabel(AmblOnGraphConstants.LocationVertexName);
 
-                var results = await Submit<Location>(query);
+                var query2 = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                var results = await Submit<Location>(query);               
 
                 if (results.ToList().Count == 0)
                 {
@@ -2041,12 +2045,16 @@ namespace AmblOn.State.API.Users.Graphs
                         .Out(AmblOnGraphConstants.ContainsEdgeName)
                         .HasLabel(AmblOnGraphConstants.LocationVertexName);
 
-                    results = await Submit<Location>(query);
-
-                   
+                    results = await Submit<Location>(query);                  
                 }
+                //Query to return locations directly associated with AmblOnUser account
+                var otherResults = await Submit<Location>(query2);
 
-                return results.ToList();
+                var totalResults = results.ToList();
+
+                totalResults.AddRange(otherResults.ToList());
+
+                return totalResults;
             });
         }
 

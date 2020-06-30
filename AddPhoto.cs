@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using AmblOn.State.API.Users.Graphs;
 using LCU.Personas.Client.Enterprises;
 using LCU.Personas.Client.Applications;
+using LCU.Presentation;
 
 namespace AmblOn.State.API.Users
 {
@@ -22,10 +23,10 @@ namespace AmblOn.State.API.Users
     public class AddPhotoRequest
     {
         [DataMember]
-        public virtual Guid AlbumID { get; set; }
+        public virtual UserAlbum Album { get; set; }
 
         [DataMember]
-        public virtual UserPhoto Photo { get; set; }
+        public virtual List<ImageMessage> Images {get; set;}
 
         // [DataMember]
         // public virtual Guid LocationID { get; set; }
@@ -64,7 +65,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.AddPhoto(entMgr, appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, stateDetails.ApplicationID, reqData.Photo, reqData.AlbumID);
+                await harness.AddPhoto(entMgr, appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, stateDetails.ApplicationID, reqData.Images, reqData.Album);
 
                 return Status.Success;
             });

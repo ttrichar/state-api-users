@@ -209,10 +209,10 @@ namespace AmblOn.State.API.Users.State
 
             photo.ImageData.Data = Encoding.ASCII.GetBytes(photo.ImageData.DataString);
 
-            await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "admin/" + username + "/albums/" + albumID.ToString(), QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
-                new Guid(appId), "/");
+            await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "/", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
+                new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
 
-            photo.URL = "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+            photo.URL = ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
             photo.ImageData = null;
 
@@ -222,6 +222,36 @@ namespace AmblOn.State.API.Users.State
             {
                 photo.ID = photoResp.Model;
             }
+
+            State.Loading = false;
+        }
+
+        public virtual async Task AddPhoto(EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entApiKey, string appId, 
+            List<ImageMessage> images, UserAlbum album)
+        {
+            ensureStateObject();
+
+            album.Photos = mapImageDataToUserPhotos(album.Photos, images);
+
+            var ent = await entMgr.GetEnterprise(entApiKey);
+
+            await album.Photos.Each(async (photo) =>{
+                photo.ImageData.Data = Encoding.ASCII.GetBytes(photo.ImageData.DataString);
+
+                await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "/", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
+                    new Guid(appId), "admin/" + username + "/albums/" + album.ID.ToString());
+
+                photo.URL = ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+
+                photo.ImageData = null;
+
+                var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, album.ID.Value);
+
+                if (photoResp.Status)
+                {
+                    photo.ID = photoResp.Model;
+                }
+            });
 
             State.Loading = false;
         }
