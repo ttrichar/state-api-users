@@ -1517,17 +1517,17 @@ namespace AmblOn.State.API.Users.State
         {
             var userLocations = new List<UserLocation>();
 
-            await layerIDs.Each(async (layerID) =>
-            {
+            // await layerIDs.Each(async (layerID) =>
+            // {
                 var userLayerLocations = new List<UserLocation>();
 
-                var layer = State.UserLayers.FirstOrDefault(x => x.ID == layerID);
+                // var layer = State.UserLayers.FirstOrDefault(x => x.ID == layerID);
 
-                var locations = await amblGraph.ListLocations(username, entApiKey, layerID);
+                var locations = await amblGraph.ListLocations(username, entApiKey);
 
                 await locations.Each(async (location) =>
                 {
-                    var loc = mapUserLocation(location, layerID, State.UserLayers.Any(x => x.ID == layerID && !x.Shared));
+                    var loc = mapUserLocation(location);
 
                     var accolades = await fetchUserAccolades(amblGraph, username, entApiKey, location.ID);
                     
@@ -1536,14 +1536,14 @@ namespace AmblOn.State.API.Users.State
                     userLayerLocations.Add(loc);
                 });
 
-                if (layer != null && layer.Coordinates != null)
-                    userLayerLocations = userLayerLocations.Where(x => x.Latitude <= layer.Coordinates[0]
-                                && x.Latitude >= layer.Coordinates[2]
-                                && x.Longitude <= layer.Coordinates[1]
-                                && x.Longitude >= layer.Coordinates[3]).ToList();
+                // if (layer != null && layer.Coordinates != null)
+                //     userLayerLocations = userLayerLocations.Where(x => x.Latitude <= layer.Coordinates[0]
+                //                 && x.Latitude >= layer.Coordinates[2]
+                //                 && x.Longitude <= layer.Coordinates[1]
+                //                 && x.Longitude >= layer.Coordinates[3]).ToList();
 
                 userLocations.AddRange(userLayerLocations);
-            });
+            // });
 
             return userLocations;
         }
@@ -1709,19 +1709,19 @@ namespace AmblOn.State.API.Users.State
             };
         }
 
-        protected virtual UserLocation mapUserLocation(Location location, Guid layerID, bool userOwns)
+        protected virtual UserLocation mapUserLocation(Location location)
         {
             return new UserLocation()
             {
                 ID = location.ID,
                 Address = location.Address,
                 Country = location.Country,
-                Deletable = userOwns,
+                //Deletable = userOwns,
                 GoogleLocationName = location.GoogleLocationName,
                 Icon = location.Icon,
                 Instagram = location.Instagram,
                 Latitude = location.Latitude,
-                LayerID = layerID,
+                //LayerID = layerID,
                 Longitude = location.Longitude,
                 State = location.State,
                 Telephone = location.Telephone,
@@ -1826,7 +1826,7 @@ namespace AmblOn.State.API.Users.State
             locations.Each(
                 (location) =>
                 {
-                    var userLocation = mapUserLocation(location, layerId, true);
+                    var userLocation = mapUserLocation(location);
                     userTopList.LocationList.Add(userLocation);
                 });
 

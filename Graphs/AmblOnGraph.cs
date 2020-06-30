@@ -2058,6 +2058,49 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<List<Location>> ListLocations(string email, string entAPIKey)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                // var query = g.V(userId)
+                //     .Out(AmblOnGraphConstants.OwnsEdgeName)
+                //     .HasLabel(AmblOnGraphConstants.LayerVertexName)
+                //     .Has(AmblOnGraphConstants.IDPropertyName, layerID)
+                //     .Out(AmblOnGraphConstants.ContainsEdgeName)
+                //     .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                var query2 = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                // var results = await Submit<Location>(query);               
+
+                // if (results.ToList().Count == 0)
+                // {
+                //     query = g.V(userId)
+                //         .Out(AmblOnGraphConstants.OwnsEdgeName)
+                //         .HasLabel(AmblOnGraphConstants.SharedLayerVertexName)
+                //         .Has(AmblOnGraphConstants.IDPropertyName, layerID)
+                //         .Out(AmblOnGraphConstants.InheritsEdgeName)
+                //         .HasLabel(AmblOnGraphConstants.LayerVertexName)
+                //         .Out(AmblOnGraphConstants.ContainsEdgeName)
+                //         .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                //     results = await Submit<Location>(query);                  
+                // }
+                //Query to return locations directly associated with AmblOnUser account
+                var otherResults = await Submit<Location>(query2);
+
+                // var totalResults = results.ToList();
+
+                // totalResults.AddRange(otherResults.ToList());
+
+                return otherResults.ToList();
+            });
+        }
+
         public virtual async Task<List<Map>> ListMaps(string email, string entAPIKey)
         {
             return await withG(async (client, g) =>
