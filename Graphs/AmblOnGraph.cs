@@ -143,11 +143,15 @@ namespace AmblOn.State.API.Users.Graphs
                         Status = Status.Success
                     };
                 }
-                else
+                else{
+                    var editResp = await EditActivity(email, entAPIKey, activity);
+                
                     return new BaseResponse<Guid>() { 
                         Model = existingActivity.ID.Value,
-                        Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
+                        //Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
+                        Status = Status.Success
                     };
+                }
             });
         }
 

@@ -212,7 +212,7 @@ namespace AmblOn.State.API.Users.State
             await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "/", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
                 new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
 
-            photo.URL = ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+            photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
             photo.ImageData = null;
 
