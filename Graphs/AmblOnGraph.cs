@@ -105,43 +105,71 @@ namespace AmblOn.State.API.Users.Graphs
 
                 if (existingActivity == null)
                 {
-                    var createQuery = g.AddV(AmblOnGraphConstants.ActivityVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, "Activity|" + activity.Title.Substring(0,1))
-                        .Property("Lookup", lookup)
-                        .Property("Checked", activity.Checked)
-                        .Property("CreatedDateTime", activity.CreatedDateTime)
-                        .Property("Favorited", activity.Favorited)
-                        .Property("LocationID", activity.LocationID ?? Guid.Empty)
-                        .Property("Notes", activity.Notes ?? "")
-                        .Property("Order", activity.Order)
-                        .Property("Title", activity.Title ?? "")
-                        .Property("TransportIcon", activity.TransportIcon ?? "")
-                        .Property("WidgetIcon", activity.WidgetIcon ?? "");
+                    var existingActivityQueryByID = g.V(userId)
+                        .Out(AmblOnGraphConstants.OwnsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                        .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
+                        .Out(AmblOnGraphConstants.ContainsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
+                        .Has(AmblOnGraphConstants.IDPropertyName, activityGroupId)
+                        .Out(AmblOnGraphConstants.ContainsEdgeName)
+                        .HasLabel(AmblOnGraphConstants.ActivityVertexName)
+                        .Has(AmblOnGraphConstants.IDPropertyName, activity.ID ?? Guid.Empty);
 
-                    var createActivityResults = await Submit<Activity>(createQuery);
+                    var existingActivitiesbyID = await Submit<Activity>(existingActivityQueryByID);
 
-                    var createdActivity = createActivityResults?.FirstOrDefault();
+                    var existingActivitybyID = existingActivitiesbyID?.FirstOrDefault();
 
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdActivity.ID));
-
-                    await Submit(userEdgeQuery);
-
-                    var activityGroupEdgeQuery = g.V(activityGroupId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdActivity.ID));
-
-                    await Submit(activityGroupEdgeQuery);
-
-                    if (activity.LocationID != null && activity.LocationID != Guid.Empty)
+                    if(existingActivitybyID == null)
                     {
-                        var locationEdgeQuery = g.V(createdActivity.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(activity.LocationID));
+                        var createQuery = g.AddV(AmblOnGraphConstants.ActivityVertexName)
+                            .Property(AmblOnGraphConstants.PartitionKeyName, "Activity|" + activity.Title.Substring(0,1))
+                            .Property("Lookup", lookup)
+                            .Property("Checked", activity.Checked)
+                            .Property("CreatedDateTime", activity.CreatedDateTime)
+                            .Property("Favorited", activity.Favorited)
+                            .Property("LocationID", activity.LocationID ?? Guid.Empty)
+                            .Property("Notes", activity.Notes ?? "")
+                            .Property("Order", activity.Order)
+                            .Property("Title", activity.Title ?? "")
+                            .Property("TransportIcon", activity.TransportIcon ?? "")
+                            .Property("WidgetIcon", activity.WidgetIcon ?? "");
 
-                        await Submit(locationEdgeQuery);
+                        var createActivityResults = await Submit<Activity>(createQuery);
+
+                        var createdActivity = createActivityResults?.FirstOrDefault();
+
+                        var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdActivity.ID));
+
+                        await Submit(userEdgeQuery);
+
+                        var activityGroupEdgeQuery = g.V(activityGroupId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdActivity.ID));
+
+                        await Submit(activityGroupEdgeQuery);
+
+                        if (activity.LocationID != null && activity.LocationID != Guid.Empty)
+                        {
+                            var locationEdgeQuery = g.V(createdActivity.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(activity.LocationID));
+
+                            await Submit(locationEdgeQuery);
+                        }
+
+                        return new BaseResponse<Guid>()
+                        {
+                            Model = createdActivity.ID.Value,
+                            Status = Status.Success
+                        };
+                    }
+                    else{
+                        var editResp = await EditActivity(email, entAPIKey, activity);
+
+                        return new BaseResponse<Guid>() { 
+                            Model = existingActivitybyID.ID.Value,
+                            //Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
+                            Status = Status.Success
+                        };
                     }
 
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdActivity.ID.Value,
-                        Status = Status.Success
-                    };
                 }
                 else{
                     var editResp = await EditActivity(email, entAPIKey, activity);

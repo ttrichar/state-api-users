@@ -715,10 +715,28 @@ namespace AmblOn.State.API.Users.State
 
                                     await activityGroup.Activities.Each(async (activity) =>
                                     {
-                                        var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
+                                        var addActResp = new BaseResponse<Guid>();
+                                        
+                                        if(activity.ID == null){
+                                            addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
 
-                                        var addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists ?? activity);
+                                            activity.ID = addActResp.Model;
 
+                                            var exists = activitiesList?.FirstOrDefault(x => x.Title == activity.Title);
+
+                                            if(exists != null){
+                                                exists.ID = activity.ID;
+                                         
+                                                addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists);
+                                            }
+                                        }
+
+                                        else{
+                                            var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
+
+                                            addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists);
+                                        }
+                                        
                                         activity.ID = addActResp.Model;
 
                                         if (!addActResp.Status)
