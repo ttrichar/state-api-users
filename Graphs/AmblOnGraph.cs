@@ -123,7 +123,7 @@ namespace AmblOn.State.API.Users.Graphs
                     if(existingActivitybyID == null)
                     {
                         var createQuery = g.AddV(AmblOnGraphConstants.ActivityVertexName)
-                            .Property(AmblOnGraphConstants.PartitionKeyName, "Activity|" + activity.Title.Substring(0,1))
+                            .Property(AmblOnGraphConstants.PartitionKeyName, "Activity|" + activity.Title ?? lookup)
                             .Property("Lookup", lookup)
                             .Property("Checked", activity.Checked)
                             .Property("CreatedDateTime", activity.CreatedDateTime)
@@ -206,7 +206,7 @@ namespace AmblOn.State.API.Users.Graphs
                 if (existingActivityGroup == null)
                 {
                     var createQuery = g.AddV(AmblOnGraphConstants.ActivityGroupVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, "ActivityGroup|" + activityGroup.Title.Substring(0,1))
+                        .Property(AmblOnGraphConstants.PartitionKeyName, "ActivityGroup|" + activityGroup.Title ?? lookup)
                         .Property("Lookup", lookup)
                         .Property("GroupType", activityGroup.GroupType ?? "")
                         .Property("CreatedDateTime", activityGroup.CreatedDateTime)
