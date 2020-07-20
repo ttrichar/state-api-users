@@ -1,0 +1,35 @@
+{
+  "Actions": {
+    "additionalProp1": {
+      "APIRoot": "somepath",
+      "Security": "yes"
+    },
+    "additionalProp2": {
+      "APIRoot": "anotherpath",
+      "Security": "no"
+    },
+    "additionalProp3": {
+      "APIRoot": "andanother",
+      "Security": "yes"
+    }
+  },
+  "ActiveEnvironment": "myenvironment",
+  "Description": "this is a description",
+  "Environments": {
+    "additionalProp1": {
+      "Security": "yes",
+      "ServerAPIRoot": "path1"
+    },
+    "additionalProp2": {
+      "Security": "yes",
+      "ServerAPIRoot": "path2"
+    },
+    "additionalProp3": {
+      "Security": "yes",
+      "ServerAPIRoot": "path3"
+    }
+  },
+  "Lookup": "mylookup",
+  "Name": "statetest1config",
+  "UseUsername": true
+}
