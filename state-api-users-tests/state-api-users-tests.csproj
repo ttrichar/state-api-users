@@ -1,20 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>    
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>state_api_users_tests</RootNamespace>
-  	<IsPackable>false</IsPackable>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>4c23d759-3489-4d65-b721-cdab0f06026d</UserSecretsId>
   </PropertyGroup>
+
   <ItemGroup>
     <None Remove="appsettings.json" />
     <None Remove="Blobs\stateconfig.json" />
     <None Remove="Snapshots\DataFlowsSetup.json" />
-  </ItemGroup>  
-  <ItemGroup>    
-    <PackageReference Include="Fathym.Testing" Version="1.62.20199.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Fathym.Testing" Version="1.63.20202.2" />
     <PackageReference Include="Fathym.Testing.Snapshots" Version="1.61.20197.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.1.0" />
     <PackageReference Include="MSTest.TestFramework" Version="2.1.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />
   </ItemGroup>
+
 </Project>
