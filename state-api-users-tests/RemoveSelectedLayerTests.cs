@@ -11,16 +11,16 @@ using System.Threading.Tasks;
 namespace state_api_users_tests
 {
     [TestClass]
-    public class AddAccoladeTests : AzFunctionTestBase
+    public class RemoveSelectedLayerTests : AzFunctionTestBase
     {
         
-        public AddAccoladeTests() : base()
+        public RemoveSelectedLayerTests() : base()
         {
-            APIRoute = "api/AddAccolade";                
+            APIRoute = "api/RemoveSelectedLayer";                
         }
 
         [TestMethod]
-        public async Task TestAddAccolade()
+        public async Task TestRemoveSelectedLayer()
         {
             LcuEntApiKey = "";            
             PrincipalId = "";

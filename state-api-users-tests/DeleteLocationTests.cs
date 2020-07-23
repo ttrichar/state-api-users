@@ -11,16 +11,16 @@ using System.Threading.Tasks;
 namespace state_api_users_tests
 {
     [TestClass]
-    public class AddAccoladeTests : AzFunctionTestBase
+    public class DeleteLocationTests : AzFunctionTestBase
     {
         
-        public AddAccoladeTests() : base()
+        public DeleteLocationTests() : base()
         {
-            APIRoute = "api/AddAccolade";                
+            APIRoute = "api/DeleteLocation";                
         }
 
         [TestMethod]
-        public async Task TestAddAccolade()
+        public async Task TestDeleteLocation()
         {
             LcuEntApiKey = "";            
             PrincipalId = "";

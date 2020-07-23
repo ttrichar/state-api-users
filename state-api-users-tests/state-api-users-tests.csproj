@@ -8,18 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="appsettings.json" />
-    <None Remove="Blobs\stateconfig.json" />
-    <None Remove="Snapshots\DataFlowsSetup.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Fathym.Testing" Version="1.63.20202.2" />
-    <PackageReference Include="Fathym.Testing.Snapshots" Version="1.61.20197.3" />
+    <PackageReference Include="Fathym.Testing" Version="1.65.20204.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.1.0" />
     <PackageReference Include="MSTest.TestFramework" Version="2.1.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />
   </ItemGroup>
-
+  <ItemGroup>
+    <None Update="testsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
