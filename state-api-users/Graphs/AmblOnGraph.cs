@@ -2384,102 +2384,72 @@ namespace AmblOn.State.API.Users.Graphs
         {
             return await withG(async (client, g) =>
             {
-                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+                //var userId = await ensureAmblOnUser(g, email, entAPIKey);
 
-                if(location == null){
-                    var existingLocationIdQuery = g.V(userId)
-                        .Out(AmblOnGraphConstants.OwnsEdgeName)
-                        .HasLabel(AmblOnGraphConstants.LocationVertexName)
-                        .Has(AmblOnGraphConstants.IDPropertyName, locationID);
+                string lookup = location.Latitude.ToString() + "|" + location.Longitude.ToString();
+                                           
+                var existingLocationQuery = g.V()
+                    //.Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
-                    var existingLocationsId = await Submit<UserLocation>(existingLocationIdQuery);
+                var existingLocations = await Submit<UserLocation>(existingLocationQuery);
 
-                    var existingLocationId = existingLocationsId?.FirstOrDefault();
+                var existingLocation = existingLocations?.FirstOrDefault();
 
-                    var editQuery = g.V(existingLocationId.ID)
-                        .Property("Address", location.Address ?? "")
-                        .Property("Country", location.Country ?? "")
-                        .Property("Icon", location.Icon ?? "")
-                        .Property("Instagram", location.Instagram ?? "")
-                        .Property("IsHidden", location.IsHidden)
-                        .Property("Latitude", location.Latitude)
-                        .Property("Longitude", location.Longitude)
-                        .Property("State", location.State ?? "")
-                        .Property("Telephone", location.Telephone ?? "")
-                        .Property("Title", location.Title ?? "")
-                        .Property("Town", location.Town ?? "")
-                        .Property("Website", location.Website ?? "")
-                        .Property("ZipCode", location.ZipCode ?? "");
+                if (existingLocation != null){
+                    var editQuery = g.V(existingLocation.ID)
+                    .Property("Address", location.Address ?? "")
+                    .Property("Country", location.Country ?? "")
+                    .Property("Icon", location.Icon ?? "")
+                    .Property("Instagram", location.Instagram ?? "")
+                    .Property("IsHidden", location.IsHidden)
+                    .Property("Latitude", location.Latitude)
+                    .Property("Longitude", location.Longitude)
+                    .Property("State", location.State ?? "")
+                    .Property("Telephone", location.Telephone ?? "")
+                    .Property("Title", location.Title ?? "")
+                    .Property("Town", location.Town ?? "")
+                    .Property("Website", location.Website ?? "")
+                    .Property("ZipCode", location.ZipCode ?? "");
 
                     await Submit(editQuery);
 
-                    return existingLocationId;               
+                    return existingLocation;
                 }
-                else{               
-                    string lookup = location.Latitude.ToString() + "|" + location.Longitude.ToString();
 
-                    var existingLocationQuery = g.V(userId)
-                        .Out(AmblOnGraphConstants.OwnsEdgeName)
-                        .HasLabel(AmblOnGraphConstants.LocationVertexName)
-                        .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                    
-                    var existingLocations = await Submit<UserLocation>(existingLocationQuery);
+                else{
+                    var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
+                    .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(location.Latitude).ToString() + Convert.ToInt32(location.Longitude).ToString())
+                    .Property("Lookup", lookup ?? "")
+                    .Property("Address", location.Address ?? "")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+                    .Property("Country", location.Country ?? "")
+                    .Property("GoogleLocationName", location.GoogleLocationName ?? "")
+                    .Property("Icon", location.Icon ?? "")
+                    .Property("Instagram", location.Instagram ?? "")
+                    .Property("IsHidden", location.IsHidden)
+                    .Property("Latitude", location.Latitude)
+                    .Property("Longitude", location.Longitude)
+                    .Property("State", location.State ?? "")
+                    .Property("Telephone", location.Telephone ?? "")
+                    .Property("Title", location.Title ?? "")
+                    .Property("Town", location.Town ?? "")
+                    .Property("Website", location.Website ?? "")
+                    .Property("ZipCode", location.ZipCode ?? "");
 
-                    var existingLocation = existingLocations?.FirstOrDefault();
+                    var createLocationResults = await Submit<UserLocation>(createQuery);
 
-                    if (existingLocation != null){
-                        var editQuery = g.V(existingLocation.ID)
-                        .Property("Address", location.Address ?? "")
-                        .Property("Country", location.Country ?? "")
-                        .Property("Icon", location.Icon ?? "")
-                        .Property("Instagram", location.Instagram ?? "")
-                        .Property("IsHidden", location.IsHidden)
-                        .Property("Latitude", location.Latitude)
-                        .Property("Longitude", location.Longitude)
-                        .Property("State", location.State ?? "")
-                        .Property("Telephone", location.Telephone ?? "")
-                        .Property("Title", location.Title ?? "")
-                        .Property("Town", location.Town ?? "")
-                        .Property("Website", location.Website ?? "")
-                        .Property("ZipCode", location.ZipCode ?? "");
+                    var createdLocation = createLocationResults?.FirstOrDefault();
 
-                        await Submit(editQuery);
+                    //acLoc.Activity.LocationID = createdLocation.ID;
 
-                        return existingLocation;
-                    }
+                    //var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
 
-                    else{
-                        var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(location.Latitude).ToString() + Convert.ToInt32(location.Longitude).ToString())
-                        .Property("Lookup", lookup ?? "")
-                        .Property("Address", location.Address ?? "")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
-                        .Property("Country", location.Country ?? "")
-                        .Property("GoogleLocationName", location.GoogleLocationName ?? "")
-                        .Property("Icon", location.Icon ?? "")
-                        .Property("Instagram", location.Instagram ?? "")
-                        .Property("IsHidden", location.IsHidden)
-                        .Property("Latitude", location.Latitude)
-                        .Property("Longitude", location.Longitude)
-                        .Property("State", location.State ?? "")
-                        .Property("Telephone", location.Telephone ?? "")
-                        .Property("Title", location.Title ?? "")
-                        .Property("Town", location.Town ?? "")
-                        .Property("Website", location.Website ?? "")
-                        .Property("ZipCode", location.ZipCode ?? "");
+                    //await Submit(userEdgeQuery);
 
-                        var createLocationResults = await Submit<UserLocation>(createQuery);
-
-                        var createdLocation = createLocationResults?.FirstOrDefault();
-
-                        //acLoc.Activity.LocationID = createdLocation.ID;
-
-                        var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
-
-                        await Submit(userEdgeQuery);
-
-                        return createdLocation;                 
-                    } 
-                }           
+                    return createdLocation;                 
+                } 
+                           
             });
         }
 

@@ -56,8 +56,8 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.LoadCuratedLocationsIntoDB(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, 
-                    reqData.LocationImportJSON, reqData.AccoladeList, new Guid(reqData.LayerID));
+                // await harness.LoadCuratedLocationsIntoDB(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, 
+                //     reqData.LocationImportJSON, reqData.AccoladeList, new Guid(reqData.LayerID));
 
                 return Status.Success;
             });
