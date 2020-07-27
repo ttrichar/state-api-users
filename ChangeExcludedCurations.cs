@@ -51,7 +51,7 @@ namespace AmblOn.State.API.Users
                     LocationIDs = reqData.LocationIDs
                 };
 
-                await harness.ChangeExcludedCurations(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, curationList);
+                //await harness.ChangeExcludedCurations(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, curationList);
 
                 return Status.Success;
             });

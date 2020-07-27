@@ -51,7 +51,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.DeleteAccolades(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.AccoladeIDs, reqData.LocationID);
+                //await harness.DeleteAccolades(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.AccoladeIDs, reqData.LocationID);
 
                 return Status.Success;
             });
