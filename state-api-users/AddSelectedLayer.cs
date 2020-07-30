@@ -48,7 +48,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.AddSelectedLayer(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.LayerID);
+                //await harness.AddSelectedLayer(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.LayerID);
 
                 return Status.Success;
             });

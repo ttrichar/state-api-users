@@ -52,7 +52,7 @@ namespace AmblOn.State.API.Users.State
         #endregion
 
         #region API Methods
-        #region API Methods
+
         #region Add
         // public virtual async Task AddAccolade(AmblOnGraph amblGraph, string username, string entApiKey, UserAccolade accolade, Guid locationId)
         // {
@@ -128,7 +128,7 @@ namespace AmblOn.State.API.Users.State
                         {
                             activity.CreatedDateTime = DateTime.Now;
 
-                            var activityResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
+                            var activityResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
 
                             if (activityResp.Status)
                             {
@@ -145,35 +145,35 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task AddLocation(AmblOnGraph amblGraph, string username, string entApiKey, UserLocation location)
-        {
-            ensureStateObject();
+        // public virtual async Task AddLocation(AmblOnGraph amblGraph, string username, string entApiKey, UserLocation location)
+        // {
+        //     ensureStateObject();
 
-            if (State.UserLayers.Any(x => x.ID == location.LayerID && !x.Shared))
-            {
-                var locationResp = await amblGraph.AddLocation(username, entApiKey, location);
+        //     if (State.UserLayers.Any(x => x.ID == location.LayerID && !x.Shared))
+        //     {
+        //         var locationResp = await amblGraph.AddLocation(username, entApiKey, location);
 
-                if (locationResp.Status)
-                {
-                    location.ID = locationResp.Model;
+        //         if (locationResp.Status)
+        //         {
+        //             location.ID = locationResp.Model;
 
-                    if (State.SelectedUserLayerIDs.Contains(location.LayerID))
-                    {
-                        State.VisibleUserLocations.Add(location);
-                        State.AllUserLocations.Add(location);
+        //             if (State.SelectedUserLayerIDs.Contains(location.LayerID))
+        //             {
+        //                 State.VisibleUserLocations.Add(location);
+        //                 State.AllUserLocations.Add(location);
 
-                        var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
+        //                 var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
 
-                        if (userMap != null)
-                            State.VisibleUserLocations = limitUserLocationsGeographically(State.VisibleUserLocations, userMap.Coordinates);
+        //                 if (userMap != null)
+        //                     State.VisibleUserLocations = limitUserLocationsGeographically(State.VisibleUserLocations, userMap.Coordinates);
 
-                        State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-                    }
-                }
-            }
+        //                 State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+        //             }
+        //         }
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
         // public virtual async Task AddMap(AmblOnGraph amblGraph, string username, string entApiKey, UserMap map)
         // {
@@ -256,31 +256,31 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task AddSelectedLayer(AmblOnGraph amblGraph, string username, string entApiKey, Guid layerID)
-        {
-            ensureStateObject();
+        // public virtual async Task AddSelectedLayer(AmblOnGraph amblGraph, string username, string entApiKey, Guid layerID)
+        // {
+        //     ensureStateObject();
 
-            if (State.UserLayers.Any(x => x.ID == layerID))
-                State.SelectedUserLayerIDs.Add(layerID);
+        //     if (State.UserLayers.Any(x => x.ID == layerID))
+        //         State.SelectedUserLayerIDs.Add(layerID);
 
-            //TODO: Check for whether locations are in AllLocations
-            var locationsToAdd = await fetchVisibleUserLocations(amblGraph, username, entApiKey, new List<Guid>() { layerID });
+        //     //TODO: Check for whether locations are in AllLocations
+        //     var locationsToAdd = await fetchVisibleUserLocations(amblGraph, username, entApiKey, new List<Guid>() { layerID });
 
-            State.AllUserLocations.AddRange(locationsToAdd);
+        //     State.AllUserLocations.AddRange(locationsToAdd);
 
-            State.AllUserLocations = State.AllUserLocations.Distinct().ToList();
+        //     State.AllUserLocations = State.AllUserLocations.Distinct().ToList();
 
-            var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
+        //     var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
 
-            if (userMap != null)
-            {
-                State.VisibleUserLocations.AddRange(limitUserLocationsGeographically(locationsToAdd, userMap.Coordinates));
+        //     if (userMap != null)
+        //     {
+        //         State.VisibleUserLocations.AddRange(limitUserLocationsGeographically(locationsToAdd, userMap.Coordinates));
 
-                State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-            }
+        //         State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
         public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entApiKey, UserTopList topList)
         {
@@ -316,28 +316,28 @@ namespace AmblOn.State.API.Users.State
         }
         #endregion
 
-        public virtual async Task ChangeViewingArea(float[] coordinates)
-        {
-            ensureStateObject();
+        // public virtual async Task ChangeViewingArea(float[] coordinates)
+        // {
+        //     ensureStateObject();
 
-            var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
+        //     var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
 
-            if (userMap != null)
-            {
-                userMap.Coordinates = coordinates;
+        //     if (userMap != null)
+        //     {
+        //         userMap.Coordinates = coordinates;
 
-                //TODO : Does this need to be reloaded
-                //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
+        //         //TODO : Does this need to be reloaded
+        //         //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
 
-                State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
-                                            .Distinct()
-                                            .ToList();
+        //         State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
+        //                                     .Distinct()
+        //                                     .ToList();
 
-                //State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-            }
+        //         //State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
         // public virtual async Task ChangeExcludedCurations(AmblOnGraph amblGraph, string username, string entApiKey, ExcludedCurations curations)
         // {
@@ -465,110 +465,110 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task DeleteMap(AmblOnGraph amblGraph, string username, string entApiKey, Guid mapID)
-        {
-            ensureStateObject();
+        // public virtual async Task DeleteMap(AmblOnGraph amblGraph, string username, string entApiKey, Guid mapID)
+        // {
+        //     ensureStateObject();
 
-            var userMap = State.UserMaps.FirstOrDefault(x => x.ID == mapID);
+        //     var userMap = State.UserMaps.FirstOrDefault(x => x.ID == mapID);
 
-            if (userMap != null && userMap.Deletable)
-            {
-                BaseResponse mapResp = new BaseResponse() { Status = Status.Initialized };
+        //     if (userMap != null && userMap.Deletable)
+        //     {
+        //         BaseResponse mapResp = new BaseResponse() { Status = Status.Initialized };
 
-                if (!userMap.Shared)
-                    mapResp = await amblGraph.DeleteMap(username, entApiKey, mapID);
-                else
-                    //mapResp = await amblGraph.DeleteSharedMap(username, entApiKey, mapID);
+        //         if (!userMap.Shared)
+        //             mapResp = await amblGraph.DeleteMap(username, entApiKey, mapID);
+        //         else
+        //             //mapResp = await amblGraph.DeleteSharedMap(username, entApiKey, mapID);
 
-                if (mapResp.Status)
-                {
-                    var existingMap = State.UserMaps.FirstOrDefault(x => x.ID == mapID);
+        //         if (mapResp.Status)
+        //         {
+        //             var existingMap = State.UserMaps.FirstOrDefault(x => x.ID == mapID);
 
-                    if (existingMap != null)
-                        State.UserMaps.Remove(existingMap);
+        //             if (existingMap != null)
+        //                 State.UserMaps.Remove(existingMap);
 
-                    State.UserMaps = State.UserMaps.Distinct().ToList();
+        //             State.UserMaps = State.UserMaps.Distinct().ToList();
 
-                    if (!State.UserMaps.Any(x => x.Primary == true))
-                    {
-                        var newPrimary = State.UserMaps.FirstOrDefault(x => x.Shared && !x.Deletable);
+        //             if (!State.UserMaps.Any(x => x.Primary == true))
+        //             {
+        //                 var newPrimary = State.UserMaps.FirstOrDefault(x => x.Shared && !x.Deletable);
 
-                        if (newPrimary != null)
-                            newPrimary.Primary = true;
-                        else if (State.UserMaps.Count > 0)
-                            State.UserMaps.First().Primary = true;
-                    }
+        //                 if (newPrimary != null)
+        //                     newPrimary.Primary = true;
+        //                 else if (State.UserMaps.Count > 0)
+        //                     State.UserMaps.First().Primary = true;
+        //             }
 
-                    if (State.UserMaps.Any(x => x.Primary))
-                    {
-                        var primaryMap = State.UserMaps.First(x => x.Primary);
+        //             if (State.UserMaps.Any(x => x.Primary))
+        //             {
+        //                 var primaryMap = State.UserMaps.First(x => x.Primary);
 
-                        State.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
+        //                 State.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
 
-                        // TODO:  Should layers and locations be reloaded, or loaded from local collection
-                        State.SelectedUserLayerIDs.Clear();
+        //                 // TODO:  Should layers and locations be reloaded, or loaded from local collection
+        //                 State.SelectedUserLayerIDs.Clear();
 
-                        State.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
+        //                 State.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
 
-                        //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
+        //                 //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
 
-                        State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, primaryMap.Coordinates);
+        //                 State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, primaryMap.Coordinates);
 
-                        State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-                    }
-                }
-            }
+        //                 State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+        //             }
+        //         }
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
-        public virtual async Task DeleteMaps(AmblOnGraph amblGraph, string username, string entApiKey, Guid[] mapIDs)
-        {
-            ensureStateObject();
+        // public virtual async Task DeleteMaps(AmblOnGraph amblGraph, string username, string entApiKey, Guid[] mapIDs)
+        // {
+        //     ensureStateObject();
 
-            var mapResp = await amblGraph.DeleteMaps(username, entApiKey, mapIDs);
+        //     var mapResp = await amblGraph.DeleteMaps(username, entApiKey, mapIDs);
 
-            if (mapResp.Status)
-            {
-                State.UserMaps.RemoveAll(x => mapIDs.ToList().Contains(x.ID ?? default(Guid)));
+        //     if (mapResp.Status)
+        //     {
+        //         State.UserMaps.RemoveAll(x => mapIDs.ToList().Contains(x.ID ?? default(Guid)));
 
-                State.UserMaps = State.UserMaps.Distinct().ToList();
+        //         State.UserMaps = State.UserMaps.Distinct().ToList();
 
-                if (!State.UserMaps.Any(x => x.Primary == true))
-                {
-                    var newPrimary = State.UserMaps.FirstOrDefault(x => x.Shared && !x.Deletable);
+        //         if (!State.UserMaps.Any(x => x.Primary == true))
+        //         {
+        //             var newPrimary = State.UserMaps.FirstOrDefault(x => x.Shared && !x.Deletable);
 
-                    if (newPrimary != null)
-                        newPrimary.Primary = true;
-                    else if (State.UserMaps.Count > 0)
-                        State.UserMaps.First().Primary = true;
-                }
+        //             if (newPrimary != null)
+        //                 newPrimary.Primary = true;
+        //             else if (State.UserMaps.Count > 0)
+        //                 State.UserMaps.First().Primary = true;
+        //         }
 
-                if (State.UserMaps.Any(x => x.Primary))
-                {
-                    var primaryMap = State.UserMaps.First(x => x.Primary);
+        //         if (State.UserMaps.Any(x => x.Primary))
+        //         {
+        //             var primaryMap = State.UserMaps.First(x => x.Primary);
 
-                    State.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
+        //             State.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
 
-                    // TODO: Do layers need to be reloaded if a map is removed
-                    State.SelectedUserLayerIDs.Clear();
+        //             // TODO: Do layers need to be reloaded if a map is removed
+        //             State.SelectedUserLayerIDs.Clear();
 
-                    State.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
+        //             State.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
 
-                    // TODO: Reload from a local collection instead
-                    //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
+        //             // TODO: Reload from a local collection instead
+        //             //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
 
-                    State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, primaryMap.Coordinates)
-                                                .Distinct()
-                                                .ToList();
+        //             State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, primaryMap.Coordinates)
+        //                                         .Distinct()
+        //                                         .ToList();
 
-                    //State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-                }
-            }
+        //             //State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+        //         }
+        //     }
 
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
         public virtual async Task DeletePhoto(AmblOnGraph amblGraph, string username, string entApiKey, Guid photoID)
         {
@@ -718,7 +718,7 @@ namespace AmblOn.State.API.Users.State
                                         var addActResp = new BaseResponse<Guid>();
                                         
                                         if(activity.ID == null){
-                                            addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
+                                            addActResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
 
                                             activity.ID = addActResp.Model;
 
@@ -727,14 +727,14 @@ namespace AmblOn.State.API.Users.State
                                             if(exists != null){
                                                 exists.ID = activity.ID;
                                          
-                                                addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists);
+                                                addActResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists);
                                             }
                                         }
 
                                         else{
                                             var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
 
-                                            addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists);
+                                            addActResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists);
                                         }
                                         
                                         activity.ID = addActResp.Model;
@@ -756,7 +756,7 @@ namespace AmblOn.State.API.Users.State
                                     {
                                         var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
 
-                                        var addActResp = await amblGraph.AddActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists ?? activity);
+                                        var addActResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists ?? activity);
 
                                         activity.ID = addActResp.Model;
 
@@ -835,41 +835,41 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task EditLocation(AmblOnGraph amblGraph, string username, string entApiKey, UserLocation location)
-        {
-            ensureStateObject();
+        // public virtual async Task EditLocation(AmblOnGraph amblGraph, string username, string entApiKey, UserLocation location)
+        // {
+        //     ensureStateObject();
 
-            if (State.UserLayers.Any(x => x.ID == location.LayerID && !x.Shared))
-            {
-                var locationResp = await amblGraph.EditLocation(username, entApiKey, location);
+        //     if (State.UserLayers.Any(x => x.ID == location.LayerID && !x.Shared))
+        //     {
+        //         var locationResp = await amblGraph.EditLocation(username, entApiKey, location);
 
-                if (locationResp.Status)
-                {
-                    if (State.SelectedUserLayerIDs.Contains(location.LayerID))
-                    {
-                        var existingVisible = State.VisibleUserLocations.FirstOrDefault(x => x.ID == location.ID);
+        //         if (locationResp.Status)
+        //         {
+        //             if (State.SelectedUserLayerIDs.Contains(location.LayerID))
+        //             {
+        //                 var existingVisible = State.VisibleUserLocations.FirstOrDefault(x => x.ID == location.ID);
 
-                        if (existingVisible != null)
-                        {
-                            State.VisibleUserLocations.Remove(existingVisible);
-                            State.AllUserLocations.RemoveAll(item => item.ID == existingVisible.ID);
-                        }
+        //                 if (existingVisible != null)
+        //                 {
+        //                     State.VisibleUserLocations.Remove(existingVisible);
+        //                     State.AllUserLocations.RemoveAll(item => item.ID == existingVisible.ID);
+        //                 }
 
-                        State.VisibleUserLocations.Add(location);
-                        State.AllUserLocations.Add(location);
+        //                 State.VisibleUserLocations.Add(location);
+        //                 State.AllUserLocations.Add(location);
 
-                        var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
+        //                 var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
 
-                        if (userMap != null)
-                            State.VisibleUserLocations = limitUserLocationsGeographically(State.VisibleUserLocations, userMap.Coordinates);
+        //                 if (userMap != null)
+        //                     State.VisibleUserLocations = limitUserLocationsGeographically(State.VisibleUserLocations, userMap.Coordinates);
 
-                        State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-                    }
-                }
-            }
+        //                 State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+        //             }
+        //         }
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
         public virtual async Task EditMap(AmblOnGraph amblGraph, string username, string entApiKey, UserMap map)
         {
@@ -987,79 +987,81 @@ namespace AmblOn.State.API.Users.State
                 State.UserInfo.Email = username;
             }
 
-            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+            if (State.UserAlbums.IsNullOrEmpty())
+                State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
 
-            State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
+            if (State.UserItineraries.IsNullOrEmpty())
+                State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
 
             //State.UserLayers = await fetchUserLayers(amblGraph, username, entApiKey);
 
-            State.UserMaps = await fetchUserMaps(amblGraph, username, entApiKey);
+            //State.UserMaps = await fetchUserMaps(amblGraph, username, entApiKey);
 
-            if (State.SelectedUserMapID.IsEmpty())
-            {
-                var primaryMap = State.UserMaps.FirstOrDefault(x => x.Primary == true);
+            // if (State.SelectedUserMapID.IsEmpty())
+            // {
+            //     var primaryMap = State.UserMaps.FirstOrDefault(x => x.Primary == true);
 
-                if (primaryMap != null)
-                    State.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
-            }
+            //     if (primaryMap != null)
+            //         State.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
+            // }
 
             // Load only on initial state load
             if (State.AllUserLocations.Count == 0)
             {
-                State.AllUserLocations = await fetchVisibleUserLocations(amblGraph, username, entApiKey, State.SelectedUserLayerIDs);
+                State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
             }
 
-            State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entApiKey);
+            // State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entApiKey);
 
-            var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
+            // var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
 
-            if (userMap != null)
-            {
-                State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
-                                                .Distinct()
-                                                .ToList();
-                //State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-            }
+            // if (userMap != null)
+            // {
+            //     State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
+            //                                     .Distinct()
+            //                                     .ToList();
+            //     //State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+            // }
 
-            var userLayer = State.UserLayers.Where(x => x.Title == "User").FirstOrDefault();
+            // var userLayer = State.UserLayers.Where(x => x.Title == "User").FirstOrDefault();
 
-            var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
+            // var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
 
-            State.UserTopLists = await fetchUserTopLists(amblGraph, username, entApiKey, userLayerID);
+            // State.UserTopLists = await fetchUserTopLists(amblGraph, username, entApiKey, userLayerID);
 
             State.Loading = false;
         }
 
-        public virtual async Task GlobalSearch(string searchTerm)
-        {
-            ensureStateObject();
+        // public virtual async Task GlobalSearch(string searchTerm)
+        // {
+        //     ensureStateObject();
 
-            var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
+        //     var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
 
-            if (userMap != null)
-            {
-                var circle = computeCircle(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
+        //     if (userMap != null)
+        //     {
+        //         var circle = computeCircle(userMap.Coordinates[0], userMap.Coordinates[1], userMap.Coordinates[2], userMap.Coordinates[3]);
 
-                var searchLocations = limitUserLocationsBySearch(State.AllUserLocations, searchTerm);
+        //         var searchLocations = limitUserLocationsBySearch(State.AllUserLocations, searchTerm);
 
-                var radiusLocations = limitUserLocationsByRadius(searchLocations, circle.Item1, circle.Item2, circle.Item3);
+        //         var radiusLocations = limitUserLocationsByRadius(searchLocations, circle.Item1, circle.Item2, circle.Item3);
 
-                State.LocalSearchUserLocations = radiusLocations
-                        .Distinct()
-                        .OrderBy(x => x.Title)
-                        .ToList();
+        //         State.LocalSearchUserLocations = radiusLocations
+        //                 .Distinct()
+        //                 .OrderBy(x => x.Title)
+        //                 .ToList();
 
-                var localIDs = State.LocalSearchUserLocations.Select(x => x.ID);
+        //         var localIDs = State.LocalSearchUserLocations.Select(x => x.ID);
 
-                State.OtherSearchUserLocations = searchLocations
-                        .Where(x => !localIDs.Contains(x.ID))
-                        .Distinct()
-                        .OrderBy(x => x.Title)
-                        .ToList();
-            }
+        //         State.OtherSearchUserLocations = searchLocations
+        //                 .Where(x => !localIDs.Contains(x.ID))
+        //                 .Distinct()
+        //                 .OrderBy(x => x.Title)
+        //                 .ToList();
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
         public virtual async Task Load(AmblOnGraph amblGraph, string username, string entApiKey)
         {
@@ -1069,51 +1071,19 @@ namespace AmblOn.State.API.Users.State
 
             State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
 
-            //State.UserLayers = await fetchUserLayers(amblGraph, username, entApiKey);
 
-            State.UserMaps = await fetchUserMaps(amblGraph, username, entApiKey);
+            if(State.AllUserLocations.Count == 0){
 
-            var primaryMap = State.UserMaps.FirstOrDefault(x => x.Primary == true);
+                State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
+            };
 
-            if (primaryMap != null)
-            {
-                State.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
+            //var userLayer = State.UserLayers.Where(x => x.Title == "User").FirstOrDefault();
 
-                var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
+            //var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
 
-                if (userMap != null)
-                {
-                    State.SelectedUserLayerIDs.Clear();
+            //State.UserTopLists = await fetchUserTopLists(amblGraph, username, entApiKey);
 
-                    var layerID = userMap.DefaultLayerID;
-
-                    var layer = State.UserLayers.FirstOrDefault(x => x.ID == layerID);
-
-                    if (layer == null)
-                        layer = State.UserLayers.FirstOrDefault(x => x.InheritedID == layerID);
-
-                    if (layer != null)
-                        layerID = layer.ID;
-
-                    State.SelectedUserLayerIDs.Add(layerID);
-
-                    if(State.AllUserLocations.Count == 0){
-                        State.AllUserLocations = await fetchVisibleUserLocations(amblGraph, username, entApiKey, State.SelectedUserLayerIDs);
-                    }
-
-                    State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
-                                                    .Distinct()
-                                                    .ToList();
-                }
-            }
-
-            var userLayer = State.UserLayers.Where(x => x.Title == "User").FirstOrDefault();
-
-            var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
-
-            State.UserTopLists = await fetchUserTopLists(amblGraph, username, entApiKey, userLayerID);
-
-            State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entApiKey);
+            //State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -1130,7 +1100,7 @@ namespace AmblOn.State.API.Users.State
         //     {
         //         var location = new UserLocation()
         //         {
-        //             Address = jsonLocation.Address,
+        //             Address = jsonLocation.Address
         //             Country = jsonLocation.Country,
         //             Icon = jsonLocation.Icon,
         //             Instagram = jsonLocation.Instagram,
@@ -1238,28 +1208,28 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task SetSelectedMap(Guid mapID)
-        {
-            ensureStateObject();
+        // public virtual async Task SetSelectedMap(Guid mapID)
+        // {
+        //     ensureStateObject();
 
-            var userMap = State.UserMaps.FirstOrDefault(x => x.ID == mapID);
+        //     var userMap = State.UserMaps.FirstOrDefault(x => x.ID == mapID);
 
-            if (userMap != null)
-            {
-                State.SelectedUserMapID = mapID;
+        //     if (userMap != null)
+        //     {
+        //         State.SelectedUserMapID = mapID;
 
-                // TODO: Filter results out a local collection of all locations 
-                //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
+        //         // TODO: Filter results out a local collection of all locations 
+        //         //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
 
-                State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
-                                            .Distinct()
-                                            .ToList();
+        //         State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
+        //                                     .Distinct()
+        //                                     .ToList();
 
-                //State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-            }
+        //         //State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
         public virtual async Task ShareItineraries(ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entApiKey, 
             List<Itinerary> itineraries, List<string> usernames)
@@ -1426,7 +1396,7 @@ namespace AmblOn.State.API.Users.State
 
             State.UserTopLists = State.UserTopLists ?? new List<UserTopList>();
 
-            State.AllUserLocations = State.AllUserLocations ?? new List<UserLocation>();
+            State.AllUserLocations = State.AllUserLocations ?? new List<Location>();
         }
 
         // protected virtual async Task<List<UserAccolade>> fetchUserAccolades(AmblOnGraph amblGraph, string username, string entApiKey, Guid locationId)
@@ -1856,6 +1826,6 @@ namespace AmblOn.State.API.Users.State
             return userLocations.Where(x => x.LayerID != layerID).ToList();
         }
         #endregion
-        #endregion
+
     }
 }

@@ -20,7 +20,7 @@ namespace AmblOn.State.API.Users.State
         public virtual string AddMapError { get; set; }
 
         [DataMember]
-        public virtual List<UserLocation> AllUserLocations { get; set; }
+        public virtual List<Location> AllUserLocations { get; set; }
 
         [DataMember]
         public virtual string Error {get; set;}

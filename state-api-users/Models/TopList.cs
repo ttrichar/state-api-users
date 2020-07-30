@@ -10,6 +10,9 @@ namespace AmblOn.State.API.Users.Models
     public class TopList : BusinessModel<Guid>
     {
         [DataMember]
+        public virtual List<Activity> Activities { get; set; }
+
+        [DataMember]
         public virtual List<Location> LocationList { get; set; }
 
         [DataMember]

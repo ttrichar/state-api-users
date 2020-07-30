@@ -79,7 +79,7 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        public virtual async Task<BaseResponse<Guid>> AddActivity(string email, string entAPIKey, Guid itineraryId, Guid activityGroupId, Activity activity)
+        public virtual async Task<BaseResponse<Guid>> AddActivityToAG(string email, string entAPIKey, Guid itineraryId, Guid activityGroupId, Activity activity)
         {
             return await withG(async (client, g) =>
             {
@@ -2090,6 +2090,55 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<List<Location>> PopulateAllLocations(string email, string entAPIKey)
+        {
+            return await withG(async (client, g) =>
+            {
+                var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                // var query = g.V(userId)
+                //     .Out(AmblOnGraphConstants.OwnsEdgeName)
+                //     .HasLabel(AmblOnGraphConstants.LayerVertexName)
+                //     .Has(AmblOnGraphConstants.IDPropertyName, layerID)
+                //     .Out(AmblOnGraphConstants.ContainsEdgeName)
+                //     .HasLabel(AmblOnGraphConstants.LocationVertexName);
+                
+                var query = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ActivityVertexName)
+                    .Out(AmblOnGraphConstants.OccursAtEdgeName)
+                    .Dedup();                                       
+
+                var query2 = g.V(userId)
+                    .Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                var results = await Submit<Location>(query);               
+
+                // if (results.ToList().Count == 0)
+                // {
+                //     query = g.V(userId)
+                //         .Out(AmblOnGraphConstants.OwnsEdgeName)
+                //         .HasLabel(AmblOnGraphConstants.SharedLayerVertexName)
+                //         .Has(AmblOnGraphConstants.IDPropertyName, layerID)
+                //         .Out(AmblOnGraphConstants.InheritsEdgeName)
+                //         .HasLabel(AmblOnGraphConstants.LayerVertexName)
+                //         .Out(AmblOnGraphConstants.ContainsEdgeName)
+                //         .HasLabel(AmblOnGraphConstants.LocationVertexName);
+
+                //     results = await Submit<Location>(query);                  
+                // }
+                //Query to return locations directly associated with AmblOnUser account
+                var otherResults = await Submit<Location>(query2);
+
+                var totalResults = results.ToList();
+
+                totalResults.AddRange(otherResults.ToList());
+
+                return totalResults;
+            });
+        }
+
         public virtual async Task<List<Location>> ListLocations(string email, string entAPIKey)
         {
             return await withG(async (client, g) =>
@@ -2380,7 +2429,8 @@ namespace AmblOn.State.API.Users.Graphs
         #endregion
 
         #region Helpers
-        public virtual async Task<UserLocation> ensureLocation(string email, string entAPIKey, Guid? locationID, UserLocation location = null)
+        //Takes in a location, determines if the location exists in the Graph. If it does, update it. If it does not, create the location vertex and edge relationship
+        public virtual async Task<Location> ensureLocation(string email, string entAPIKey, Guid? locationID, Location location = null)
         {
             return await withG(async (client, g) =>
             {
@@ -2393,7 +2443,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .HasLabel(AmblOnGraphConstants.LocationVertexName)
                     .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
-                var existingLocations = await Submit<UserLocation>(existingLocationQuery);
+                var existingLocations = await Submit<Location>(existingLocationQuery);
 
                 var existingLocation = existingLocations?.FirstOrDefault();
 
@@ -2437,7 +2487,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Property("Website", location.Website ?? "")
                     .Property("ZipCode", location.ZipCode ?? "");
 
-                    var createLocationResults = await Submit<UserLocation>(createQuery);
+                    var createLocationResults = await Submit<Location>(createQuery);
 
                     var createdLocation = createLocationResults?.FirstOrDefault();
 
