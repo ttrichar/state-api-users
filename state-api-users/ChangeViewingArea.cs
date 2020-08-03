@@ -37,7 +37,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.ChangeViewingArea(reqData.Coordinates);
+                //await harness.ChangeViewingArea(reqData.Coordinates);
 
                 return Status.Success;
             });

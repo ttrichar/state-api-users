@@ -37,7 +37,7 @@ namespace AmblOn.State.API.Users
             {
                 log.LogInformation($"SetSelectedMap");
 
-                await harness.SetSelectedMap(reqData.MapID);
+                //await harness.SetSelectedMap(reqData.MapID);
 
                 return Status.Success;
             });

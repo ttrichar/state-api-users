@@ -48,7 +48,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.DeleteMaps(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.MapIDs);
+                //await harness.DeleteMaps(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.MapIDs);
 
                 return Status.Success;
             });

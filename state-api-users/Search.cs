@@ -34,7 +34,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.GlobalSearch(reqData.SearchTerm);
+                //await harness.GlobalSearch(reqData.SearchTerm);
 
                 return Status.Success;
             });

@@ -48,7 +48,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.EditLocation(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Location);
+                //await harness.EditLocation(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Location);
 
                 return Status.Success;
             });

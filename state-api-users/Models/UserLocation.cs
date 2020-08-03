@@ -9,8 +9,8 @@ namespace AmblOn.State.API.Users.Models
     [DataContract]
     public class UserLocation : BusinessModel<Guid?>
     {
-        [DataMember]
-        public virtual List<UserAccolade> Accolades { get; set; }
+        // [DataMember]
+        // public virtual List<UserAccolade> Accolades { get; set; }
 
         [DataMember]
         public virtual string Address { get; set; }

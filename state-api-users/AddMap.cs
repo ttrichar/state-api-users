@@ -48,7 +48,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.AddMap(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Map);
+                //await harness.AddMap(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Map);
 
                 return Status.Success;
             });
