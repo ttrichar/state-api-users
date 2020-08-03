@@ -31,6 +31,7 @@ using AmblOn.State.API.Users.Graphs;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Device.Location;
 using Newtonsoft.Json.Linq;
+using static AmblOn.State.API.Users.Host.Startup;
 
 namespace AmblOn.State.API.Users.State
 {
@@ -676,7 +677,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task EditItinerary(AmblOnGraph amblGraph, string username, string entApiKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
+        public virtual async Task EditItinerary(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory, string username, string entApiKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
         {
             ensureStateObject();
 
@@ -822,7 +823,7 @@ namespace AmblOn.State.API.Users.State
                     }
 
                     if (success)
-                        State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
+                        State.UserItineraries = await fetchUserItineraries(amblGraph, amblGraphFactory, username, entApiKey);
                     else
                         State.Error = "General Error updating user itinerary.";
                 }
@@ -974,42 +975,12 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
         #endregion
-
-        public virtual async Task Ensure(AmblOnGraph amblGraph, string username, string entApiKey)
+        // ToDO: "Ensure" would become "Refresh", which contains a call to load
+        public virtual async Task Ensure(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entApiKey)
         {
             ensureStateObject();
 
-            var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
-
-            if (userInfoResp.Status)
-            {
-                State.UserInfo = userInfoResp.Model;
-                State.UserInfo.Email = username;
-            }
-
-            if (State.UserAlbums.IsNullOrEmpty())
-                State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
-
-            if (State.UserItineraries.IsNullOrEmpty())
-                State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
-
-            //State.UserLayers = await fetchUserLayers(amblGraph, username, entApiKey);
-
-            //State.UserMaps = await fetchUserMaps(amblGraph, username, entApiKey);
-
-            // if (State.SelectedUserMapID.IsEmpty())
-            // {
-            //     var primaryMap = State.UserMaps.FirstOrDefault(x => x.Primary == true);
-
-            //     if (primaryMap != null)
-            //         State.SelectedUserMapID = (primaryMap.ID.HasValue ? primaryMap.ID.Value : Guid.Empty);
-            // }
-
-            // Load only on initial state load
-            if (State.AllUserLocations.Count == 0)
-            {
-                State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
-            }
+            await Load(amblGraph, amblOnGraphFactory, username, entApiKey);
 
             // State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entApiKey);
 
@@ -1026,7 +997,8 @@ namespace AmblOn.State.API.Users.State
             // var userLayer = State.UserLayers.Where(x => x.Title == "User").FirstOrDefault();
 
             // var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
-
+            
+            
             // State.UserTopLists = await fetchUserTopLists(amblGraph, username, entApiKey, userLayerID);
 
             State.Loading = false;
@@ -1063,13 +1035,21 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task Load(AmblOnGraph amblGraph, string username, string entApiKey)
+        public virtual async Task Load(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entApiKey)
         {
             ensureStateObject();
 
+            var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
+
+            if (userInfoResp.Status)
+            {
+                State.UserInfo = userInfoResp.Model;
+                State.UserInfo.Email = username;
+            }
+
             State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
 
-            State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
+            State.UserItineraries = await fetchUserItineraries(amblGraph, amblOnGraphFactory, username, entApiKey);
 
 
             if(State.AllUserLocations.Count == 0){
@@ -1415,37 +1395,82 @@ namespace AmblOn.State.API.Users.State
 
         protected virtual async Task<List<UserAlbum>> fetchUserAlbums(AmblOnGraph amblGraph, string username, string entApiKey)
         {
-            var userAlbums = new List<UserAlbum>();
-
             var albums = await amblGraph.ListAlbums(username, entApiKey);
 
-            await albums.Each(async (album) =>
-            {
-                var photos = await amblGraph.ListPhotos(username, entApiKey, album.ID);
+            // await albums.Each(async (album) =>
+            // {
+            //     var photos = await amblGraph.ListPhotos(username, entApiKey, album.ID);
 
-                userAlbums.Add(mapUserAlbum(album, photos));
-            });
+            //     userAlbums.Add(mapUserAlbum(album, photos));
+            // });
 
-            return userAlbums;
+            return albums;
         }
 
-        protected virtual async Task<List<Itinerary>> fetchUserItineraries(AmblOnGraph amblGraph, string username, string entApiKey)
+        protected virtual async Task<List<Itinerary>> fetchUserItineraries(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory, string username, string entApiKey)
         {
             var itineraries = await amblGraph.ListItineraries(username, entApiKey);
 
-            await itineraries.Each(async (itinerary) =>
-            {
-                itinerary.ActivityGroups = await amblGraph.ListActivityGroups(username, entApiKey, itinerary);
+            //await itineraries.Each(async (itinerary) =>
+            // await Each(itineraries, async (itinerary) =>
+            // {
+            //     //var amblGraph = amblGraphFactory.Create();
 
-                await itinerary.ActivityGroups.Each(async (activityGroup) =>
-                {
-                    activityGroup.Activities = await amblGraph.ListActivities(username, entApiKey, activityGroup.ID.Value);
-                });
-            });
+            //     itinerary.ActivityGroups = await amblGraph.ListActivityGroups(username, entApiKey, itinerary);
+
+            //     //await itinerary.ActivityGroups.Each(async (activityGroup) =>
+            //     await Each(itinerary.ActivityGroups, async (activityGroup) =>
+            //     {
+            //         //var amblGraph = amblGraphFactory.Create();
+
+            //         activityGroup.Activities = await amblGraph.ListActivities(username, entApiKey, activityGroup.ID.Value);
+
+            //         return false;
+
+            //     }, parallel:false);
+            //     return false;
+            // }, parallel:false); 
 
             return itineraries;
         }
 
+        public virtual async Task Each<T>(IEnumerable<T> values, Func<T, Task<bool>> action, bool parallel = false)
+        {
+            if (values != null)
+            {
+                if (parallel)
+                {
+                    var valueTasks = values.Select(value =>
+                    {
+                        return action(value);
+                    });
+
+ 
+
+                    var successful = await Task.WhenAll(valueTasks);
+
+ 
+
+                    //Parallel.ForEach(values, value => action(value));  //  TODO:  Implement Multi-Threaded break logic
+                }
+                else
+                {
+                    bool shouldBreak;
+
+ 
+
+                    foreach (T value in values)
+                    {
+                        shouldBreak = await action(value);
+
+ 
+
+                        if (shouldBreak)
+                            break;
+                    }
+                }
+            }
+        }
         // protected virtual async Task<List<UserLayer>> fetchUserLayers(AmblOnGraph amblGraph, string username, string entApiKey)
         // {
         //     var userLayers = new List<UserLayer>();

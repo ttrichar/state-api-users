@@ -17,6 +17,7 @@ using Fathym.API;
 using System.Runtime.Serialization;
 using LCU.StateAPI.Utilities;
 using AmblOn.State.API.Users.Graphs;
+using static AmblOn.State.API.Users.Host.Startup;
 
 namespace AmblOn.State.API.Users
 {
@@ -29,12 +30,16 @@ namespace AmblOn.State.API.Users
     {
         #region Fields
         protected AmblOnGraph amblGraph;
+
+        protected AmblOnGraphFactory amblGraphFactory;
         #endregion
 
         #region Constructors
-        public Refresh(AmblOnGraph amblGraph)
+        public Refresh(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
         {
             this.amblGraph = amblGraph;
+
+            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 
@@ -50,9 +55,9 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.Load(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
+                //await harness.Load(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
 
-                await harness.Ensure(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
+                await harness.Ensure(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey);
                 
                 return Status.Success;
             });

@@ -13,6 +13,7 @@ using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
 using AmblOn.State.API.Users.Graphs;
+using static AmblOn.State.API.Users.Host.Startup;
 
 namespace AmblOn.State.API.Users
 {
@@ -20,12 +21,17 @@ namespace AmblOn.State.API.Users
     {
         #region Fields
         protected AmblOnGraph amblGraph;
+
+        protected AmblOnGraphFactory amblGraphFactory;
+
         #endregion
 
         #region Constructors
-        public Load(AmblOnGraph amblGraph)
+        public Load(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
         {
             this.amblGraph = amblGraph;
+
+            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 
@@ -41,7 +47,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.Load(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
+                await harness.Load(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey);
 
                 return Status.Success;
             });

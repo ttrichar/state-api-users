@@ -3,13 +3,16 @@ using Fathym;
 using Fathym.API;
 using Fathym.Business.Models;
 using Gremlin.Net.Process.Traversal;
+using Gremlin.Net.Driver;
 using LCU.Graphs;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Gremlin.Net.CosmosDb;
 
 namespace AmblOn.State.API.Users.Graphs
 {
@@ -1927,7 +1930,7 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        public virtual async Task<List<Album>> ListAlbums(string email, string entAPIKey)
+        public virtual async Task<List<UserAlbum>> ListAlbums(string email, string entAPIKey)
         {
             return await withG(async (client, g) =>
             {
@@ -1935,14 +1938,123 @@ namespace AmblOn.State.API.Users.Graphs
 
                 var query = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.AlbumVertexName);
+                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
+                    .Project<UserAlbum>("id", "PartitionKey", "Label", "Lookup", "Title", "Photos")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Title")
+                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.PhotoVertexName).Project<Photo>("id", "PartitionKey", "Label", "Lookup", "Caption", "URL")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Caption").By("URL")
+                    .Fold());
 
-                var results = await Submit<Album>(query);
+                var results = await SubmitJSON<UserAlbum>(query);
 
                 return results.ToList();
             });
         }
 
+        // public virtual async Task<List<Itinerary>> ListItineraries(string email, string entAPIKey)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+        //         var query = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.ItineraryVertexName);
+
+        //         var ownedResults = await Submit<Itinerary>(query);
+
+        //         var ownedList = ownedResults.ToList();
+
+        //         ownedList.ForEach(
+        //             (owned) =>
+        //             {
+        //                 owned.Shared = false;
+        //                 owned.SharedByUserID = Guid.Empty;
+        //                 owned.SharedByUsername = "";
+        //                 owned.Editable = true;
+        //             });
+
+        //         var sharedQuery = g.V(userId)
+        //               .Out(AmblOnGraphConstants.CanViewEdgeName)
+        //               .HasLabel(AmblOnGraphConstants.ItineraryVertexName);
+
+        //         var sharedResults = await Submit<Itinerary>(sharedQuery);
+
+        //         var sharedList = sharedResults.ToList();
+
+        //         sharedList.ForEach(
+        //             (shared) =>
+        //             {
+        //                 shared.Shared = true;
+        //                 shared.Editable = false;
+
+        //                 var userQuery = g.V(shared.ID)
+        //                       .In(AmblOnGraphConstants.OwnsEdgeName)
+        //                       .HasLabel(AmblOnGraphConstants.AmblOnUserVertexName);
+                            
+        //                 var userResults = Submit<AmblOnUser>(userQuery).GetAwaiter().GetResult();
+
+        //                 var user = userResults?.FirstOrDefault();
+
+        //                 var userInfoQuery = g.V(user.ID)
+        //                         .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //                         .HasLabel(AmblOnGraphConstants.UserInfoVertexName);
+
+        //                 var userInfoResults = Submit<UserInfo>(userInfoQuery).GetAwaiter().GetResult();
+
+        //                 var userInfo = userInfoResults?.FirstOrDefault();
+
+        //                 if (userInfo != null)
+        //                 {
+        //                     shared.SharedByUserID = user.ID;
+        //                     shared.SharedByUsername = userInfo.FirstName + " " + userInfo.LastName;
+        //                 }
+        //                 else{
+        //                     shared.SharedByUserID = user.ID;
+        //                     shared.SharedByUsername = user.Email;
+        //                 }
+        //             });
+
+        //         var results = new List<Itinerary>();
+
+        //         results.AddRange(ownedList);
+        //         results.AddRange(sharedList);
+                
+        //         return results.ToList();
+        //     });
+        // }
+        		public virtual async Task<T> SubmitJSONFirst<T>(string script)
+		        {
+                    var value = await SubmitJSON<T>(script);
+
+                    return value.FirstOrDefault();
+                }
+		public virtual async Task<List<T>> SubmitJSON<T>(string script)
+		{
+			return await withClient(async (client) =>
+			{
+				ResultSet<dynamic> res = await client.SubmitAsync<dynamic>(script);
+
+				var vals = res?.Select<dynamic, T>(ta =>
+				{
+                    return ((object)ta).JSONConvert<T>();
+					
+				})?.ToList();
+
+				return vals;
+			});
+		}
+
+        public virtual async Task<List<T>> SubmitJSON<T>(ITraversal traversal)
+		{
+			return await SubmitJSON<T>(traversal.ToGremlinQuery());
+		}
+
+        public virtual async Task<T> SubmitJSONFirst<T>(ITraversal traversal)
+		{
+			return await SubmitJSONFirst<T>(traversal.ToGremlinQuery());
+		}
+        
         public virtual async Task<List<Itinerary>> ListItineraries(string email, string entAPIKey)
         {
             return await withG(async (client, g) =>
@@ -1951,15 +2063,23 @@ namespace AmblOn.State.API.Users.Graphs
 
                 var query = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName);
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "ActivityGroups")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable")
+                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "Activities")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title")
+                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title")
+                    .Fold()).Fold());
 
-                var ownedResults = await Submit<Itinerary>(query);
+                var ownedResults = await SubmitJSON<Itinerary>(query);
 
                 var ownedList = ownedResults.ToList();
 
                 ownedList.ForEach(
                     (owned) =>
                     {
+                        var AGList = owned;
                         owned.Shared = false;
                         owned.SharedByUserID = Guid.Empty;
                         owned.SharedByUsername = "";
@@ -1967,10 +2087,17 @@ namespace AmblOn.State.API.Users.Graphs
                     });
 
                 var sharedQuery = g.V(userId)
-                      .Out(AmblOnGraphConstants.CanViewEdgeName)
-                      .HasLabel(AmblOnGraphConstants.ItineraryVertexName);
+                    .Out(AmblOnGraphConstants.CanViewEdgeName)
+                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "ActivityGroups")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable")
+                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "Activities")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title")
+                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title")
+                    .Fold()).Fold());
 
-                var sharedResults = await Submit<Itinerary>(sharedQuery);
+                var sharedResults = await SubmitJSON<Itinerary>(sharedQuery);
 
                 var sharedList = sharedResults.ToList();
 
@@ -2503,7 +2630,7 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<Guid> ensureAmblOnUser(GraphTraversalSource g, string email, string entAPIKey)
+        public virtual async Task<Guid> ensureAmblOnUser(Gremlin.Net.Process.Traversal.GraphTraversalSource g, string email, string entAPIKey)
         {
             var partKey = email?.Split('@')[1];
 
@@ -2635,7 +2762,7 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<Guid> setupNewUser(GraphTraversalSource g, string email, string entAPIKey)
+        public virtual async Task<Guid> setupNewUser(Gremlin.Net.Process.Traversal.GraphTraversalSource g, string email, string entAPIKey)
         {
             var partKey = email?.Split('@')[1];
 
