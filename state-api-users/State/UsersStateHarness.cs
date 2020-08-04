@@ -98,6 +98,8 @@ namespace AmblOn.State.API.Users.State
                 }
             }
 
+            await fetchUserAlbums(amblGraph, username, entApiKey);
+
             State.Loading = false;
         }
 
@@ -208,9 +210,13 @@ namespace AmblOn.State.API.Users.State
 
             var ent = await entMgr.GetEnterprise(entApiKey);
 
-            photo.ImageData.Data = Encoding.ASCII.GetBytes(photo.ImageData.DataString);
+            var index = photo.ImageData.DataString.IndexOf(',');
 
-            await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "/", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
+            photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
+
+            photo.ImageData.Data = Convert.FromBase64String(photo.ImageData.DataString);
+
+            await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
                 new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
 
             photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
@@ -223,6 +229,8 @@ namespace AmblOn.State.API.Users.State
             {
                 photo.ID = photoResp.Model;
             }
+
+            await fetchUserAlbums(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -237,22 +245,30 @@ namespace AmblOn.State.API.Users.State
             var ent = await entMgr.GetEnterprise(entApiKey);
 
             await album.Photos.Each(async (photo) =>{
-                photo.ImageData.Data = Encoding.ASCII.GetBytes(photo.ImageData.DataString);
+                if (photo.ImageData != null){
+                    var index = photo.ImageData.DataString.IndexOf(',');
 
-                await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "/", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
-                    new Guid(appId), "admin/" + username + "/albums/" + album.ID.ToString());
+                    photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
 
-                photo.URL = ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+                    photo.ImageData.Data = Convert.FromBase64String(photo.ImageData.DataString);
 
-                photo.ImageData = null;
+                    await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
+                        new Guid(appId), "admin/" + username + "/albums/" + album.ID.ToString());
 
-                var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, album.ID.Value);
+                    photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
-                if (photoResp.Status)
-                {
-                    photo.ID = photoResp.Model;
+                    photo.ImageData = null;
+
+                    var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, album.ID.Value);
+
+                    if (photoResp.Status)
+                    {
+                        photo.ID = photoResp.Model;
+                    }             
                 }
             });
+
+            await fetchUserAlbums(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -1647,22 +1663,19 @@ namespace AmblOn.State.API.Users.State
 
         protected virtual List<UserPhoto> mapImageDataToUserPhotos(List<UserPhoto> photos, List<ImageMessage> images)
         {
-            var photoCount = 0;
+            // var photoCount = 0;
 
-            photos.Each(
-                (photo) =>
-                {
-                    var img = images?.FirstOrDefault(x => QueryHelpers.ParseQuery(x.Headers)["ID"] == photo.ID);
+            images.Each(
+                (image) =>{
+                    var imageID = QueryHelpers.ParseQuery(image.Headers)["ID"];
+                    
+                    var photo = photos?.FirstOrDefault(x => x.ID.ToString() == imageID.ToString());
 
-                    if (img == null)
-                        img = images[photoCount];
-
-                    if (img != null)
-                        photo.ImageData = img;
-
-                    photoCount++;
-                });
-
+                    if(photo != null)
+                        photo.ImageData = image;                                          
+                }
+            );
+            
             return photos;
         }
 
