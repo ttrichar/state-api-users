@@ -210,27 +210,29 @@ namespace AmblOn.State.API.Users.State
 
             var ent = await entMgr.GetEnterprise(entApiKey);
 
-            var index = photo.ImageData.DataString.IndexOf(',');
+            if(photo.ImageData.DataString != null){
+                var index = photo.ImageData.DataString.IndexOf(',');
 
-            photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
+                photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
 
-            photo.ImageData.Data = Convert.FromBase64String(photo.ImageData.DataString);
+                photo.ImageData.Data = Convert.FromBase64String(photo.ImageData.DataString);
 
-            await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
-                new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
+                await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
+                    new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
 
-            photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+                photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
-            photo.ImageData = null;
+                photo.ImageData = null;
 
-            var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, albumID);
+                var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, albumID);
 
-            if (photoResp.Status)
-            {
-                photo.ID = photoResp.Model;
+                if (photoResp.Status)
+                {
+                    photo.ID = photoResp.Model;
+                }
+
+                await fetchUserAlbums(amblGraph, username, entApiKey);
             }
-
-            await fetchUserAlbums(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -245,7 +247,7 @@ namespace AmblOn.State.API.Users.State
             var ent = await entMgr.GetEnterprise(entApiKey);
 
             await album.Photos.Each(async (photo) =>{
-                if (photo.ImageData != null){
+                if (photo.ImageData.DataString != null){
                     var index = photo.ImageData.DataString.IndexOf(',');
 
                     photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
