@@ -98,6 +98,8 @@ namespace AmblOn.State.API.Users.State
                 }
             }
 
+            await fetchUserAlbums(amblGraph, username, entApiKey);
+
             State.Loading = false;
         }
 
@@ -208,6 +210,7 @@ namespace AmblOn.State.API.Users.State
 
             var ent = await entMgr.GetEnterprise(entApiKey);
 
+<<<<<<< HEAD
             var index = photo.ImageData.DataString.IndexOf(',');
 
             photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
@@ -216,16 +219,30 @@ namespace AmblOn.State.API.Users.State
 
             await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
                 new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
+=======
+            if(photo.ImageData != null){
+                var index = photo.ImageData.DataString.IndexOf(',');
 
-            photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+                photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
+>>>>>>> integration
 
-            photo.ImageData = null;
+                photo.ImageData.Data = Convert.FromBase64String(photo.ImageData.DataString);
 
-            var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, albumID);
+                await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
+                    new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
 
-            if (photoResp.Status)
-            {
-                photo.ID = photoResp.Model;
+                photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+
+                photo.ImageData = null;
+
+                var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, albumID);
+
+                if (photoResp.Status)
+                {
+                    photo.ID = photoResp.Model;
+                }
+
+                await fetchUserAlbums(amblGraph, username, entApiKey);
             }
 
             State.Loading = false;
@@ -241,6 +258,7 @@ namespace AmblOn.State.API.Users.State
             var ent = await entMgr.GetEnterprise(entApiKey);
 
             await album.Photos.Each(async (photo) =>{
+<<<<<<< HEAD
                 var index = photo.ImageData.DataString.IndexOf(',');
 
                 photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
@@ -251,16 +269,33 @@ namespace AmblOn.State.API.Users.State
                     new Guid(appId), "admin/" + username + "/albums/" + album.ID.ToString());
 
                 photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+=======
+                if (photo.ImageData != null){
+                    var index = photo.ImageData.DataString.IndexOf(',');
 
-                photo.ImageData = null;
+                    photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
 
-                var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, album.ID.Value);
+                    photo.ImageData.Data = Convert.FromBase64String(photo.ImageData.DataString);
+>>>>>>> integration
 
-                if (photoResp.Status)
-                {
-                    photo.ID = photoResp.Model;
+                    await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
+                        new Guid(appId), "admin/" + username + "/albums/" + album.ID.ToString());
+
+                    photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+
+                    photo.ImageData = null;
+
+                    var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, album.ID.Value);
+
+                    if (photoResp.Status)
+                    {
+                        photo.ID = photoResp.Model;
+                    }             
                 }
+
             });
+
+            await fetchUserAlbums(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -1655,6 +1690,7 @@ namespace AmblOn.State.API.Users.State
 
         protected virtual List<UserPhoto> mapImageDataToUserPhotos(List<UserPhoto> photos, List<ImageMessage> images)
         {
+<<<<<<< HEAD
             // var photoCount = 0;
 
             images.Each(
@@ -1674,15 +1710,47 @@ namespace AmblOn.State.API.Users.State
 
             //         if (img == null)
             //             img = images[photoCount];
+=======
+            //var photoCount = 0;
+
+            photos.Each(
+                (photo) =>
+                {
+                    var img = images?.FirstOrDefault(x => QueryHelpers.ParseQuery(x.Headers)["ID"].ToString() == photo.ID.ToString());
+
+                    // if (img == null)
+                    //     img = images[photoCount];
+>>>>>>> integration
 
             //         if (img != null)
             //             photo.ImageData = img;
 
+<<<<<<< HEAD
             //         photoCount++;
             //     });
+=======
+                    //photoCount++;
+                });
+>>>>>>> integration
 
             return photos;
         }
+        // {
+        //     // var photoCount = 0;
+
+        //     images.Each(
+        //         (image) =>{
+        //             var imageID = QueryHelpers.ParseQuery(image.Headers)["ID"];
+                    
+        //             var photo = photos?.FirstOrDefault(x => x.ID.ToString() == imageID.ToString());
+
+        //             if(photo != null)
+        //                 photo.ImageData = image;                                          
+        //         }
+        //     );
+            
+        //     return photos;
+        // }
 
         protected virtual UserAccolade mapUserAccolade(Accolade accolade, Guid locationId)
         {
