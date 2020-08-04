@@ -1,5 +1,5 @@
 {
-    "configurations": [
+    "configurations": [    
         {
             "name": "Attach to .NET Functions",
             "type": "coreclr",
