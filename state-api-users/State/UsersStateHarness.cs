@@ -210,7 +210,7 @@ namespace AmblOn.State.API.Users.State
 
             var ent = await entMgr.GetEnterprise(entApiKey);
 
-            if(photo.ImageData.DataString != null){
+            if(photo.ImageData != null){
                 var index = photo.ImageData.DataString.IndexOf(',');
 
                 photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
@@ -247,7 +247,7 @@ namespace AmblOn.State.API.Users.State
             var ent = await entMgr.GetEnterprise(entApiKey);
 
             await album.Photos.Each(async (photo) =>{
-                if (photo.ImageData.DataString != null){
+                if (photo.ImageData != null){
                     var index = photo.ImageData.DataString.IndexOf(',');
 
                     photo.ImageData.DataString = photo.ImageData.DataString.Substring(index + 1);
@@ -268,6 +268,7 @@ namespace AmblOn.State.API.Users.State
                         photo.ID = photoResp.Model;
                     }             
                 }
+
             });
 
             await fetchUserAlbums(amblGraph, username, entApiKey);
@@ -1665,21 +1666,40 @@ namespace AmblOn.State.API.Users.State
 
         protected virtual List<UserPhoto> mapImageDataToUserPhotos(List<UserPhoto> photos, List<ImageMessage> images)
         {
-            // var photoCount = 0;
+            //var photoCount = 0;
 
-            images.Each(
-                (image) =>{
-                    var imageID = QueryHelpers.ParseQuery(image.Headers)["ID"];
-                    
-                    var photo = photos?.FirstOrDefault(x => x.ID.ToString() == imageID.ToString());
+            photos.Each(
+                (photo) =>
+                {
+                    var img = images?.FirstOrDefault(x => QueryHelpers.ParseQuery(x.Headers)["ID"].ToString() == photo.ID.ToString());
 
-                    if(photo != null)
-                        photo.ImageData = image;                                          
-                }
-            );
-            
+                    // if (img == null)
+                    //     img = images[photoCount];
+
+                    if (img != null)
+                        photo.ImageData = img;
+
+                    //photoCount++;
+                });
+
             return photos;
         }
+        // {
+        //     // var photoCount = 0;
+
+        //     images.Each(
+        //         (image) =>{
+        //             var imageID = QueryHelpers.ParseQuery(image.Headers)["ID"];
+                    
+        //             var photo = photos?.FirstOrDefault(x => x.ID.ToString() == imageID.ToString());
+
+        //             if(photo != null)
+        //                 photo.ImageData = image;                                          
+        //         }
+        //     );
+            
+        //     return photos;
+        // }
 
         protected virtual UserAccolade mapUserAccolade(Accolade accolade, Guid locationId)
         {
