@@ -994,8 +994,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
         #endregion
-        // ToDO: "Ensure" would become "Refresh", which contains a call to load
-        public virtual async Task Ensure(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entApiKey)
+        public virtual async Task Refresh(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entApiKey)
         {
             ensureStateObject();
 

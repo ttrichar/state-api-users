@@ -57,7 +57,7 @@ namespace AmblOn.State.API.Users
 
                 //await harness.Load(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey);
 
-                await harness.Ensure(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey);
+                await harness.Refresh(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey);
                 
                 return Status.Success;
             });
