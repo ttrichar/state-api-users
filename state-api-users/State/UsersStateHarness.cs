@@ -231,7 +231,7 @@ namespace AmblOn.State.API.Users.State
                     photo.ID = photoResp.Model;
                 }
 
-                await fetchUserAlbums(amblGraph, username, entApiKey);
+                State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
             }
 
             State.Loading = false;
@@ -271,7 +271,7 @@ namespace AmblOn.State.API.Users.State
 
             });
 
-            await fetchUserAlbums(amblGraph, username, entApiKey);
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
