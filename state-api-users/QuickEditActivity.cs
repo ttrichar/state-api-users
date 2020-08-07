@@ -54,7 +54,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.QuickEditActivity(amblGraph, stateDetails.EnterpriseAPIKey, reqData.Activity);
+                await harness.QuickEditActivity(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Activity);
 
                 return Status.Success;
             });
