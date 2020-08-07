@@ -1610,6 +1610,17 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> EditOrder(string email, string entAPIKey, string query)
+        {
+            return await withG(async (client, g) =>
+            {
+
+
+                return new BaseResponse();
+                
+            });
+        }
+
         public virtual async Task<BaseResponse> EditPhoto(string email, string entAPIKey, UserPhoto photo, Guid albumID)
         {
             return await withG(async (client, g) =>
