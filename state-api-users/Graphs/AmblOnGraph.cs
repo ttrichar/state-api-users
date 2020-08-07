@@ -1614,7 +1614,7 @@ namespace AmblOn.State.API.Users.Graphs
         {
             return await withG(async (client, g) =>
             {
-
+                var results = await SubmitJSON<Itinerary>(query);
 
                 return new BaseResponse();
                 
