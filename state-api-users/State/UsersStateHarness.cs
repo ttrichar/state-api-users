@@ -1034,14 +1034,15 @@ namespace AmblOn.State.API.Users.State
                     activitygroup.Activities.ForEach(
                         (activity) => {
                             aQuery = aQuery + "has(\"id\", \"" + activity.ID.ToString() + "\").property(\"Order\", \"" + activity.Order.ToString() + "\"),";
-
                         });
                 });
 
             var query = baseQuery + aGquery + ").out(\"Contains\").coalesce(" + aQuery + ")";
 
             var resp = await amblGraph.EditOrder(email, entApiKey, query);
-        }
+
+            State.UserItineraries = await fetchUserItineraries(amblGraph, email, entApiKey);
+        } 
 
         public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string username, string entApiKey, Activity activity)
         {
