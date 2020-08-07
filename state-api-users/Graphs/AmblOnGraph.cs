@@ -1848,7 +1848,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Property("Editable", activity.Editable)
                     .Property("Favorited", activity.Favorited)
                     .Property("Notes", activity.Notes ?? "")
-                    //.Property("Order", activity.Order)
+                    .Property("Order", activity.Order.ToString() ?? "")
                     .Property("Title", activity.Title ?? "")
                     .Property("TransportIcon", activity.TransportIcon ?? "")
                     .Property("WidgetIcon", activity.WidgetIcon ?? "");
@@ -1859,6 +1859,7 @@ namespace AmblOn.State.API.Users.Graphs
                 {
                     Status = Status.Success
                 };
+                
             });
         }        
         #endregion 
