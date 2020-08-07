@@ -1018,6 +1018,31 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
+        public virtual async Task ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, string email, string entApiKey, Itinerary itinerary)
+        {
+
+            var baseQuery = "g.V(\"" + itinerary.ID.ToString() + "\").Out(\"Contains\").coalesce(";
+
+            var aGquery = "";
+
+            var aQuery = "";
+
+            itinerary.ActivityGroups.ForEach(
+                (activitygroup) => {
+                    aGquery = aGquery + "has(\"id\", \"" + activitygroup.ID.ToString() + "\").property(\"Order\", \"" + activitygroup.Order.ToString() + "\"),";
+
+                    activitygroup.Activities.ForEach(
+                        (activity) => {
+                            aQuery = aQuery + "has(\"id\", \"" + activity.ID.ToString() + "\").property(\"Order\", \"" + activity.Order.ToString() + "\"),";
+
+                        });
+                });
+
+            var query = baseQuery + aGquery + ").out(\"Contains\").coalesce(" + aQuery + ")";
+
+            var resp = await amblGraph.EditOrder(email, entApiKey, query);
+        }
+
         public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string entApiKey, Activity activity)
         {
             var resp = await amblGraph.QuickEditActivity(activity);
