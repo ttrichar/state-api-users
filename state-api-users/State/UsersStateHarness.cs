@@ -842,7 +842,7 @@ namespace AmblOn.State.API.Users.State
                     }
 
                     if (success)
-                        State.UserItineraries = await fetchUserItineraries(amblGraph, amblGraphFactory, username, entApiKey);
+                        State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
                     else
                         State.Error = "General Error updating user itinerary.";
                 }
@@ -1019,9 +1019,11 @@ namespace AmblOn.State.API.Users.State
             var resp = await amblGraph.EditOrder(email, entApiKey, query);
         }
 
-        public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string entApiKey, Activity activity)
+        public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string username, string entApiKey, Activity activity)
         {
             var resp = await amblGraph.QuickEditActivity(activity);
+
+            State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -1101,7 +1103,7 @@ namespace AmblOn.State.API.Users.State
 
             State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
 
-            State.UserItineraries = await fetchUserItineraries(amblGraph, amblOnGraphFactory, username, entApiKey);
+            State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
 
 
             if(State.AllUserLocations.Count == 0){
@@ -1459,7 +1461,7 @@ namespace AmblOn.State.API.Users.State
             return albums;
         }
 
-        protected virtual async Task<List<Itinerary>> fetchUserItineraries(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory, string username, string entApiKey)
+        protected virtual async Task<List<Itinerary>> fetchUserItineraries(AmblOnGraph amblGraph, string username, string entApiKey)
         {
             var itineraries = await amblGraph.ListItineraries(username, entApiKey);
 
