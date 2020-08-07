@@ -440,13 +440,13 @@ namespace AmblOn.State.API.Users.Graphs
 
                     return new BaseResponse<Guid>()
                     {
-                        Model = createdLocation.ID,
+                        Model = createdLocation.ID.Value,
                         Status = Status.Success
                     };
                 }
                 else
                     return new BaseResponse<Guid>() { 
-                        Model = existingLocation.ID,
+                        Model = existingLocation.ID.Value,
                         Status = Status.Conflict.Clone("A location by that lat/long already exists in selected layer.")                        
                     };
             });
@@ -1238,7 +1238,7 @@ namespace AmblOn.State.API.Users.Graphs
                         var locGuids =  locGroup.Select(l => l.ID)
                                                 .Take(locSize-1)
                                                 .ToArray();
-                        dedupeGuids.AddRange(locGuids);
+                        //dedupeGuids.AddRange(locGuids);
                     }
                 } 
                 
@@ -2614,7 +2614,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Property("Country", location.Country ?? "")
                     .Property("Icon", location.Icon ?? "")
                     .Property("Instagram", location.Instagram ?? "")
-                    .Property("IsHidden", location.IsHidden)
+                    .Property("IsHidden", location.IsHidden ?? "")
                     .Property("Latitude", location.Latitude)
                     .Property("Longitude", location.Longitude)
                     .Property("State", location.State ?? "")
@@ -2638,7 +2638,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Property("GoogleLocationName", location.GoogleLocationName ?? "")
                     .Property("Icon", location.Icon ?? "")
                     .Property("Instagram", location.Instagram ?? "")
-                    .Property("IsHidden", location.IsHidden)
+                    .Property("IsHidden", location.IsHidden ?? "")
                     .Property("Latitude", location.Latitude)
                     .Property("Longitude", location.Longitude)
                     .Property("State", location.State ?? "")
@@ -2700,7 +2700,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var location = results.FirstOrDefault();
 
                 if (location != null)
-                    return location.ID;
+                    return location.ID.Value;
                 else
                     return Guid.Empty;
             });
@@ -2722,7 +2722,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var location = results.FirstOrDefault();
 
                 if (location != null)
-                    return location.ID;
+                    return location.ID.Value;
                 else
                     return Guid.Empty;
             });
