@@ -1826,7 +1826,30 @@ namespace AmblOn.State.API.Users.Graphs
         //             Status = Status.Success
         //         };
         //     });
-        // }        
+        // }
+        
+        public virtual async Task<BaseResponse> QuickEditActivity(Activity activity)
+        {
+            return await withG(async (client, g) =>
+            {
+                var editQuery = g.V(activity.ID)
+                    .Property("Checked", activity.Checked)
+                    .Property("Editable", activity.Editable)
+                    .Property("Favorited", activity.Favorited)
+                    .Property("Notes", activity.Notes ?? "")
+                    //.Property("Order", activity.Order)
+                    .Property("Title", activity.Title ?? "")
+                    .Property("TransportIcon", activity.TransportIcon ?? "")
+                    .Property("WidgetIcon", activity.WidgetIcon ?? "");
+
+                await Submit(editQuery);
+
+                return new BaseResponse()
+                {
+                    Status = Status.Success
+                };
+            });
+        }        
         #endregion 
 
         #region List

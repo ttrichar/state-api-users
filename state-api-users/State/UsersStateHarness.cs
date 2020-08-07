@@ -98,7 +98,7 @@ namespace AmblOn.State.API.Users.State
                 }
             }
 
-            await fetchUserAlbums(amblGraph, username, entApiKey);
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -231,7 +231,7 @@ namespace AmblOn.State.API.Users.State
                     photo.ID = photoResp.Model;
                 }
 
-                await fetchUserAlbums(amblGraph, username, entApiKey);
+                State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
             }
 
             State.Loading = false;
@@ -271,7 +271,7 @@ namespace AmblOn.State.API.Users.State
 
             });
 
-            await fetchUserAlbums(amblGraph, username, entApiKey);
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -993,6 +993,14 @@ namespace AmblOn.State.API.Users.State
 
             State.Loading = false;
         }
+
+        public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string entApiKey, Activity activity)
+        {
+            var resp = await amblGraph.QuickEditActivity(activity);
+
+            State.Loading = false;
+        }
+        
         #endregion
         // ToDO: "Ensure" would become "Refresh", which contains a call to load
         public virtual async Task Ensure(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entApiKey)
