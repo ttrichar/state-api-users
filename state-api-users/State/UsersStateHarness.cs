@@ -1005,7 +1005,7 @@ namespace AmblOn.State.API.Users.State
 
             itinerary.ActivityGroups.ForEach(
                 (activitygroup) => {
-                    aGquery = aGquery + "has(\"id\", \"" + activitygroup.ID.ToString() + "\").property(\"Order\", \"" + activitygroup.Order.ToString() + "\"),";
+                    aGquery = aGquery + "has(\"id\", \"" + activitygroup.ID.ToString() + "\").property(\"Order\", \"" + activitygroup.Order.ToString() + "\").property(\"Title\", \"" + activitygroup.Title.ToString() + "\"),";
 
                     activitygroup.Activities.ForEach(
                         (activity) => {
