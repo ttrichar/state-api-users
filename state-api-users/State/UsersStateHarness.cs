@@ -1349,7 +1349,7 @@ namespace AmblOn.State.API.Users.State
             var activities = new List<Activity>();
 
             foreach (ActivityLocationLookup acLoc in activityLocations){
-                var location = await amblGraph.ensureLocation(email, entAPIKey, Guid.Empty, acLoc.Location);
+                var location = await amblGraph.ensureLocation(email, entAPIKey, acLoc.Location);
 
                 acLoc.Activity.LocationID = location.ID;
                 
@@ -1370,7 +1370,7 @@ namespace AmblOn.State.API.Users.State
             {
                 await activityGroup.Activities.Each(async (activity) =>
                 {   
-                    if (activity.LocationID.HasValue){
+                    if (activity.LocationID.HasValue && activity.LocationID != Guid.Empty){
                         var location = await amblGraph.ensureLocation(email, entAPIKey, activity.LocationID);
 
                         var existing = State.AllUserLocations.FirstOrDefault(x => x.ID == location.ID);
