@@ -1005,11 +1005,15 @@ namespace AmblOn.State.API.Users.State
 
             itinerary.ActivityGroups.ForEach(
                 (activitygroup) => {
-                    aGquery = aGquery + "has(\"id\", \"" + activitygroup.ID.ToString() + "\").property(\"Order\", \"" + activitygroup.Order.ToString() + "\").property(\"Title\", \"" + activitygroup.Title.ToString() + "\"),";
+                    aGquery = aGquery + "has(\"id\", \"" + activitygroup.ID.ToString() + "\").property(\"Order\", \"" + activitygroup.Order.ToString()  + "\").property(\"Title\", \"" + activitygroup.Title.ToString() + "\"),";
 
                     activitygroup.Activities.ForEach(
                         (activity) => {
-                            aQuery = aQuery + "has(\"id\", \"" + activity.ID.ToString() + "\").property(\"Order\", \"" + activity.Order.ToString() + "\"),";
+                            Random rnd = new Random();
+
+                            var vertexMoveEdge = rnd.Next(1, 10000);                          
+
+                            aQuery = aQuery + "has(\"id\", \"" + activity.ID.ToString() + "\").as(\"" + vertexMoveEdge.ToString() + "\").property(\"Order\", \"" + activity.Order.ToString() + "\").inE(\"Contains\").sideEffect(drop()).V(\"" + activitygroup.ID.ToString() + "\").addE(\"Contains\").to(\"" + vertexMoveEdge.ToString() + "\"),";
                         });
                 });
 
