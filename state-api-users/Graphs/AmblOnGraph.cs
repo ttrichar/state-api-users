@@ -1912,7 +1912,7 @@ namespace AmblOn.State.API.Users.Graphs
                 results.ToList().ForEach(
                     (activity) =>
                     {
-                        var locationId = getActivityLocationID(userId, activity.ID).GetAwaiter().GetResult();
+                        var locationId = getActivityLocationID(activity.ID).GetAwaiter().GetResult();
                         activity.LocationID = locationId;
                     });
 
@@ -2592,7 +2592,7 @@ namespace AmblOn.State.API.Users.Graphs
 
         #region Helpers
         //Takes in a location, determines if the location exists in the Graph. If it does, update it. If it does not, create the location vertex and edge relationship
-        public virtual async Task<Location> ensureLocation(string email, string entAPIKey, Guid? locationID, Location location = null)
+        public virtual async Task<Location> ensureLocation(string email, string entAPIKey, Location location)
         {
             return await withG(async (client, g) =>
             {
@@ -2665,6 +2665,30 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<Location> ensureLocation(string email, string entAPIKey, Guid? locationID)
+        {
+            return await withG(async (client, g) =>
+            {
+                //var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                //string lookup = location.Latitude.ToString() + "|" + location.Longitude.ToString();
+                                           
+                var existingLocationQuery = g.V()
+                    //.Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, locationID);
+                
+                var existingLocations = await Submit<Location>(existingLocationQuery);
+
+                var existingLocation = existingLocations?.FirstOrDefault();
+                
+                if(existingLocation != null)
+                    return existingLocation;
+                else
+                    return null;           
+            });
+        }       
+
         public virtual async Task<Guid> ensureAmblOnUser(Gremlin.Net.Process.Traversal.GraphTraversalSource g, string email, string entAPIKey)
         {
             var partKey = email?.Split('@')[1];
@@ -2685,11 +2709,11 @@ namespace AmblOn.State.API.Users.Graphs
             return existingUser;
         }
 
-        public virtual async Task<Guid> getActivityLocationID(Guid userId, Guid? activityId)
+        public virtual async Task<Guid> getActivityLocationID(Guid? activityId)
         {
             return await withG(async (client, g) =>
             {
-                var query = g.V(userId)
+                var query = g.V()
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.ActivityVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, activityId.HasValue ? activityId.Value : Guid.Empty)
