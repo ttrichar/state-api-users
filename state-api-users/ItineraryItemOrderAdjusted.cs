@@ -23,6 +23,7 @@ namespace AmblOn.State.API.Users
         [DataMember]
         public virtual Itinerary Itinerary { get; set; }
 
+        public virtual Guid ActivityChanged { get; set; }
     }
 
     public class ItineraryItemOrderAdjusted
@@ -54,7 +55,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.ItineraryItemOrderAdjusted(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary);
+                await harness.ItineraryItemOrderAdjusted(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary, reqData.ActivityChanged);
 
                 return Status.Success;
             });
