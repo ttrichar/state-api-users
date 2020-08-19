@@ -2099,12 +2099,12 @@ namespace AmblOn.State.API.Users.Graphs
                 var query = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "ActivityGroups")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable")
-                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "Activities")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title")
-                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title")
+                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "CreatedDateTime", "ActivityGroups")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable").By("CreatedDateTime")
+                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "CreatedDateTime", "Activities")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title").By("CreatedDateTime")
+                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title", "CreatedDateTime")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title").By("CreatedDateTime")
                     .Fold()).Fold());
 
                 var ownedResults = await SubmitJSON<Itinerary>(query);
@@ -2124,12 +2124,12 @@ namespace AmblOn.State.API.Users.Graphs
                 var sharedQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.CanViewEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "ActivityGroups")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable")
-                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "Activities")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title")
-                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title")
+                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "CreatedDateTime", "ActivityGroups")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable").By("CreatedDateTime")
+                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "CreatedDateTime", "Activities")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title").By("CreatedDateTime")
+                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title", "CreatedDateTime")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title").By("CreatedDateTime")
                     .Fold()).Fold());
 
                 var sharedResults = await SubmitJSON<Itinerary>(sharedQuery);
@@ -2499,6 +2499,12 @@ namespace AmblOn.State.API.Users.Graphs
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
                 var shareUserId = await ensureAmblOnUser(g, shareWithUsername, entAPIKey);
 
+                if(userId.ToString() == shareUserId.ToString()){
+                    return new BaseResponse() { 
+                    Status = Status.Conflict.Clone("Journey can't be shared with yourself!")
+                    };
+                };
+
                 var existingItineraryQuery = g.V(shareUserId)
                     .Out(AmblOnGraphConstants.CanViewEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
@@ -2532,12 +2538,12 @@ namespace AmblOn.State.API.Users.Graphs
                     }
                     else
                         return new BaseResponse() { 
-                        Status = Status.Conflict.Clone("Itinerary not found.")
+                        Status = Status.Conflict.Clone("Journey not found.")
                     };
                 }
                 else
                     return new BaseResponse() { 
-                        Status = Status.Conflict.Clone("Itinerary is already shared with this user.")
+                        Status = Status.Conflict.Clone("Journey is already shared with this user.")
                     };
             });
         }
