@@ -1327,7 +1327,7 @@ namespace AmblOn.State.API.Users.State
                     await addLocationFromSharedItinerary(amblGraph, user, entApiKey, itinerary);
 
                     State.SharedStatus = result.Status;
-
+                    
                     if (State.SharedStatus){
                         var mail = new
                         {
