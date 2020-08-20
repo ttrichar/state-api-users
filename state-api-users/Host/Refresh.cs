@@ -84,21 +84,21 @@ namespace AmblOn.State.API.Users
         #region Helpers
         protected virtual async Task<Status> refreshAmblOn(AmblOnStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshAmblOn(idMgr, stateDetails.EnterpriseAPIKey, stateDetails.Username);
+            await harness.RefreshAmblOn(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
 
             return Status.Success;
         }
 
         protected virtual async Task<Status> refreshItineraries(ItinerariesStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshItineraries();
+            await harness.RefreshItineraries(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
 
             return Status.Success;
         }
 
         protected virtual async Task<Status> refreshLocations(LocationsStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshLocations();
+            await harness.RefreshLocations(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
 
             return Status.Success;
         }

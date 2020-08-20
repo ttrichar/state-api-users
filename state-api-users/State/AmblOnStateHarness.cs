@@ -1132,6 +1132,23 @@ namespace AmblOn.State.API.AmblOn.State
             State.Loading = false;
         }
 
+        public virtual async Task RefreshAmblOn(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entApiKey, string username)
+        {
+            ensureStateObject();
+
+            var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
+
+            if (userInfoResp.Status)
+            {
+                State.UserInfo = userInfoResp.Model;
+                State.UserInfo.Email = username;
+            }
+
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+
+            State.Loading = false;
+        }
+
         // public virtual async Task LoadCuratedLocationsIntoDB(AmblOnGraph amblGraph, string ownerUsername, string entApiKey, List<dynamic> list, List<string> acclist, Guid layerID)
         // {
         //     float testFloat = 0;

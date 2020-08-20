@@ -1132,6 +1132,15 @@ namespace AmblOn.State.API.Locations.State
             State.Loading = false;
         }
 
+        public virtual async Task RefreshLocations(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entApiKey, string username)
+        {
+            ensureStateObject();
+
+            State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
+
+            State.Loading = false;
+        }
+
         // public virtual async Task LoadCuratedLocationsIntoDB(AmblOnGraph amblGraph, string ownerUsername, string entApiKey, List<dynamic> list, List<string> acclist, Guid layerID)
         // {
         //     float testFloat = 0;

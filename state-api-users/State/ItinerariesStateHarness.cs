@@ -1132,6 +1132,15 @@ namespace AmblOn.State.API.Itineraries.State
             State.Loading = false;
         }
 
+        public virtual async Task RefreshItineraries(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entApiKey, string username)
+        {
+            ensureStateObject();
+
+            State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
+
+            State.Loading = false;
+        }
+
         // public virtual async Task LoadCuratedLocationsIntoDB(AmblOnGraph amblGraph, string ownerUsername, string entApiKey, List<dynamic> list, List<string> acclist, Guid layerID)
         // {
         //     float testFloat = 0;
