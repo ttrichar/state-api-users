@@ -33,9 +33,9 @@ using System.Device.Location;
 using Newtonsoft.Json.Linq;
 using static AmblOn.State.API.Users.Host.Startup;
 
-namespace AmblOn.State.API.AmblOn.State
+namespace AmblOn.State.API.Users.State
 {
-    public class AmblOnStateHarness : LCUStateHarness<AmblOnState>
+    public class UsersStateHarness : LCUStateHarness<UsersState>
     {
         #region Constants
         #endregion
@@ -47,8 +47,8 @@ namespace AmblOn.State.API.AmblOn.State
         #endregion
 
         #region Constructors
-        public AmblOnStateHarness(AmblOnState state)
-            : base(state ?? new AmblOnState())
+        public UsersStateHarness(UsersState state)
+            : base(state ?? new UsersState())
         { }
         #endregion
 
@@ -1132,19 +1132,11 @@ namespace AmblOn.State.API.AmblOn.State
             State.Loading = false;
         }
 
-        public virtual async Task RefreshAmblOn(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entApiKey, string username)
+        public virtual async Task RefreshLocations(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entApiKey, string username)
         {
             ensureStateObject();
 
-            var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
-
-            if (userInfoResp.Status)
-            {
-                State.UserInfo = userInfoResp.Model;
-                State.UserInfo.Email = username;
-            }
-
-            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+            State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
 
             State.Loading = false;
         }

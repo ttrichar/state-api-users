@@ -41,7 +41,7 @@ namespace AmblOn.State.API.Users
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await stateBlob.WithStateHarness<AmblOnState, dynamic, AmblOnStateHarness>(req, signalRMessages, log,
+            return await stateBlob.WithStateHarness<UsersState, dynamic, UsersStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"Load");
