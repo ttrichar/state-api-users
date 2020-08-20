@@ -18,6 +18,7 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using LCU.StateAPI.Utilities;
 using AmblOn.State.API.Users.Graphs;
 using LCU.Personas.Client.Applications;
+using AmblOn.State.API.Itineraries.State;
 
 namespace AmblOn.State.API.Users
 {
@@ -53,7 +54,7 @@ namespace AmblOn.State.API.Users
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await stateBlob.WithStateHarness<UsersState, ShareItinerariesRequest, UsersStateHarness>(req, signalRMessages, log,
+            return await stateBlob.WithStateHarness<ItinerariesState, ShareItinerariesRequest, ItinerariesStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"ShareItineraries");

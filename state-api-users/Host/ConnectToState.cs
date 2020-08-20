@@ -13,6 +13,10 @@ using System.Security.Claims;
 using LCU.StateAPI;
 using AmblOn.State.API.Users.State;
 using Microsoft.WindowsAzure.Storage.Blob;
+using LCU.StateAPI.Utilities;
+using AmblOn.State.API.AmblOn.State;
+using AmblOn.State.API.Itineraries.State;
+using AmblOn.State.API.Locations.State;
 
 namespace AmblOn.State.API.Users.Host
 {
@@ -25,7 +29,16 @@ namespace AmblOn.State.API.Users.Host
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRGroupAction> signalRGroupActions,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await signalRMessages.ConnectToState<UsersState>(req, log, claimsPrincipal, stateBlob, signalRGroupActions);
+            var stateDetails = StateUtils.LoadStateDetails(req);
+
+            if (stateDetails.StateKey == "amblon")
+                return await signalRMessages.ConnectToState<AmblOnState>(req, log, claimsPrincipal, stateBlob, signalRGroupActions);
+            else if (stateDetails.StateKey == "itineraries")
+                return await signalRMessages.ConnectToState<ItinerariesState>(req, log, claimsPrincipal, stateBlob, signalRGroupActions);
+            else if (stateDetails.StateKey == "locations")
+                return await signalRMessages.ConnectToState<LocationsState>(req, log, claimsPrincipal, stateBlob, signalRGroupActions);
+            else
+                throw new Exception("A valid State Key must be provided (amblon, itineraries, locations).");
         }
     }
 }

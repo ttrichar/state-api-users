@@ -13,6 +13,7 @@ using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
 using LCU.Personas.Client.Applications;
+using AmblOn.State.API.AmblOn.State;
 
 namespace AmblOn.State.API.Users
 {
@@ -41,7 +42,7 @@ namespace AmblOn.State.API.Users
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await stateBlob.WithStateHarness<UsersState, SendInvitesRequest, UsersStateHarness>(req, signalRMessages, log,
+            return await stateBlob.WithStateHarness<AmblOnState, SendInvitesRequest, AmblOnStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"SendInvites");

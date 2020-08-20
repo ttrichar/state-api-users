@@ -17,6 +17,7 @@ using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using AmblOn.State.API.Users.State;
 using Microsoft.WindowsAzure.Storage.Blob;
 using LCU.StateAPI.Utilities;
+using AmblOn.State.API.Itineraries.State;
 
 namespace AmblOn.State.API.Users
 {
@@ -48,7 +49,7 @@ namespace AmblOn.State.API.Users
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await stateBlob.WithStateHarness<UsersState, UnshareItinerariesRequest, UsersStateHarness>(req, signalRMessages, log,
+            return await stateBlob.WithStateHarness<ItinerariesState, UnshareItinerariesRequest, ItinerariesStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"UnshareItineraries");

@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using LCU.Presentation;
 using AmblOn.State.API.Users.Graphs;
+using AmblOn.State.API.AmblOn.State;
 
 namespace AmblOn.State.API.Users
 {
@@ -47,7 +48,7 @@ namespace AmblOn.State.API.Users
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await stateBlob.WithStateHarness<UsersState, AddAccoladeRequest, UsersStateHarness>(req, signalRMessages, log,
+            return await stateBlob.WithStateHarness<AmblOnState, AddAlbumRequest, AmblOnStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"AddAccolade");

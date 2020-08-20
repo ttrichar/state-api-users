@@ -14,6 +14,7 @@ using System.Runtime.Serialization;
 using System.Collections.Generic;
 using AmblOn.State.API.Users.Graphs;
 using static AmblOn.State.API.Users.Host.Startup;
+using AmblOn.State.API.Itineraries.State;
 
 namespace AmblOn.State.API.Users
 {
@@ -47,7 +48,7 @@ namespace AmblOn.State.API.Users
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await stateBlob.WithStateHarness<UsersState, QuickEditActivityRequest, UsersStateHarness>(req, signalRMessages, log,
+            return await stateBlob.WithStateHarness<ItinerariesState, QuickEditActivityRequest, ItinerariesStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"QuickEditActivity");
