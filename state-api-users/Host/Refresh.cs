@@ -53,13 +53,13 @@ namespace AmblOn.State.API.Users
         {
             var stateDetails = StateUtils.LoadStateDetails(req);
 
-            if (stateDetails.StateKey == "amblon")
-                return await stateBlob.WithStateHarness<AmblOnState, RefreshRequest, AmblOnStateHarness>(req, signalRMessages, log,
+            if (stateDetails.StateKey == "users")
+                return await stateBlob.WithStateHarness<UsersState, RefreshRequest, UsersStateHarness>(req, signalRMessages, log,
                     async (harness, refreshReq, actReq) =>
                 {
-                    log.LogInformation($"Refreshing AmblOn state");
+                    log.LogInformation($"Refreshing Users state");
 
-                    return await refreshAmblOn(harness, log, stateDetails);
+                    return await refreshUsers(harness, log, stateDetails);
                 });
             else if (stateDetails.StateKey == "itineraries")
                 return await stateBlob.WithStateHarness<ItinerariesState, RefreshRequest, ItinerariesStateHarness>(req, signalRMessages, log,
@@ -82,9 +82,9 @@ namespace AmblOn.State.API.Users
         }
 
         #region Helpers
-        protected virtual async Task<Status> refreshAmblOn(AmblOnStateHarness harness, ILogger log, StateDetails stateDetails)
+        protected virtual async Task<Status> refreshUsers(UsersStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshAmblOn(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
+            await harness.RefreshUsers(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
 
             return Status.Success;
         }

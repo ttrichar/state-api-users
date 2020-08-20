@@ -31,8 +31,8 @@ namespace AmblOn.State.API.Users.Host
         {
             var stateDetails = StateUtils.LoadStateDetails(req);
 
-            if (stateDetails.StateKey == "amblon")
-                return await signalRMessages.ConnectToState<AmblOnState>(req, log, claimsPrincipal, stateBlob, signalRGroupActions);
+            if (stateDetails.StateKey == "users")
+                return await signalRMessages.ConnectToState<UsersState>(req, log, claimsPrincipal, stateBlob, signalRGroupActions);
             else if (stateDetails.StateKey == "itineraries")
                 return await signalRMessages.ConnectToState<ItinerariesState>(req, log, claimsPrincipal, stateBlob, signalRGroupActions);
             else if (stateDetails.StateKey == "locations")
