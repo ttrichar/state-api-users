@@ -18,14 +18,15 @@ using static AmblOn.State.API.Users.Host.Startup;
 namespace AmblOn.State.API.Users
 {
     [DataContract]
-    public class QuickEditActivityRequest
+    public class ItineraryItemOrderAdjustedRequest
     {
         [DataMember]
-        public virtual Activity Activity { get; set; }
+        public virtual Itinerary Itinerary { get; set; }
 
+        public virtual Guid ActivityChanged { get; set; }
     }
 
-    public class QuickEditActivity
+    public class ItineraryItemOrderAdjusted
     {
         #region Fields
         protected AmblOnGraph amblGraph;
@@ -34,7 +35,7 @@ namespace AmblOn.State.API.Users
         #endregion
 
         #region Constructors
-        public QuickEditActivity(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
+        public ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
         {
             this.amblGraph = amblGraph; 
 
@@ -42,19 +43,19 @@ namespace AmblOn.State.API.Users
         }
         #endregion
 
-        [FunctionName("QuickEditActivity")]
+        [FunctionName("ItineraryItemOrderAdjusted")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
             [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await stateBlob.WithStateHarness<UsersState, QuickEditActivityRequest, UsersStateHarness>(req, signalRMessages, log,
+            return await stateBlob.WithStateHarness<UsersState, ItineraryItemOrderAdjustedRequest, UsersStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
-                log.LogInformation($"QuickEditActivity");
+                log.LogInformation($"ItineraryItemOrderAdjusted");
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.QuickEditActivity(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Activity);
+                await harness.ItineraryItemOrderAdjusted(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary, reqData.ActivityChanged);
 
                 return Status.Success;
             });

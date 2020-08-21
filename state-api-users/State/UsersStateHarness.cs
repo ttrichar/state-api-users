@@ -842,7 +842,7 @@ namespace AmblOn.State.API.Users.State
                     }
 
                     if (success)
-                        State.UserItineraries = await fetchUserItineraries(amblGraph, amblGraphFactory, username, entApiKey);
+                        State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
                     else
                         State.Error = "General Error updating user itinerary.";
                 }
@@ -994,9 +994,46 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string entApiKey, Activity activity)
+        public virtual async Task ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, string email, string entApiKey, Itinerary itinerary, Guid activityChanged)
+        {
+
+            var baseQuery = "g.V(\"" + itinerary.ID.ToString() + "\").Out(\"Contains\").coalesce(";
+
+            var aGquery = "";
+
+            var aQuery = "";
+
+            itinerary.ActivityGroups.ForEach(
+                (activitygroup) => {
+                    aGquery = aGquery + "has(\"id\", \"" + activitygroup.ID.ToString() + "\").property(\"Order\", \"" + activitygroup.Order.ToString()  + "\").property(\"Title\", \"" + activitygroup.Title.ToString() + "\"),";
+
+                    activitygroup.Activities.ForEach(
+                        (activity) => {
+                            if(activity.ID.ToString() == activityChanged.ToString()){
+                                Random rnd = new Random();
+
+                                var vertexMoveEdge = rnd.Next(1, 10000);                          
+
+                                aQuery = aQuery + "has(\"id\", \"" + activity.ID.ToString() + "\").as(\"" + vertexMoveEdge.ToString() + "\").property(\"Order\", \"" + activity.Order.ToString() + "\").inE(\"Contains\").sideEffect(drop()).V(\"" + activitygroup.ID.ToString() + "\").addE(\"Contains\").to(\"" + vertexMoveEdge.ToString() + "\"),";
+                            }
+                            else{
+                                aQuery = aQuery + "has(\"id\", \"" + activity.ID.ToString() + "\").property(\"Order\", \"" + activity.Order.ToString() + "\"),";
+                            }
+                        });
+                });
+
+            var query = baseQuery + aGquery + ").out(\"Contains\").coalesce(" + aQuery + ")";
+
+            var resp = await amblGraph.EditOrder(email, entApiKey, query);
+
+            State.UserItineraries = await fetchUserItineraries(amblGraph, email, entApiKey);
+        } 
+
+        public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string username, string entApiKey, Activity activity)
         {
             var resp = await amblGraph.QuickEditActivity(activity);
+
+            State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
 
             State.Loading = false;
         }
@@ -1076,7 +1113,7 @@ namespace AmblOn.State.API.Users.State
 
             State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
 
-            State.UserItineraries = await fetchUserItineraries(amblGraph, amblOnGraphFactory, username, entApiKey);
+            State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
 
 
             if(State.AllUserLocations.Count == 0){
@@ -1266,7 +1303,7 @@ namespace AmblOn.State.API.Users.State
                     await addLocationFromSharedItinerary(amblGraph, user, entApiKey, itinerary);
 
                     State.SharedStatus = result.Status;
-
+                    
                     if (State.SharedStatus){
                         var mail = new
                         {
@@ -1321,7 +1358,7 @@ namespace AmblOn.State.API.Users.State
             var activities = new List<Activity>();
 
             foreach (ActivityLocationLookup acLoc in activityLocations){
-                var location = await amblGraph.ensureLocation(email, entAPIKey, Guid.Empty, acLoc.Location);
+                var location = await amblGraph.ensureLocation(email, entAPIKey, acLoc.Location);
 
                 acLoc.Activity.LocationID = location.ID;
                 
@@ -1342,7 +1379,7 @@ namespace AmblOn.State.API.Users.State
             {
                 await activityGroup.Activities.Each(async (activity) =>
                 {   
-                    if (activity.LocationID.HasValue){
+                    if (activity.LocationID.HasValue && activity.LocationID != Guid.Empty){
                         var location = await amblGraph.ensureLocation(email, entAPIKey, activity.LocationID);
 
                         var existing = State.AllUserLocations.FirstOrDefault(x => x.ID == location.ID);
@@ -1434,7 +1471,7 @@ namespace AmblOn.State.API.Users.State
             return albums;
         }
 
-        protected virtual async Task<List<Itinerary>> fetchUserItineraries(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory, string username, string entApiKey)
+        protected virtual async Task<List<Itinerary>> fetchUserItineraries(AmblOnGraph amblGraph, string username, string entApiKey)
         {
             var itineraries = await amblGraph.ListItineraries(username, entApiKey);
 

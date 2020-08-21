@@ -440,13 +440,13 @@ namespace AmblOn.State.API.Users.Graphs
 
                     return new BaseResponse<Guid>()
                     {
-                        Model = createdLocation.ID,
+                        Model = createdLocation.ID.Value,
                         Status = Status.Success
                     };
                 }
                 else
                     return new BaseResponse<Guid>() { 
-                        Model = existingLocation.ID,
+                        Model = existingLocation.ID.Value,
                         Status = Status.Conflict.Clone("A location by that lat/long already exists in selected layer.")                        
                     };
             });
@@ -1238,7 +1238,7 @@ namespace AmblOn.State.API.Users.Graphs
                         var locGuids =  locGroup.Select(l => l.ID)
                                                 .Take(locSize-1)
                                                 .ToArray();
-                        dedupeGuids.AddRange(locGuids);
+                        //dedupeGuids.AddRange(locGuids);
                     }
                 } 
                 
@@ -1610,6 +1610,17 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<BaseResponse> EditOrder(string email, string entAPIKey, string query)
+        {
+            return await withG(async (client, g) =>
+            {
+                var results = await SubmitJSON<Itinerary>(query);
+
+                return new BaseResponse();
+                
+            });
+        }
+
         public virtual async Task<BaseResponse> EditPhoto(string email, string entAPIKey, UserPhoto photo, Guid albumID)
         {
             return await withG(async (client, g) =>
@@ -1837,7 +1848,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Property("Editable", activity.Editable)
                     .Property("Favorited", activity.Favorited)
                     .Property("Notes", activity.Notes ?? "")
-                    //.Property("Order", activity.Order)
+                    .Property("Order", activity.Order.ToString() ?? "")
                     .Property("Title", activity.Title ?? "")
                     .Property("TransportIcon", activity.TransportIcon ?? "")
                     .Property("WidgetIcon", activity.WidgetIcon ?? "");
@@ -1848,6 +1859,7 @@ namespace AmblOn.State.API.Users.Graphs
                 {
                     Status = Status.Success
                 };
+                
             });
         }        
         #endregion 
@@ -1900,7 +1912,7 @@ namespace AmblOn.State.API.Users.Graphs
                 results.ToList().ForEach(
                     (activity) =>
                     {
-                        var locationId = getActivityLocationID(userId, activity.ID).GetAwaiter().GetResult();
+                        var locationId = getActivityLocationID(activity.ID).GetAwaiter().GetResult();
                         activity.LocationID = locationId;
                     });
 
@@ -2087,12 +2099,12 @@ namespace AmblOn.State.API.Users.Graphs
                 var query = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "ActivityGroups")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable")
-                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "Activities")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title")
-                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title")
+                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "CreatedDateTime", "ActivityGroups")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable").By("CreatedDateTime")
+                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "CreatedDateTime", "Activities")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title").By("CreatedDateTime")
+                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title", "CreatedDateTime")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title").By("CreatedDateTime")
                     .Fold()).Fold());
 
                 var ownedResults = await SubmitJSON<Itinerary>(query);
@@ -2112,12 +2124,12 @@ namespace AmblOn.State.API.Users.Graphs
                 var sharedQuery = g.V(userId)
                     .Out(AmblOnGraphConstants.CanViewEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "ActivityGroups")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable")
-                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "Activities")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title")
-                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title")
-                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title")
+                    .Project<Itinerary>("id", "PartitionKey", "Label", "Lookup", "Shared", "SharedByUsername", "SharedByUserID", "Title", "Editable", "CreatedDateTime", "ActivityGroups")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Shared").By("SharedByUsername").By("SharedByUserID").By("Title").By("Editable").By("CreatedDateTime")
+                    .By(__.Out("Contains").HasLabel(AmblOnGraphConstants.ActivityGroupVertexName).Project<ActivityGroup>("id", "PartitionKey", "Label", "Lookup", "GroupType", "Order", "Checked", "Title", "CreatedDateTime", "Activities")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("GroupType").By("Order").By("Checked").By("Title").By("CreatedDateTime")
+                    .By(__.Out("Contains").HasLabel("Activity").Project<Activity>("id", "PartitionKey", "Label", "Lookup", "Favorited", "Order", "Notes", "TransportIcon", "WidgetIcon", "LocationID", "Checked", "Title", "CreatedDateTime")
+                    .By("id").By("PartitionKey").By("label").By("Lookup").By("Favorited").By("Order").By("Notes").By("TransportIcon").By("WidgetIcon").By("LocationID").By("Checked").By("Title").By("CreatedDateTime")
                     .Fold()).Fold());
 
                 var sharedResults = await SubmitJSON<Itinerary>(sharedQuery);
@@ -2487,6 +2499,12 @@ namespace AmblOn.State.API.Users.Graphs
                 var userId = await ensureAmblOnUser(g, email, entAPIKey);
                 var shareUserId = await ensureAmblOnUser(g, shareWithUsername, entAPIKey);
 
+                if(userId.ToString() == shareUserId.ToString()){
+                    return new BaseResponse() { 
+                    Status = Status.Conflict.Clone("Journey can't be shared with yourself!")
+                    };
+                };
+
                 var existingItineraryQuery = g.V(shareUserId)
                     .Out(AmblOnGraphConstants.CanViewEdgeName)
                     .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
@@ -2520,12 +2538,12 @@ namespace AmblOn.State.API.Users.Graphs
                     }
                     else
                         return new BaseResponse() { 
-                        Status = Status.Conflict.Clone("Itinerary not found.")
+                        Status = Status.Conflict.Clone("Journey not found.")
                     };
                 }
                 else
                     return new BaseResponse() { 
-                        Status = Status.Conflict.Clone("Itinerary is already shared with this user.")
+                        Status = Status.Conflict.Clone("Journey is already shared with this user.")
                     };
             });
         }
@@ -2580,7 +2598,7 @@ namespace AmblOn.State.API.Users.Graphs
 
         #region Helpers
         //Takes in a location, determines if the location exists in the Graph. If it does, update it. If it does not, create the location vertex and edge relationship
-        public virtual async Task<Location> ensureLocation(string email, string entAPIKey, Guid? locationID, Location location = null)
+        public virtual async Task<Location> ensureLocation(string email, string entAPIKey, Location location)
         {
             return await withG(async (client, g) =>
             {
@@ -2603,7 +2621,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Property("Country", location.Country ?? "")
                     .Property("Icon", location.Icon ?? "")
                     .Property("Instagram", location.Instagram ?? "")
-                    .Property("IsHidden", location.IsHidden)
+                    .Property("IsHidden", location.IsHidden ?? "")
                     .Property("Latitude", location.Latitude)
                     .Property("Longitude", location.Longitude)
                     .Property("State", location.State ?? "")
@@ -2627,7 +2645,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Property("GoogleLocationName", location.GoogleLocationName ?? "")
                     .Property("Icon", location.Icon ?? "")
                     .Property("Instagram", location.Instagram ?? "")
-                    .Property("IsHidden", location.IsHidden)
+                    .Property("IsHidden", location.IsHidden ?? "")
                     .Property("Latitude", location.Latitude)
                     .Property("Longitude", location.Longitude)
                     .Property("State", location.State ?? "")
@@ -2653,6 +2671,30 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
+        public virtual async Task<Location> ensureLocation(string email, string entAPIKey, Guid? locationID)
+        {
+            return await withG(async (client, g) =>
+            {
+                //var userId = await ensureAmblOnUser(g, email, entAPIKey);
+
+                //string lookup = location.Latitude.ToString() + "|" + location.Longitude.ToString();
+                                           
+                var existingLocationQuery = g.V()
+                    //.Out(AmblOnGraphConstants.OwnsEdgeName)
+                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
+                    .Has(AmblOnGraphConstants.IDPropertyName, locationID);
+                
+                var existingLocations = await Submit<Location>(existingLocationQuery);
+
+                var existingLocation = existingLocations?.FirstOrDefault();
+                
+                if(existingLocation != null)
+                    return existingLocation;
+                else
+                    return null;           
+            });
+        }       
+
         public virtual async Task<Guid> ensureAmblOnUser(Gremlin.Net.Process.Traversal.GraphTraversalSource g, string email, string entAPIKey)
         {
             var partKey = email?.Split('@')[1];
@@ -2673,11 +2715,11 @@ namespace AmblOn.State.API.Users.Graphs
             return existingUser;
         }
 
-        public virtual async Task<Guid> getActivityLocationID(Guid userId, Guid? activityId)
+        public virtual async Task<Guid> getActivityLocationID(Guid? activityId)
         {
             return await withG(async (client, g) =>
             {
-                var query = g.V(userId)
+                var query = g.V()
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
                     .HasLabel(AmblOnGraphConstants.ActivityVertexName)
                     .Has(AmblOnGraphConstants.IDPropertyName, activityId.HasValue ? activityId.Value : Guid.Empty)
@@ -2689,7 +2731,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var location = results.FirstOrDefault();
 
                 if (location != null)
-                    return location.ID;
+                    return location.ID.Value;
                 else
                     return Guid.Empty;
             });
@@ -2711,7 +2753,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var location = results.FirstOrDefault();
 
                 if (location != null)
-                    return location.ID;
+                    return location.ID.Value;
                 else
                     return Guid.Empty;
             });
