@@ -25,8 +25,8 @@ namespace AmblOn.State.API.Users.Host
         [FunctionName("ConnectToState")]
         public static async Task<ConnectToStateResponse> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post")]HttpRequest req, ILogger log,
             ClaimsPrincipal claimsPrincipal, //[LCUStateDetails]StateDetails stateDetails,
-            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
-            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRGroupAction> signalRGroupActions,
+            [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRGroupAction> signalRGroupActions,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
             var stateDetails = StateUtils.LoadStateDetails(req);
