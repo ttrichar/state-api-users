@@ -613,6 +613,8 @@ namespace AmblOn.State.API.Users.State
                 }
             }
 
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+
             State.Loading = false;
         }
 
