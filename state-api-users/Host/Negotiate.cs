@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using AmblOn.State.API.Users.State;
+using AmblOn.State.API.AmblOn.State;
 
 namespace AmblOn.State.API.Users.Host
 {
@@ -17,7 +18,7 @@ namespace AmblOn.State.API.Users.Host
         [FunctionName("negotiate")]
         public static SignalRConnectionInfo Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "options")] HttpRequest req,
-            [SignalRConnectionInfo(HubName = UsersState.HUB_NAME, UserId = "{headers.x-ms-client-principal-id}")] SignalRConnectionInfo connectionInfo)
+            [SignalRConnectionInfo(HubName = AmblOnState.HUB_NAME, UserId = "{headers.x-ms-client-principal-id}")] SignalRConnectionInfo connectionInfo)
         {
             return connectionInfo;
         }
