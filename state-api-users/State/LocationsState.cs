@@ -36,9 +36,6 @@ namespace AmblOn.State.API.Locations.State
 
         [DataMember]
         public virtual UserInfo UserInfo {get; set;}
-
-        [DataMember]
-        public virtual List<Itinerary> UserItineraries {get; set;}
         
         [DataMember]
         public virtual List<UserLocation> VisibleUserLocations {get; set;}
