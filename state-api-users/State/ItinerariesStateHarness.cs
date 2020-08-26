@@ -325,7 +325,7 @@ namespace AmblOn.State.API.Itineraries.State
             State.Loading = false;
         }
 
-        public virtual async Task ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, string email, string entApiKey, Itinerary itinerary, Guid activityChanged)
+        public virtual async Task ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, string email, string entApiKey, Itinerary itinerary, Guid? activityChanged)
         {
             var baseQuery = "g.V(\"" + itinerary.ID.ToString() + "\").Out(\"Contains\").coalesce(";
 

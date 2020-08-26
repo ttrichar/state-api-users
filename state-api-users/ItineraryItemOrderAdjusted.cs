@@ -23,9 +23,10 @@ namespace AmblOn.State.API.Users
     public class ItineraryItemOrderAdjustedRequest
     {
         [DataMember]
-        public virtual Itinerary Itinerary { get; set; }
+        public virtual Itinerary Itinerary { get; set; }    
 
-        public virtual Guid ActivityChanged { get; set; }
+        [DataMember]
+        public virtual Guid? ActivityChanged { get; set; }
     }
 
     public class ItineraryItemOrderAdjusted
