@@ -31,7 +31,7 @@ namespace AmblOn.State.API.Users.Models
         public virtual string Instagram { get; set; }
 
         [DataMember]
-        public virtual bool IsHidden { get; set; }
+        public virtual bool? IsHidden { get; set; }
 
         [DataMember]
         public virtual float Latitude { get; set; }

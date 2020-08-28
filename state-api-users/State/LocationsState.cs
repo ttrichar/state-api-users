@@ -35,6 +35,9 @@ namespace AmblOn.State.API.Locations.State
         public virtual List<Guid> SelectedUserLayerIDs {get; set;}
 
         [DataMember]
+        public virtual string StateType { get; set; } = "Locations";
+
+        [DataMember]
         public virtual UserInfo UserInfo {get; set;}
         
         [DataMember]

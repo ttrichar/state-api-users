@@ -26,6 +26,9 @@ namespace AmblOn.State.API.Itineraries.State
         public virtual Status SharedStatus {get; set;}
 
         [DataMember]
+        public virtual string StateType { get; set; } = "Itineraries";
+
+        [DataMember]
         public virtual UserInfo UserInfo {get; set;}
 
         [DataMember]

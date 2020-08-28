@@ -1103,25 +1103,25 @@ namespace AmblOn.State.API.Users.State
 
         public virtual async Task Load(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entApiKey)
         {
-            ensureStateObject();
+            // ensureStateObject();
 
-            var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
+            // var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
 
-            if (userInfoResp.Status)
-            {
-                State.UserInfo = userInfoResp.Model;
-                State.UserInfo.Email = username;
-            }
+            // if (userInfoResp.Status)
+            // {
+            //     State.UserInfo = userInfoResp.Model;
+            //     State.UserInfo.Email = username;
+            // }
 
-            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+            // State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
 
-            State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
+            // State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
 
 
-            if(State.AllUserLocations.Count == 0){
+            // if(State.AllUserLocations.Count == 0){
 
-                State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
-            };
+            //     State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
+            // };
 
             //var userLayer = State.UserLayers.Where(x => x.Title == "User").FirstOrDefault();
 
@@ -1147,6 +1147,8 @@ namespace AmblOn.State.API.Users.State
             }
 
             State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+
+            State.Loading = false;
         }
 
         // public virtual async Task LoadCuratedLocationsIntoDB(AmblOnGraph amblGraph, string ownerUsername, string entApiKey, List<dynamic> list, List<string> acclist, Guid layerID)
@@ -1223,22 +1225,31 @@ namespace AmblOn.State.API.Users.State
 
         public virtual async Task RemoveSelectedLayer(Guid layerID)
         {
-            ensureStateObject();
+            // ensureStateObject();
 
-            State.SelectedUserLayerIDs.Remove(layerID);
+            // State.SelectedUserLayerIDs.Remove(layerID);
 
-            State.VisibleUserLocations = removeUserLocationsByLayerID(State.VisibleUserLocations, layerID);
+            // State.VisibleUserLocations = removeUserLocationsByLayerID(State.VisibleUserLocations, layerID);
 
-            State.Loading = false;
+            // State.Loading = false;
         }
 
         public virtual async Task SendInvites(ApplicationManagerClient appMgr, string entApiKey, List<string> usernames)
         {
             ensureStateObject();
 
-            var subject = Environment.GetEnvironmentVariable("INVITE-EMAIL-SUBJECT");
+            var name = "";
+
+            if (State.UserInfo != null)
+                name = State.UserInfo.FirstName + " " + State.UserInfo.LastName;
+            else{
+                name = "Ambl_On";
+            }
+
+            var subject = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
             var message = Environment.GetEnvironmentVariable("INVITE-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
             var from = Environment.GetEnvironmentVariable("FROM-EMAIL");
+            var senderDisplayName = Environment.GetEnvironmentVariable("SENDER-DISPLAY-NAME");
 
             await usernames.Each(async (username) =>
             {
@@ -1249,7 +1260,8 @@ namespace AmblOn.State.API.Users.State
                     EmailFrom = from,
                     EmailTo = username,
                     Subject = subject,
-                    Content = message
+                    Content = message,
+                    SenderDisplayName = senderDisplayName
                 };
 
                 var obj = JToken.FromObject(mail);
@@ -1370,46 +1382,6 @@ namespace AmblOn.State.API.Users.State
 
         #region Helpers
 
-        protected virtual async Task<List<Activity>> addLocationFromActivity(AmblOnGraph amblGraph, string email, string entAPIKey, List<ActivityLocationLookup> activityLocations)
-        {
-            var activities = new List<Activity>();
-
-            foreach (ActivityLocationLookup acLoc in activityLocations){
-                var location = await amblGraph.ensureLocation(email, entAPIKey, acLoc.Location);
-
-                acLoc.Activity.LocationID = location.ID;
-                
-                activities.Add(acLoc.Activity);
-
-                var existing = State.AllUserLocations.FirstOrDefault(x => x.ID == location.ID);
-
-                if (existing == null){
-                    State.AllUserLocations.Add(location);
-                }                   
-            }
-            return activities;                              
-        }
-
-        protected virtual async Task<Status> addLocationFromSharedItinerary(AmblOnGraph amblGraph, string email, string entAPIKey, Itinerary itinerary)
-        {
-            await itinerary.ActivityGroups.Each(async (activityGroup) =>
-            {
-                await activityGroup.Activities.Each(async (activity) =>
-                {   
-                    if (activity.LocationID.HasValue && activity.LocationID != Guid.Empty){
-                        var location = await amblGraph.ensureLocation(email, entAPIKey, activity.LocationID);
-
-                        var existing = State.AllUserLocations.FirstOrDefault(x => x.ID == location.ID);
-
-                        if (existing == null){
-                            State.AllUserLocations.Add(location);
-                        }     
-                    }                      
-                });
-            });                    
-            return Status.Success;                              
-        }
-
         // Returns the radius and center of a circle inscribed within the bounded box
         protected virtual Tuple<float, float, float> computeCircle(float lat1, float long1, float lat2, float long2)
         {
@@ -1434,14 +1406,8 @@ namespace AmblOn.State.API.Users.State
             if (State.SelectedUserLayerIDs == null)
                 State.SelectedUserLayerIDs = new List<Guid>();
 
-            if (State.UserLayers == null)
-                State.UserLayers = new List<UserLayer>();
-
             if (State.UserMaps == null)
                 State.UserMaps = new List<UserMap>();
-
-            if (State.VisibleUserLocations == null)
-                State.VisibleUserLocations = new List<UserLocation>();
 
             if (State.LocalSearchUserLocations == null)
                 State.LocalSearchUserLocations = new List<UserLocation>();
@@ -1452,12 +1418,7 @@ namespace AmblOn.State.API.Users.State
             if (State.UserAlbums == null)
                 State.UserAlbums = new List<UserAlbum>();
 
-            if (State.UserItineraries == null)
-                State.UserItineraries = new List<Itinerary>();
-
             State.UserTopLists = State.UserTopLists ?? new List<UserTopList>();
-
-            State.AllUserLocations = State.AllUserLocations ?? new List<Location>();
         }
 
         // protected virtual async Task<List<UserAccolade>> fetchUserAccolades(AmblOnGraph amblGraph, string username, string entApiKey, Guid locationId)
