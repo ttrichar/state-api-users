@@ -50,7 +50,8 @@ namespace AmblOn.State.API.Users
         [FunctionName("EditItinerary")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
             [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
-            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/locations", FileAccess.ReadWrite)] CloudBlockBlob locationStateBlob)
         {
             var status = await stateBlob.WithStateHarness<ItinerariesState, EditItineraryRequest, ItinerariesStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
@@ -59,16 +60,18 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.EditItinerary(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary, reqData.ActivityLocationLookups);
+                var username = stateDetails.Username;
 
-                return await stateBlob.WithStateHarness<LocationsState, EditItineraryRequest, LocationsStateHarness>(req, signalRMessages, log,
-                    async (harness, reqData, actReq) =>
+                await harness.EditItinerary(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary, reqData.ActivityLocationLookups);               
+
+                return await locationStateBlob.WithStateHarness<LocationsState, EditItineraryRequest, LocationsStateHarness>(req, signalRMessages, log,
+                    async (newharness, reqData, actReq) =>
                 {
                     log.LogInformation($"EditItinerary Location Refresh");
 
-                    var stateDetails = StateUtils.LoadStateDetails(req);
+                    var locationStateDetails = StateUtils.LoadStateDetails("c3b819ca-cfd2-4159-823c-01c5bb140b9f/amblon/locations", "ambl-on.fathym-it.com");
 
-                    await harness.RefreshLocations(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
+                    await newharness.RefreshLocations(amblGraph, amblGraphFactory, locationStateDetails.EnterpriseAPIKey, username);
 
                     return Status.Success;
                 });  
