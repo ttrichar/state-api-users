@@ -17,6 +17,7 @@ using static AmblOn.State.API.Users.Host.Startup;
 using AmblOn.State.API.Itineraries.State;
 using AmblOn.State.API.Locations.State;
 using AmblOn.State.API.AmblOn.State;
+using LCU.Presentation.State.ReqRes;
 
 namespace AmblOn.State.API.Users
 {
@@ -63,13 +64,17 @@ namespace AmblOn.State.API.Users
                 var username = stateDetails.Username;
 
                 await harness.EditItinerary(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary, reqData.ActivityLocationLookups);               
+                
+                var locationStateDetails = StateUtils.LoadStateDetails(req);
 
-                return await locationStateBlob.WithStateHarness<LocationsState, EditItineraryRequest, LocationsStateHarness>(req, signalRMessages, log,
+                locationStateDetails.StateKey = "locations";
+
+                var exActReq = await req.LoadBody<ExecuteActionRequest>();
+
+                return await locationStateBlob.WithStateHarness<LocationsState, EditItineraryRequest, LocationsStateHarness>(locationStateDetails, exActReq, signalRMessages, log,
                     async (newharness, reqData, actReq) =>
                 {
                     log.LogInformation($"EditItinerary Location Refresh");
-
-                    var locationStateDetails = StateUtils.LoadStateDetails("c3b819ca-cfd2-4159-823c-01c5bb140b9f/amblon/locations", "ambl-on.fathym-it.com");
 
                     await newharness.RefreshLocations(amblGraph, amblGraphFactory, locationStateDetails.EnterpriseAPIKey, username);
 
