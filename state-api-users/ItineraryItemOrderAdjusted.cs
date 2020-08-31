@@ -14,6 +14,8 @@ using System.Runtime.Serialization;
 using System.Collections.Generic;
 using AmblOn.State.API.Users.Graphs;
 using static AmblOn.State.API.Users.Host.Startup;
+using AmblOn.State.API.Itineraries.State;
+using AmblOn.State.API.AmblOn.State;
 
 namespace AmblOn.State.API.Users
 {
@@ -21,9 +23,10 @@ namespace AmblOn.State.API.Users
     public class ItineraryItemOrderAdjustedRequest
     {
         [DataMember]
-        public virtual Itinerary Itinerary { get; set; }
+        public virtual Itinerary Itinerary { get; set; }    
 
-        public virtual Guid ActivityChanged { get; set; }
+        [DataMember]
+        public virtual Guid? ActivityChanged { get; set; }
     }
 
     public class ItineraryItemOrderAdjusted
@@ -45,10 +48,10 @@ namespace AmblOn.State.API.Users
 
         [FunctionName("ItineraryItemOrderAdjusted")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
-            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
-            return await stateBlob.WithStateHarness<UsersState, ItineraryItemOrderAdjustedRequest, UsersStateHarness>(req, signalRMessages, log,
+            return await stateBlob.WithStateHarness<ItinerariesState, ItineraryItemOrderAdjustedRequest, ItinerariesStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"ItineraryItemOrderAdjusted");

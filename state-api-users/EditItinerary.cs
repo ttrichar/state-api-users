@@ -14,6 +14,10 @@ using System.Runtime.Serialization;
 using System.Collections.Generic;
 using AmblOn.State.API.Users.Graphs;
 using static AmblOn.State.API.Users.Host.Startup;
+using AmblOn.State.API.Itineraries.State;
+using AmblOn.State.API.Locations.State;
+using AmblOn.State.API.AmblOn.State;
+using LCU.Presentation.State.ReqRes;
 
 namespace AmblOn.State.API.Users
 {
@@ -46,20 +50,39 @@ namespace AmblOn.State.API.Users
 
         [FunctionName("EditItinerary")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
-            [SignalR(HubName = UsersState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
-            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+            [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob,
+            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/locations", FileAccess.ReadWrite)] CloudBlockBlob locationStateBlob)
         {
-            return await stateBlob.WithStateHarness<UsersState, EditItineraryRequest, UsersStateHarness>(req, signalRMessages, log,
+            var status = await stateBlob.WithStateHarness<ItinerariesState, EditItineraryRequest, ItinerariesStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"EditItinerary");
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.EditItinerary(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary, reqData.ActivityLocationLookups);
+                var username = stateDetails.Username;
 
-                return Status.Success;
+                await harness.EditItinerary(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary, reqData.ActivityLocationLookups);               
+                
+                var locationStateDetails = StateUtils.LoadStateDetails(req);
+
+                locationStateDetails.StateKey = "locations";
+
+                var exActReq = await req.LoadBody<ExecuteActionRequest>();
+
+                return await locationStateBlob.WithStateHarness<LocationsState, EditItineraryRequest, LocationsStateHarness>(locationStateDetails, exActReq, signalRMessages, log,
+                    async (newharness, reqData, actReq) =>
+                {
+                    log.LogInformation($"EditItinerary Location Refresh");
+
+                    await newharness.RefreshLocations(amblGraph, amblGraphFactory, locationStateDetails.EnterpriseAPIKey, username);
+
+                    return Status.Success;
+                });  
             });
+
+            return status;
         }
     }
 }

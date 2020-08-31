@@ -13,14 +13,11 @@ namespace AmblOn.State.API.Users.State
     public class UsersState
     {
         #region Constants
-        public const string HUB_NAME = "users";
+
         #endregion
         
         [DataMember]
         public virtual string AddMapError { get; set; }
-
-        [DataMember]
-        public virtual List<Location> AllUserLocations { get; set; }
 
         [DataMember]
         public virtual string Error {get; set;}
@@ -47,6 +44,9 @@ namespace AmblOn.State.API.Users.State
         public virtual Status SharedStatus {get; set;}
 
         [DataMember]
+        public virtual string StateType { get; set; } = "Users";
+
+        [DataMember]
         public virtual List<UserAccolade> UserAccolades { get; set; }
 
         [DataMember]
@@ -56,18 +56,10 @@ namespace AmblOn.State.API.Users.State
         public virtual UserInfo UserInfo {get; set;}
 
         [DataMember]
-        public virtual List<Itinerary> UserItineraries {get; set;}
-
-        [DataMember]
-        public virtual List<UserLayer> UserLayers {get; set;}
-
-        [DataMember]
         public virtual List<UserMap> UserMaps {get; set;}
 
         [DataMember]
         public virtual List<UserTopList> UserTopLists {get; set; }
         
-        [DataMember]
-        public virtual List<UserLocation> VisibleUserLocations {get; set;}
     }
 }
