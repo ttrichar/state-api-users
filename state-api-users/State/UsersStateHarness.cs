@@ -1246,7 +1246,7 @@ namespace AmblOn.State.API.Users.State
                 name = "Ambl_On";
             }
 
-            var subject = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
+            var subject = Environment.GetEnvironmentVariable("INVITE-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
             var message = Environment.GetEnvironmentVariable("INVITE-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
             var from = Environment.GetEnvironmentVariable("FROM-EMAIL");
             var senderDisplayName = Environment.GetEnvironmentVariable("SENDER-DISPLAY-NAME");
