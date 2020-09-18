@@ -1,15 +1,15 @@
+
 using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 using LCU.Graphs;
-using System.Collections.Generic;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class ExcludedCurations : AmblOnVertex
+    public class AmblOnVertex : LCUVertex
     {
-        
         [DataMember]
-        public virtual string LocationIDs  { get; set; }
+        public virtual string PartitionKey { get; set; }
     }
 }

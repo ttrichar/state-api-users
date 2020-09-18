@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class UserAlbum : BusinessModel<Guid?>
+    public class UserAlbum : AmblOnVertex
     {
         [DataMember]
         public virtual List<UserPhoto> Photos {get; set;}

@@ -1,7 +1,7 @@
 
 using System;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 using System.Collections.Generic;
 
 namespace AmblOn.State.API.Users.Models

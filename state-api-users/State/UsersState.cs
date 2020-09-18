@@ -50,7 +50,7 @@ namespace AmblOn.State.API.Users.State
         public virtual List<UserAccolade> UserAccolades { get; set; }
 
         [DataMember]
-        public virtual List<UserAlbum> UserAlbums {get; set;}
+        public virtual List<Album> UserAlbums {get; set;}
 
         [DataMember]
         public virtual UserInfo UserInfo {get; set;}

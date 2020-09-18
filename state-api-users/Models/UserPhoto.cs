@@ -2,13 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 using LCU.Presentation;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class UserPhoto : BusinessModel<Guid?>
+    public class UserPhoto : AmblOnVertex
     {
         [DataMember]
         public virtual string Caption {get; set;}

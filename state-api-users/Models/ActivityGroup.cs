@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class ActivityGroup : BusinessModel<Guid?>
+    public class ActivityGroup : AmblOnVertex
     {   
         [DataMember]
         public virtual List<Activity> Activities {get; set;}

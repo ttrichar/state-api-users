@@ -22,7 +22,7 @@ namespace state_api_users_tests
         [TestMethod]
         public async Task TestDedupLocations()
         {
-            LcuEntApiKey = "";            
+            LcuentLookup = "";            
             PrincipalId = "";
 
             addRequestHeaders();

@@ -56,13 +56,13 @@ namespace AmblOn.State.API.Locations.State
 
         #region Add
 
-        // public virtual async Task AddLocation(AmblOnGraph amblGraph, string username, string entApiKey, UserLocation location)
+        // public virtual async Task AddLocation(AmblOnGraph amblGraph, string username, string entLookup, UserLocation location)
         // {
         //     ensureStateObject();
 
         //     if (State.UserLayers.Any(x => x.ID == location.LayerID && !x.Shared))
         //     {
-        //         var locationResp = await amblGraph.AddLocation(username, entApiKey, location);
+        //         var locationResp = await amblGraph.AddLocation(username, entLookup, location);
 
         //         if (locationResp.Status)
         //         {
@@ -89,11 +89,11 @@ namespace AmblOn.State.API.Locations.State
 
         #region Delete
 
-        public virtual async Task DeleteLocation(AmblOnGraph amblGraph, string username, string entApiKey, Guid locationID)
+        public virtual async Task DeleteLocation(AmblOnGraph amblGraph, string username, string entLookup, Guid locationID)
         {
             ensureStateObject();
 
-            var locationResp = await amblGraph.DeleteLocation(username, entApiKey, locationID);
+            var locationResp = await amblGraph.DeleteLocation(username, entLookup, locationID);
 
             if (locationResp.Status)
             {
@@ -111,11 +111,11 @@ namespace AmblOn.State.API.Locations.State
             State.Loading = false;
         }
 
-        public virtual async Task DedupLocationsByMap(AmblOnGraph amblGraph, string username, string entApiKey, Guid mapID)
+        public virtual async Task DedupLocationsByMap(AmblOnGraph amblGraph, string username, string entLookup, Guid mapID)
         {
             ensureStateObject();
 
-            var locationResp = await amblGraph.DedupLocationsByMap(username, entApiKey, mapID);
+            var locationResp = await amblGraph.DedupLocationsByMap(username, entLookup, mapID);
 
             // Do not refresh state for now
 
@@ -126,13 +126,13 @@ namespace AmblOn.State.API.Locations.State
 
         #region Edit
 
-        // public virtual async Task EditLocation(AmblOnGraph amblGraph, string username, string entApiKey, UserLocation location)
+        // public virtual async Task EditLocation(AmblOnGraph amblGraph, string username, string entLookup, UserLocation location)
         // {
         //     ensureStateObject();
 
         //     if (State.UserLayers.Any(x => x.ID == location.LayerID && !x.Shared))
         //     {
-        //         var locationResp = await amblGraph.EditLocation(username, entApiKey, location);
+        //         var locationResp = await amblGraph.EditLocation(username, entLookup, location);
 
         //         if (locationResp.Status)
         //         {
@@ -164,11 +164,11 @@ namespace AmblOn.State.API.Locations.State
         
         #endregion
 
-        public virtual async Task RefreshLocations(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entApiKey, string username)
+        public virtual async Task RefreshLocations(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entLookup, string username)
         {
             ensureStateObject();
 
-            var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
+            var userInfoResp = await amblGraph.GetUserInfo(username, entLookup);
 
             if (userInfoResp.Status)
             {
@@ -176,12 +176,12 @@ namespace AmblOn.State.API.Locations.State
                 State.UserInfo.Email = username;
             }
 
-            State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
+            State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entLookup);
 
             State.Loading = false;
         }
 
-        // public virtual async Task LoadCuratedLocationsIntoDB(AmblOnGraph amblGraph, string ownerUsername, string entApiKey, List<dynamic> list, List<string> acclist, Guid layerID)
+        // public virtual async Task LoadCuratedLocationsIntoDB(AmblOnGraph amblGraph, string ownerUsername, string entLookup, List<dynamic> list, List<string> acclist, Guid layerID)
         // {
         //     float testFloat = 0;
 
@@ -214,7 +214,7 @@ namespace AmblOn.State.API.Locations.State
         //         var jsonProperties = propetiesObj.ToObject<Dictionary<string, object>>();
 
         //         // Create location object if it doesn't already exist in the graph DB
-        //         var resp = await amblGraph.AddLocation(ownerUsername, entApiKey, location);
+        //         var resp = await amblGraph.AddLocation(ownerUsername, entLookup, location);
 
         //         if (resp.Model != null)
         //         {
@@ -246,7 +246,7 @@ namespace AmblOn.State.API.Locations.State
         //                             Title = accKey
         //                         };
         //                     }
-        //                     var accResp = await amblGraph.AddAccolade(ownerUsername, entApiKey, accolade, resp.Model);
+        //                     var accResp = await amblGraph.AddAccolade(ownerUsername, entLookup, accolade, resp.Model);
         //                 }
         //             });
         //         }
@@ -280,11 +280,11 @@ namespace AmblOn.State.API.Locations.State
             State.AllUserLocations = State.AllUserLocations ?? new List<Location>();
         }
 
-        // protected virtual async Task<List<UserAccolade>> fetchUserAccolades(AmblOnGraph amblGraph, string username, string entApiKey, Guid locationId)
+        // protected virtual async Task<List<UserAccolade>> fetchUserAccolades(AmblOnGraph amblGraph, string username, string entLookup, Guid locationId)
         // {
         //     var userAccolades = new List<UserAccolade>();
 
-        //     var accolades = await amblGraph.ListAccolades(username, entApiKey, locationId);
+        //     var accolades = await amblGraph.ListAccolades(username, entLookup, locationId);
 
         //     accolades.Each((accolade) =>
         //     {

@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 using LCU.Presentation;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class TopList : BusinessModel<Guid>
+    public class TopList : AmblOnVertex
     {
         [DataMember]
         public virtual List<Activity> Activities { get; set; }

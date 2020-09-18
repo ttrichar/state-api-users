@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class Activity : BusinessModel<Guid?>
+    public class Activity : AmblOnVertex
     {   
         [DataMember]
         public virtual bool Checked { get; set; }
