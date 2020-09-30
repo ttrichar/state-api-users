@@ -1435,7 +1435,7 @@ namespace AmblOn.State.API.Users.State
         //     return userAccolades;
         // }
 
-        protected virtual async Task<List<UserAlbum>> fetchUserAlbums(AmblOnGraph amblGraph, string username, string entLookup)
+        protected virtual async Task<List<Album>> fetchUserAlbums(AmblOnGraph amblGraph, string username, string entLookup)
         {
             var albums = await amblGraph.ListAlbums(username, entLookup);
 
