@@ -25,7 +25,7 @@ namespace AmblOn.State.API.Users
     public class AddAlbumRequest
     {
         [DataMember]
-        public virtual UserAlbum Album { get; set; }
+        public virtual Album Album { get; set; }
 
         [DataMember]
         public virtual List<ImageMessage> Images {get; set;}

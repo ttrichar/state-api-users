@@ -50,7 +50,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.DedupLocationsByMap(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.MapID);
+                //await harness.DedupLocationsByMap(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.MapID);
 
                 return Status.Success;
             });

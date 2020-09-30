@@ -13,6 +13,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual string Lookup {get; set;}
 
         [DataMember]
+        public virtual List<Photo> Photos {get; set;}
+
+        [DataMember]
         public string Title { get; set; }
     }
 }

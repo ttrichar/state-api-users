@@ -24,7 +24,7 @@ namespace AmblOn.State.API.Users
         public virtual Guid AlbumID { get; set; }
 
         [DataMember]
-        public virtual UserPhoto Photo { get; set; }
+        public virtual Photo Photo { get; set; }
     }
 
     public class EditPhoto

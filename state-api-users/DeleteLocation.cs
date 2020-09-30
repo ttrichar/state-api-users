@@ -50,7 +50,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.DeleteLocation(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.LocationID);
+                //await harness.DeleteLocation(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.LocationID);
 
                 return Status.Success;
             });

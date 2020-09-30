@@ -23,6 +23,9 @@ namespace AmblOn.State.API.Users.Models
         public string LastName { get; set; }
 
         [DataMember]
+        public virtual string Lookup { get; set; }
+
+        [DataMember]
         public string Zip { get; set; }
         
     }

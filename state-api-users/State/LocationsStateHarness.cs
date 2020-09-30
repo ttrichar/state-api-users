@@ -89,39 +89,39 @@ namespace AmblOn.State.API.Locations.State
 
         #region Delete
 
-        public virtual async Task DeleteLocation(AmblOnGraph amblGraph, string username, string entLookup, Guid locationID)
-        {
-            ensureStateObject();
+        // public virtual async Task DeleteLocation(AmblOnGraph amblGraph, string username, string entLookup, Guid locationID)
+        // {
+        //     ensureStateObject();
 
-            var locationResp = await amblGraph.DeleteLocation(username, entLookup, locationID);
+        //     var locationResp = await amblGraph.DeleteLocation(username, entLookup, locationID);
 
-            if (locationResp.Status)
-            {
-                var existingVisible = State.VisibleUserLocations.FirstOrDefault(x => x.ID == locationID);
+        //     if (locationResp.Status)
+        //     {
+        //         var existingVisible = State.VisibleUserLocations.FirstOrDefault(x => x.ID == locationID);
 
-                if (existingVisible != null)
-                {
-                    State.VisibleUserLocations.Remove(existingVisible);
-                    State.AllUserLocations.RemoveAll(item => item.ID == existingVisible.ID);
-                }
+        //         if (existingVisible != null)
+        //         {
+        //             State.VisibleUserLocations.Remove(existingVisible);
+        //             State.AllUserLocations.RemoveAll(item => item.ID == existingVisible.ID);
+        //         }
 
-                State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
-            }
+        //         State.VisibleUserLocations = State.VisibleUserLocations.Distinct().ToList();
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
-        public virtual async Task DedupLocationsByMap(AmblOnGraph amblGraph, string username, string entLookup, Guid mapID)
-        {
-            ensureStateObject();
+        // public virtual async Task DedupLocationsByMap(AmblOnGraph amblGraph, string username, string entLookup, Guid mapID)
+        // {
+        //     ensureStateObject();
 
-            var locationResp = await amblGraph.DedupLocationsByMap(username, entLookup, mapID);
+        //     var locationResp = await amblGraph.DedupLocationsByMap(username, entLookup, mapID);
 
-            // Do not refresh state for now
+        //     // Do not refresh state for now
 
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
         #endregion
 
         #region Edit

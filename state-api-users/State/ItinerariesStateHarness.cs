@@ -74,7 +74,7 @@ namespace AmblOn.State.API.Itineraries.State
                 {
                     activityGroup.CreatedDateTime = DateTime.Now;
 
-                    var activityGroupResp = await amblGraph.AddActivityGroup(username, entLookup, itinerary.ID.Value, activityGroup);
+                    var activityGroupResp = await amblGraph.AddActivityGroup(username, entLookup, itinerary.ID, activityGroup);
 
                     if (activityGroupResp.Status)
                     {
@@ -84,7 +84,7 @@ namespace AmblOn.State.API.Itineraries.State
                         {
                             activity.CreatedDateTime = DateTime.Now;
 
-                            var activityResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity);
+                            var activityResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID, activityGroup.ID, activity);
 
                             if (activityResp.Status)
                             {
@@ -119,7 +119,7 @@ namespace AmblOn.State.API.Itineraries.State
                     {
                         await activityGroup.Activities.Each(async (activity) =>
                         {
-                            var actResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
+                            var actResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID, activityGroup.ID, activity.ID);
 
                             if (!actResp.Status)
                                 success = false;
@@ -127,7 +127,7 @@ namespace AmblOn.State.API.Itineraries.State
 
                         if (success)
                         {
-                            var actGroupResp = await amblGraph.DeleteActivityGroup(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value);
+                            var actGroupResp = await amblGraph.DeleteActivityGroup(username, entLookup, itinerary.ID, activityGroup.ID);
 
                             if (!actGroupResp.Status)
                                 success = false;
@@ -199,7 +199,7 @@ namespace AmblOn.State.API.Itineraries.State
 
                             if (agExisting == null)
                             {
-                                var addActGResp = await amblGraph.AddActivityGroup(username, entLookup, itinerary.ID.Value, activityGroup);
+                                var addActGResp = await amblGraph.AddActivityGroup(username, entLookup, itinerary.ID, activityGroup);
 
                                 if (addActGResp.Status)
                                 {
@@ -210,7 +210,7 @@ namespace AmblOn.State.API.Itineraries.State
                                         var addActResp = new BaseResponse<Guid>();
                                         
                                         if(activity.ID == null){
-                                            addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity);
+                                            addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID, activityGroup.ID, activity);
 
                                             activity.ID = addActResp.Model;
 
@@ -219,14 +219,14 @@ namespace AmblOn.State.API.Itineraries.State
                                             if(exists != null){
                                                 exists.ID = activity.ID;
                                          
-                                                addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, exists);
+                                                addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID, activityGroup.ID, exists);
                                             }
                                         }
 
                                         else{
                                             var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
 
-                                            addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, exists);
+                                            addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID, activityGroup.ID, exists);
                                         }
                                         
                                         activity.ID = addActResp.Model;
@@ -248,7 +248,7 @@ namespace AmblOn.State.API.Itineraries.State
                                     {
                                         var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
 
-                                        var addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, exists ?? activity);
+                                        var addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID, activityGroup.ID, exists ?? activity);
 
                                         activity.ID = addActResp.Model;
 
@@ -281,7 +281,7 @@ namespace AmblOn.State.API.Itineraries.State
                             {
                                 await activityGroup.Activities.Each(async (activity) =>
                                 {
-                                    var delActResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
+                                    var delActResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID, activityGroup.ID, activity.ID);
 
                                     if (!delActResp.Status)
                                         success = false;
@@ -289,7 +289,7 @@ namespace AmblOn.State.API.Itineraries.State
 
                                 if (success)
                                 {
-                                    var delActGResp = await amblGraph.DeleteActivityGroup(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value);
+                                    var delActGResp = await amblGraph.DeleteActivityGroup(username, entLookup, itinerary.ID, activityGroup.ID);
 
                                     if (!delActGResp.Status)
                                         success = false;
@@ -303,7 +303,7 @@ namespace AmblOn.State.API.Itineraries.State
 
                                     if (aNew == null)
                                     {
-                                        var delActResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
+                                        var delActResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID, activityGroup.ID, activity.ID);
 
                                         if (!delActResp.Status)
                                             success = false;

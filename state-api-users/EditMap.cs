@@ -49,7 +49,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.EditMap(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.Map);
+                //await harness.EditMap(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.Map);
 
                 return Status.Success;
             });

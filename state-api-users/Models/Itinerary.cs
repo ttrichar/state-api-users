@@ -20,6 +20,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual DateTime CreatedDateTime {get; set;}
 
         [DataMember]
+        public virtual string Lookup {get; set;}
+
+        [DataMember]
         public virtual bool Shared {get; set;}
 
         [DataMember]

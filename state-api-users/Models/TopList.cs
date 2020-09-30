@@ -16,6 +16,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual List<Location> LocationList { get; set; }
 
         [DataMember]
+        public string Lookup { get; set; }
+
+        [DataMember]
         public string OrderedValue { get; set; }
 
         [DataMember]

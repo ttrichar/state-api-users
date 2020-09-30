@@ -34,6 +34,9 @@ namespace AmblOn.State.API.Users.Models
         public virtual string Title {get; set;}
 
         [DataMember]
+        public virtual string Lookup {get; set;}
+
+        [DataMember]
         public virtual string TransportIcon { get; set; }
 
         [DataMember]

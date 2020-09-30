@@ -86,260 +86,231 @@ namespace AmblOn.State.API.Users.Graphs
 
         public virtual async Task<BaseResponse<Guid>> AddActivityToAG(string email, string entLookup, Guid itineraryId, Guid activityGroupId, Activity activity)
         {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+            var userId = await ensureAmblOnUser(email, entLookup);
 
-                var lookup = userId.ToString() + "|" + itineraryId.ToString() + "|" + activityGroupId.ToString() + "|" + activity.Title.Replace(" ", "_") + "|" + 
-                (activity.LocationID.HasValue ? activity.LocationID.Value.ToString() : Guid.Empty.ToString()) + "|" + activity.Order.ToString();
+            var lookup = userId.ToString() + "|" + itineraryId.ToString() + "|" + activityGroupId.ToString() + "|" + activity.Title.Replace(" ", "_") + "|" + 
+            (activity.LocationID.HasValue ? activity.LocationID.Value.ToString() : Guid.Empty.ToString()) + "|" + activity.Order.ToString();
 
-                var existingActivityQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityGroupId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                
-                var existingActivities = await Submit<Activity>(existingActivityQuery);
+            var activityID = activity.ID;
 
-                var existingActivity = existingActivities?.FirstOrDefault();
+            var existingActivity = await g.V(userId)
+                .Out<Owns>()
+                .OfType<Itinerary>()
+                .Where(e => e.ID == itineraryId)
+                .Out<Contains>()
+                .OfType<ActivityGroup>()
+                .Where(e => e.ID == activityGroupId)
+                .Out<Contains>()
+                .OfType<Activity>()
+                .Where(e => e.Lookup == lookup)
+                .FirstOrDefaultAsync();            
 
-                if (existingActivity == null)
+            if (existingActivity == null)
+            {            
+                var existingActivityByID = await g.V(userId)
+                    .Out<Owns>()
+                    .OfType<Itinerary>()
+                    .Where(e => e.ID == itineraryId)
+                    .Out<Contains>()
+                    .OfType<ActivityGroup>()
+                    .Where(e => e.ID == activityGroupId)
+                    .Out<Contains>()
+                    .OfType<Activity>()
+                    .Where(e => e.ID == activityID)
+                    .FirstOrDefaultAsync();     
+
+                if(existingActivityByID == null)
                 {
-                    var existingActivityQueryByID = g.V(userId)
-                        .Out(AmblOnGraphConstants.OwnsEdgeName)
-                        .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                        .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
-                        .Out(AmblOnGraphConstants.ContainsEdgeName)
-                        .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
-                        .Has(AmblOnGraphConstants.IDPropertyName, activityGroupId)
-                        .Out(AmblOnGraphConstants.ContainsEdgeName)
-                        .HasLabel(AmblOnGraphConstants.ActivityVertexName)
-                        .Has(AmblOnGraphConstants.IDPropertyName, activity.ID ?? Guid.Empty);
+                    var createdActivity = await g.AddV<Activity>(new Activity(){
+                        Lookup = lookup, 
+                        CreatedDateTime = activity.CreatedDateTime,
+                        LocationID = activity.LocationID ?? Guid.Empty,
+                        Order = activity.Order,
+                        Notes = activity.Notes ?? "",
+                        Checked = activity.Checked,
+                        Favorited = activity.Favorited,
+                        Title = activity.Title ?? "",
+                        TransportIcon = activity.TransportIcon ?? "",
+                        WidgetIcon = activity.TransportIcon ?? ""
+                    })
+                    .FirstOrDefaultAsync();
 
-                    var existingActivitiesbyID = await Submit<Activity>(existingActivityQueryByID);
+                    await g.V(userId)
+                        .AddE<Owns>()
+                        .To(x => x.V(createdActivity.ID))
+                        .FirstOrDefaultAsync();
 
-                    var existingActivitybyID = existingActivitiesbyID?.FirstOrDefault();
+                    await g.V(activityGroupId)
+                        .AddE<Contains>()
+                        .To(x => x.V(createdActivity.ID))
+                        .FirstOrDefaultAsync();
 
-                    if(existingActivitybyID == null)
+                    if (activity.LocationID != null && activity.LocationID != Guid.Empty)
                     {
-                        var createQuery = g.AddV(AmblOnGraphConstants.ActivityVertexName)
-                            .Property(AmblOnGraphConstants.PartitionKeyName, "Activity|" + activity.Title ?? lookup)
-                            .Property("Lookup", lookup)
-                            .Property("Checked", activity.Checked)
-                            .Property("CreatedDateTime", activity.CreatedDateTime)
-                            .Property("Favorited", activity.Favorited)
-                            .Property("LocationID", activity.LocationID ?? Guid.Empty)
-                            .Property("Notes", activity.Notes ?? "")
-                            .Property("Order", activity.Order)
-                            .Property("Title", activity.Title ?? "")
-                            .Property("TransportIcon", activity.TransportIcon ?? "")
-                            .Property("WidgetIcon", activity.WidgetIcon ?? "");
-
-                        var createActivityResults = await Submit<Activity>(createQuery);
-
-                        var createdActivity = createActivityResults?.FirstOrDefault();
-
-                        var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdActivity.ID));
-
-                        await Submit(userEdgeQuery);
-
-                        var activityGroupEdgeQuery = g.V(activityGroupId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdActivity.ID));
-
-                        await Submit(activityGroupEdgeQuery);
-
-                        if (activity.LocationID != null && activity.LocationID != Guid.Empty)
-                        {
-                            var locationEdgeQuery = g.V(createdActivity.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(activity.LocationID));
-
-                            await Submit(locationEdgeQuery);
-                        }
-
-                        return new BaseResponse<Guid>()
-                        {
-                            Model = createdActivity.ID.Value,
-                            Status = Status.Success
-                        };
-                    }
-                    else{
-                        var editResp = await EditActivity(email, entLookup, activity);
-
-                        return new BaseResponse<Guid>() { 
-                            Model = existingActivitybyID.ID.Value,
-                            //Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
-                            Status = Status.Success
-                        };
+                        await g.V(createdActivity.ID)
+                            .AddE<OccursAt>()
+                            .To(x => x.V(activity.LocationID))
+                            .FirstOrDefaultAsync();
                     }
 
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdActivity.ID,
+                        Status = Status.Success
+                    };
                 }
                 else{
                     var editResp = await EditActivity(email, entLookup, activity);
-                
+
                     return new BaseResponse<Guid>() { 
-                        Model = existingActivity.ID.Value,
+                        Model = existingActivityByID.ID,
                         //Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
                         Status = Status.Success
                     };
                 }
-            });
+
+            }
+            else{
+                var editResp = await EditActivity(email, entLookup, activity);
+            
+                return new BaseResponse<Guid>() { 
+                    Model = existingActivity.ID,
+                    //Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
+                    Status = Status.Success
+                };
+            }
         }
 
         public virtual async Task<BaseResponse<Guid>> AddActivityGroup(string email, string entLookup, Guid itineraryId, ActivityGroup activityGroup)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var lookup = userId.ToString() + "|" + itineraryId.ToString() + "|" + activityGroup.Title.Replace(" ", "_");
+
+            var existingActivityGroup = await g.V(userId)
+                .Out<Owns>()
+                .OfType<Itinerary>()
+                .Where(e => e.ID == itineraryId)
+                .Out<Contains>()
+                .OfType<ActivityGroup>()
+                .Where(e => e.Lookup == activityGroup.Lookup)
+                .FirstOrDefaultAsync();
+
+            if (existingActivityGroup == null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
 
-                var lookup = userId.ToString() + "|" + itineraryId.ToString() + "|" + activityGroup.Title.Replace(" ", "_");
+                var createdActivityGroup = await g.AddV<ActivityGroup>(new ActivityGroup(){
+                    Lookup = lookup, 
+                    CreatedDateTime = activityGroup.CreatedDateTime,
+                    GroupType = activityGroup.GroupType ?? "",
+                    Order = activityGroup.Order,
+                    Checked = activityGroup.Checked,
+                    Title = activityGroup.Title ?? ""
+                })
+                .FirstOrDefaultAsync();
 
-                var existingActivityGroupQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                
-                var existingActivityGroups = await Submit<ActivityGroup>(existingActivityGroupQuery);
+                await g.V(userId)
+                    .AddE<Owns>()
+                    .To(x => x.V(createdActivityGroup.ID))
+                    .FirstOrDefaultAsync();
 
-                var existingActivityGroup = existingActivityGroups?.FirstOrDefault();
+                await g.V(itineraryId)
+                    .AddE<Contains>()
+                    .To(x => x.V(createdActivityGroup.ID))
+                    .FirstOrDefaultAsync();
 
-                if (existingActivityGroup == null)
+                return new BaseResponse<Guid>()
                 {
-                    var createQuery = g.AddV(AmblOnGraphConstants.ActivityGroupVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, "ActivityGroup|" + activityGroup.Title ?? lookup)
-                        .Property("Lookup", lookup)
-                        .Property("GroupType", activityGroup.GroupType ?? "")
-                        .Property("CreatedDateTime", activityGroup.CreatedDateTime)
-                        .Property("Order", activityGroup.Order)
-                        .Property("Checked", activityGroup.Checked)
-                        .Property("Title", activityGroup.Title ?? "");
-
-                    var createActivityGroupResults = await Submit<ActivityGroup>(createQuery);
-
-                    var createdActivityGroup = createActivityGroupResults?.FirstOrDefault();
-
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdActivityGroup.ID));
-
-                    await Submit(userEdgeQuery);
-
-                    var itineraryEdgeQuery = g.V(itineraryId).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdActivityGroup.ID));
-
-                    await Submit(itineraryEdgeQuery);
-
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdActivityGroup.ID.Value,
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse<Guid>() { 
-                        Model = existingActivityGroup.ID.Value,
-                        Status = Status.Conflict.Clone("An activity group with that title already exists for this user's itinerary.")
-                    };
-            });
+                    Model = createdActivityGroup.ID,
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse<Guid>() { 
+                    Model = existingActivityGroup.ID,
+                    Status = Status.Conflict.Clone("An activity group with that title already exists for this user's itinerary.")
+                };
         }
         
-        public virtual async Task<BaseResponse<Guid>> AddAlbum(string email, string entLookup, UserAlbum album)
+        public virtual async Task<BaseResponse<Guid>> AddAlbum(string email, string entLookup, Album album)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var lookup = userId.ToString() + "|" + album.Title.Replace(" ","");
+
+            var existingAlbum = await g.V<Album>(userId)
+                .Out<Owns>()
+                .OfType<Album>()
+                .Where(e => e.ID == album.ID)
+                .FirstOrDefaultAsync();
+
+            if (existingAlbum == null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
+                var createdAlbum = await g.AddV<Album>(new Album(){
+                    Lookup = lookup, 
+                    Title = album.Title ?? ""
+                })
+                .FirstOrDefaultAsync();
 
-                var lookup = userId.ToString() + "|" + album.Title.Replace(" ","");
+                await g.V(userId)
+                    .AddE<Owns>()
+                    .To(x => x.V(createdAlbum.ID))
+                    .FirstOrDefaultAsync();
 
-                var existingAlbumQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                
-                var existingAlbums = await Submit<Album>(existingAlbumQuery);
-
-                var existingAlbum = existingAlbums?.FirstOrDefault();
-
-                if (existingAlbum == null)
+                return new BaseResponse<Guid>()
                 {
-                    var createQuery = g.AddV(AmblOnGraphConstants.AlbumVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, entLookup.ToString())
-                        .Property("Lookup", lookup)
-                        .Property("Title", album.Title ?? "");
-
-                    var createAlbumResults = await Submit<Album>(createQuery);
-
-                    var createdAlbum = createAlbumResults?.FirstOrDefault();
-
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdAlbum.ID));
-
-                    await Submit(userEdgeQuery);
-
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdAlbum.ID,
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse<Guid>() { 
-                        Model = existingAlbum.ID,
-                        Status = Status.Conflict.Clone("An album with that title already exists for this user.")
-                    };
-            });
+                    Model = createdAlbum.ID,
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse<Guid>() { 
+                    Model = existingAlbum.ID,
+                    Status = Status.Conflict.Clone("An album with that title already exists for this user.")
+                };
         }
 
         public virtual async Task<BaseResponse<Guid>> AddItinerary(string email, string entLookup, Itinerary itinerary)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var lookup = $"{userId.ToString()}|{itinerary.Title.Replace(" ", "_")}";
+
+            var existingItinerary = await g.V<Itinerary>(userId)
+                .Out<Owns>()
+                .OfType<Itinerary>()
+                .Where(x => x.ID == itinerary.ID)
+                .FirstOrDefaultAsync();
+
+            if (existingItinerary == null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
+                var createdItinerary = await g.AddV<Itinerary>(new Itinerary(){
+                    Lookup = lookup, 
+                    CreatedDateTime = itinerary.CreatedDateTime,
+                    Shared = itinerary.Shared,
+                    SharedByUsername = "",
+                    SharedByUserID = Guid.Empty,
+                    Editable = itinerary.Editable,
+                    Title = itinerary.Title ?? ""
+                })
+                .FirstOrDefaultAsync();
 
-                var lookup = $"{userId.ToString()}|{itinerary.Title.Replace(" ", "_")}";
+                await g.V(userId)
+                    .AddE<Owns>()
+                    .To(x => x.V(createdItinerary.ID))
+                    .FirstOrDefaultAsync();
 
-                var existingItineraryQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                
-                var existingItineraries = await Submit<Itinerary>(existingItineraryQuery);
-
-                var existingItinerary = existingItineraries?.FirstOrDefault();
-
-                if (existingItinerary == null)
+                return new BaseResponse<Guid>()
                 {
-                    var createQuery = g.AddV(AmblOnGraphConstants.ItineraryVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, "Itinerary|" + itinerary.Title.Substring(0,1))
-                        .Property("Lookup", lookup)
-                        .Property("CreatedDateTime", itinerary.CreatedDateTime)
-                        .Property("Shared", itinerary.Shared)
-                        .Property("SharedByUsername", "")
-                        .Property("SharedByUserID", Guid.Empty)
-                        .Property("Editable", itinerary.Editable)
-                        .Property("Title", itinerary.Title ?? "");
-
-                    var createItineraryResults = await Submit<Itinerary>(createQuery);
-
-                    var createdItinerary = createItineraryResults?.FirstOrDefault();
-
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdItinerary.ID));
-
-                    await Submit(userEdgeQuery);
-
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdItinerary.ID.Value,
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse<Guid>() { 
-                        Model = existingItinerary.ID.Value,
-                        Status = Status.Conflict.Clone("An itinerary with that title already exists for this user.")
-                    };
-            });
+                    Model = createdItinerary.ID,
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse<Guid>() { 
+                    Model = existingItinerary.ID,
+                    Status = Status.Conflict.Clone("An itinerary with that title already exists for this user.")
+                };
         }
 
         // public virtual async Task<BaseResponse<Guid>> AddLayer(string email, string entLookup, UserLayer layer)
@@ -388,182 +359,171 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        public virtual async Task<BaseResponse<Guid>> AddLocation(string email, string entLookup, UserLocation location)
-        {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+        // public virtual async Task<BaseResponse<Guid>> AddLocation(string email, string entLookup, UserLocation location)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var userId = await ensureAmblOnUser(email, entLookup);
 
-                var lookup = location.LayerID.ToString() + "|" + location.Latitude.ToString() + "|" + location.Longitude.ToString();
+        //         var lookup = location.LayerID.ToString() + "|" + location.Latitude.ToString() + "|" + location.Longitude.ToString();
 
-                var existingLocationQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.LayerVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, location.LayerID)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+        //         var existingLocationQuery = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.LayerVertexName)
+        //             .Has(AmblOnGraphConstants.IDPropertyName, location.LayerID)
+        //             .Out(AmblOnGraphConstants.ContainsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.LocationVertexName)
+        //             .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
-                var existingLocations = await Submit<Location>(existingLocationQuery);
+        //         var existingLocations = await Submit<Location>(existingLocationQuery);
 
-                var existingLocation = existingLocations?.FirstOrDefault();
+        //         var existingLocation = existingLocations?.FirstOrDefault();
 
-                if (existingLocation == null)
-                {
-                    var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(location.Latitude).ToString() + Convert.ToInt32(location.Longitude).ToString())
-                        .Property("Lookup", lookup)
-                        .Property("Address", location.Address ?? "")
-                        .Property("Country", location.Country ?? "")
-                        .Property("GoogleLocationName", location.GoogleLocationName ?? "")
-                        .Property("Icon", location.Icon ?? "")
-                        .Property("Instagram", location.Instagram ?? "")
-                        .Property("IsHidden", location.IsHidden)
-                        .Property("Latitude", location.Latitude)
-                        .Property("Longitude", location.Longitude)
-                        .Property("State", location.State ?? "")
-                        .Property("Telephone", location.Telephone ?? "")
-                        .Property("Title", location.Title ?? "")
-                        .Property("Town", location.Town ?? "")
-                        .Property("Website", location.Website ?? "")
-                        .Property("ZipCode", location.ZipCode ?? "");
+        //         if (existingLocation == null)
+        //         {
+        //             var createQuery = g.AddV(AmblOnGraphConstants.LocationVertexName)
+        //                 .Property(AmblOnGraphConstants.PartitionKeyName, Convert.ToInt32(location.Latitude).ToString() + Convert.ToInt32(location.Longitude).ToString())
+        //                 .Property("Lookup", lookup)
+        //                 .Property("Address", location.Address ?? "")
+        //                 .Property("Country", location.Country ?? "")
+        //                 .Property("GoogleLocationName", location.GoogleLocationName ?? "")
+        //                 .Property("Icon", location.Icon ?? "")
+        //                 .Property("Instagram", location.Instagram ?? "")
+        //                 .Property("IsHidden", location.IsHidden)
+        //                 .Property("Latitude", location.Latitude)
+        //                 .Property("Longitude", location.Longitude)
+        //                 .Property("State", location.State ?? "")
+        //                 .Property("Telephone", location.Telephone ?? "")
+        //                 .Property("Title", location.Title ?? "")
+        //                 .Property("Town", location.Town ?? "")
+        //                 .Property("Website", location.Website ?? "")
+        //                 .Property("ZipCode", location.ZipCode ?? "");
 
-                    var createLocationResults = await Submit<Location>(createQuery);
+        //             var createLocationResults = await Submit<Location>(createQuery);
 
-                    var createdLocation = createLocationResults?.FirstOrDefault();
+        //             var createdLocation = createLocationResults?.FirstOrDefault();
 
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
+        //             var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdLocation.ID));
 
-                    await Submit(userEdgeQuery);
+        //             await Submit(userEdgeQuery);
 
-                    var layerEdgeQuery = g.V(location.LayerID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdLocation.ID));
+        //             var layerEdgeQuery = g.V(location.LayerID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdLocation.ID));
 
-                    await Submit(layerEdgeQuery);
+        //             await Submit(layerEdgeQuery);
 
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdLocation.ID.Value,
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse<Guid>() { 
-                        Model = existingLocation.ID.Value,
-                        Status = Status.Conflict.Clone("A location by that lat/long already exists in selected layer.")                        
-                    };
-            });
-        }
+        //             return new BaseResponse<Guid>()
+        //             {
+        //                 Model = createdLocation.ID.Value,
+        //                 Status = Status.Success
+        //             };
+        //         }
+        //         else
+        //             return new BaseResponse<Guid>() { 
+        //                 Model = existingLocation.ID.Value,
+        //                 Status = Status.Conflict.Clone("A location by that lat/long already exists in selected layer.")                        
+        //             };
+        //     });
+        // }
 
-        public virtual async Task<BaseResponse<Guid>> AddMap(string email, string entLookup, UserMap map)
-        {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+        // public virtual async Task<BaseResponse<Guid>> AddMap(string email, string entLookup, UserMap map)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var userId = await ensureAmblOnUser(email, entLookup);
 
-                var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
+        //         var lookup = userId.ToString() + "|" + map.Title.Replace(" ","");
 
-                var existingMapQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
+        //         var existingMapQuery = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.MapVertexName)
+        //             .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
                 
-                var existingMaps = await Submit<Map>(existingMapQuery);
+        //         var existingMaps = await Submit<Map>(existingMapQuery);
 
-                var existingMap = existingMaps?.FirstOrDefault();
+        //         var existingMap = existingMaps?.FirstOrDefault();
 
-                if (existingMap == null)
-                {
-                    var createQuery = g.AddV(AmblOnGraphConstants.MapVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, entLookup.ToString())
-                        .Property("Lookup", lookup)
-                        .Property("Title", map.Title)
-                        .Property("Zoom", map.Zoom)
-                        .Property("Latitude", map.Latitude)
-                        .Property("Longitude", map.Longitude)
-                        .Property("Primary", true)
-                        .Property("Coordinates", String.Join(",", map.Coordinates))
-                        .Property("DefaultLayerID", map.DefaultLayerID);
+        //         if (existingMap == null)
+        //         {
+        //             var createQuery = g.AddV(AmblOnGraphConstants.MapVertexName)
+        //                 .Property(AmblOnGraphConstants.PartitionKeyName, entLookup.ToString())
+        //                 .Property("Lookup", lookup)
+        //                 .Property("Title", map.Title)
+        //                 .Property("Zoom", map.Zoom)
+        //                 .Property("Latitude", map.Latitude)
+        //                 .Property("Longitude", map.Longitude)
+        //                 .Property("Primary", true)
+        //                 .Property("Coordinates", String.Join(",", map.Coordinates))
+        //                 .Property("DefaultLayerID", map.DefaultLayerID);
 
-                    var createMapResults = await Submit<Map>(createQuery);
+        //             var createMapResults = await Submit<Map>(createQuery);
 
-                    var createdMap = createMapResults?.FirstOrDefault();
+        //             var createdMap = createMapResults?.FirstOrDefault();
 
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdMap.ID));
+        //             var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdMap.ID));
 
-                    await Submit(userEdgeQuery);
+        //             await Submit(userEdgeQuery);
 
-                    await setPrimaryMap(email, entLookup, createdMap.ID);
+        //             await setPrimaryMap(email, entLookup, createdMap.ID);
 
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdMap.ID,
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse<Guid>() { 
-                        Model = existingMap.ID,
-                        Status = Status.Conflict.Clone("A map by that name already exists for this user.")
-                    };
-            });
-        }
+        //             return new BaseResponse<Guid>()
+        //             {
+        //                 Model = createdMap.ID,
+        //                 Status = Status.Success
+        //             };
+        //         }
+        //         else
+        //             return new BaseResponse<Guid>() { 
+        //                 Model = existingMap.ID,
+        //                 Status = Status.Conflict.Clone("A map by that name already exists for this user.")
+        //             };
+        //     });
+        // }
 
-        public virtual async Task<BaseResponse<Guid>> AddPhoto(string email, string entLookup, UserPhoto photo, Guid albumID)
+        public virtual async Task<BaseResponse<Guid>> AddPhoto(string email, string entLookup, Photo photo, Guid albumID)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL;
+
+            var existingPhoto = await g.V(userId)
+                .Out<Owns>()
+                .OfType<Album>()
+                .Where(x => x.ID == albumID)
+                .Out<Contains>()
+                .OfType<Photo>()
+                .Where(x => x.ID == photo.ID)
+                .FirstOrDefaultAsync();
+
+            if (existingPhoto == null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
+                var createdPhoto = await g.AddV<Photo>(new Photo(){
+                    Lookup = lookup, 
+                    Caption = photo.Caption ?? "",
+                    URL = photo.URL ?? "",
+                })
+                .FirstOrDefaultAsync();
 
-                var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL;
-
-                var existingPhotoQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, albumID)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                
-                var existingPhotos = await Submit<Photo>(existingPhotoQuery);
-
-                var existingPhoto = existingPhotos?.FirstOrDefault();
-
-                if (existingPhoto == null)
-                {
-                    var createQuery = g.AddV(AmblOnGraphConstants.PhotoVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, entLookup.ToString())
-                        .Property("Lookup", lookup)
-                        .Property("Caption", photo.Caption ?? "")
-                        .Property("URL", photo.URL ?? "");
-
-                    var createPhotoResults = await Submit<Photo>(createQuery);
-
-                    var createdPhoto = createPhotoResults?.FirstOrDefault();
-
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdPhoto.ID));
-
-                    await Submit(userEdgeQuery);
+                await g.V(userId)
+                    .AddE<Owns>()
+                    .To(x => x.V(createdPhoto.ID))
+                    .FirstOrDefaultAsync();;
                     
-                    var albumEdgeQuery = g.V(albumID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(createdPhoto.ID));
+                await g.V(albumID)
+                    .AddE<Contains>()
+                    .To(x => x.V(createdPhoto.ID))
+                    .FirstOrDefaultAsync();;
 
-                    await Submit(albumEdgeQuery);
-
-                    //var locationEdgeQuery = g.V(createdPhoto.ID).AddE(AmblOnGraphConstants.OccursAtEdgeName).To(g.V(locationID));
-
-                    //await Submit(locationEdgeQuery);
-
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdPhoto.ID,
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse<Guid>() { 
-                        Model = existingPhoto.ID,
-                        Status = Status.Conflict.Clone("A photo for that user's album exists with the same URL.")
-                    };
-            });
+                return new BaseResponse<Guid>()
+                {
+                    Model = createdPhoto.ID,
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse<Guid>() { 
+                    Model = existingPhoto.ID,
+                    Status = Status.Conflict.Clone("A photo for that user's album exists with the same URL.")
+                };
         }
         
         // public virtual async Task<BaseResponse<Guid>> AddSharedLayer(string email, string entLookup, UserLayer layer, bool deletable, Guid parentID, Guid defaultMapID)
@@ -730,109 +690,98 @@ namespace AmblOn.State.API.Users.Graphs
 
         public virtual async Task<BaseResponse<Guid>> AddTopList(string email, string entLookup, UserTopList topList)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var lookup = userId.ToString() + "|" + topList.Title.Replace(" ","");
+
+            var existingTopList = await g.V(userId)
+                .Out<Owns>()
+                .OfType<TopList>()
+                .Where(x => x.ID == topList.ID)
+                .FirstOrDefaultAsync();
+
+            if (existingTopList == null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
+                // Add the Top List
+                var createdTopList = await g.AddV<TopList>(new TopList(){
+                    Lookup = lookup, 
+                    Title = topList.Title ?? "",
+                    OrderedValue = topList.OrderedValue ?? "",
+                })
+                .FirstOrDefaultAsync();
 
-                var lookup = userId.ToString() + "|" + topList.Title.Replace(" ","");
+                // Add edge to from user vertex to newly created top list vertex
+                await g.V(userId)
+                    .AddE<Owns>()
+                    .To(x => x.V(createdTopList.ID))
+                    .FirstOrDefaultAsync();;
 
-                var existingTopListQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.TopListVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                
-                var existingTopLists = await Submit<TopList>(existingTopListQuery);
-
-                var existingTopList = existingTopLists?.FirstOrDefault();
-
-                if (existingTopList == null)
-                {
-                    // Add the Top List
-                    var createQuery = g.AddV(AmblOnGraphConstants.TopListVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, entLookup.ToString())
-                        .Property("Lookup", lookup)
-                        .Property("Title", topList.Title ?? "")
-                        .Property("OrderedValue", topList.OrderedValue);
-
-                    var createTopList = await Submit<TopList>(createQuery);
-
-                    var createdTopList = createTopList?.FirstOrDefault();
-
-                    // Add edge to from user vertex to newly created top list vertex
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdTopList.ID));
-                    await Submit(userEdgeQuery);
-
-                    // Add edges to each location - locations are presumed to already exist in the graph
-                    foreach (UserLocation loc in topList.LocationList) {
-                        if (loc.ID!=null) {
-                            var locationQuery = g.V(createdTopList.ID).AddE(AmblOnGraphConstants.ContainsEdgeName).To(g.V(loc.ID));
-                            await Submit(locationQuery);
-                        }
+                // Add edges to each location - locations are presumed to already exist in the graph
+                foreach (UserLocation loc in topList.LocationList) {
+                    if (loc.ID!=null) {
+                        await g.V(createdTopList.ID)
+                            .AddE<Contains>()
+                            .To(x => x.V(loc.ID))
+                            .FirstOrDefaultAsync();                   
                     }
-
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdTopList.ID,
-                        Status = Status.Success
-                    };
                 }
-                else
-                    return new BaseResponse<Guid>() { 
-                        Model = existingTopList.ID,
-                        Status = Status.Conflict.Clone("An top list with that title already exists for this user.")
-                    };
-            });
+
+                return new BaseResponse<Guid>()
+                {
+                    Model = createdTopList.ID,
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse<Guid>() { 
+                    Model = existingTopList.ID,
+                    Status = Status.Conflict.Clone("An top list with that title already exists for this user.")
+                };
         }
 
         public virtual async Task<BaseResponse<Guid>> AddUserInfo(string email, string entLookup, UserInfo userInfo)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var lookup = userId.ToString() + "|UserInfo";
+
+            var existingUserInfo = await g.V(userId)
+                .Out<Owns>()
+                .OfType<UserInfo>()
+                .Where(x => x.Lookup == lookup)
+                .FirstOrDefaultAsync();
+
+            if (existingUserInfo == null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
+                var partKey = email?.Split('@')[1];
 
-                var lookup = userId.ToString() + "|UserInfo";
+                var createdUserInfo = await g.AddV<UserInfo>(new UserInfo(){
+                    Lookup = lookup, 
+                    Email = email,
+                    Country = userInfo.Country ?? "",
+                    FirstName = userInfo.FirstName ?? "",
+                    LastName = userInfo.LastName ?? "",
+                    Zip = userInfo.Zip ?? ""
+                })
+                .FirstOrDefaultAsync();
 
-                var existingUserInfoQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.UserInfoVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                
-                var existingUserInfos = await Submit<UserInfo>(existingUserInfoQuery);
+                // Add edge to from user vertex to newly created top list vertex
+                await g.V(userId)
+                    .AddE<Owns>()
+                    .To(x => x.V(createdUserInfo.ID))
+                    .FirstOrDefaultAsync();
 
-                var existingUserInfo = existingUserInfos?.FirstOrDefault();
-
-                if (existingUserInfo == null)
+                return new BaseResponse<Guid>()
                 {
-                    var partKey = email?.Split('@')[1];
-
-                    var createQuery = g.AddV(AmblOnGraphConstants.UserInfoVertexName)
-                        .Property(AmblOnGraphConstants.PartitionKeyName, partKey)
-                        .Property("Lookup", lookup)
-                        .Property("Country", userInfo.Country ?? "")
-                        .Property("FirstName", userInfo.FirstName ?? "")
-                        .Property("LastName", userInfo.LastName ?? "")
-                        .Property("Zip", userInfo.Zip);
-
-                    var createUserInfo = await Submit<UserInfo>(createQuery);
-
-                    var createdUserInfo = createUserInfo?.FirstOrDefault();
-
-                    // Add edge to from user vertex to newly created top list vertex
-                    var userEdgeQuery = g.V(userId).AddE(AmblOnGraphConstants.OwnsEdgeName).To(g.V(createdUserInfo.ID));
-                    await Submit(userEdgeQuery);
-
-                    return new BaseResponse<Guid>()
-                    {
-                        Model = createdUserInfo.ID.Value,
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse<Guid>() { 
-                        Model = existingUserInfo.ID.Value,
-                        Status = Status.Conflict.Clone("A User Info record already exists for this user.")
-                    };
-            });
+                    Model = createdUserInfo.ID,
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse<Guid>() { 
+                    Model = existingUserInfo.ID,
+                    Status = Status.Conflict.Clone("A User Info record already exists for this user.")
+                };
         }
         #endregion
 
@@ -870,275 +819,235 @@ namespace AmblOn.State.API.Users.Graphs
 
         public virtual async Task<BaseResponse> DeleteActivity(string email, string entLookup, Guid itineraryId, Guid activityGroupId, Guid activityId)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var existingActivity = await g.V(userId)
+                .Out<Owns>()
+                .OfType<Itinerary>()
+                .Where(e => e.ID == itineraryId)
+                .Out<Contains>()
+                .OfType<ActivityGroup>()
+                .Where(e => e.ID == activityGroupId)
+                .Out<Contains>()
+                .OfType<Activity>()
+                .Where(e => e.ID == activityId)                    
+                .FirstOrDefaultAsync();
+
+            if (existingActivity != null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
-
-                var existingActivityQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityGroupId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityId);
-                
-                var existingActivities = await Submit<Activity>(existingActivityQuery);
-
-                var existingActivity = existingActivities?.FirstOrDefault();
-
-                if (existingActivity != null)
-                {
-                    var deleteActivityQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityGroupId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityId)
+                await g.V(userId)
+                    .Out<Owns>()
+                    .OfType<Itinerary>()
+                    .Where(e => e.ID == itineraryId)
+                    .Out<Contains>()
+                    .OfType<ActivityGroup>()
+                    .Where(e => e.ID == activityGroupId)
+                    .Out<Contains>()
+                    .OfType<Activity>()
+                    .Where(e => e.ID == activityId)
                     .Drop();
 
-                    await Submit(deleteActivityQuery);
-
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This activity does not exist for this user's itinerary/activity group")};
-            });
+                return new BaseResponse()
+                {
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This activity does not exist for this user's itinerary/activity group")};
         }
 
         public virtual async Task<BaseResponse> DeleteActivityGroup(string email, string entLookup, Guid itineraryId, Guid activityGroupId)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var existingActivityGroup = await g.V(userId)
+                .Out<Owns>()
+                .OfType<Itinerary>()
+                .Where(e => e.ID == itineraryId)
+                .Out<Contains>()
+                .OfType<ActivityGroup>()
+                .Where(e => e.ID == activityGroupId)
+                .FirstOrDefaultAsync();
+
+            if (existingActivityGroup != null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
-
-                var existingActivityGroupQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityGroupId);
-                
-                var existingActivityGroups = await Submit<ActivityGroup>(existingActivityGroupQuery);
-
-                var existingActivityGroup = existingActivityGroups?.FirstOrDefault();
-
-                if (existingActivityGroup != null)
-                {
-                    var deleteActivityGroupQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, activityGroupId)
+                await g.V(userId)
+                    .Out<Owns>()
+                    .OfType<Itinerary>()
+                    .Where(e => e.ID == itineraryId)
+                    .Out<Contains>()
+                    .OfType<ActivityGroup>()
+                    .Where(e => e.ID == activityGroupId)
                     .Drop();
 
-                    await Submit(deleteActivityGroupQuery);
+                return new BaseResponse()
+                {
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This activity group does not exist for this user's itinerary")};
 
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This activity group does not exist for this user's itinerary")};
-            });
         }
 
         public virtual async Task<BaseResponse> DeleteAlbum(string email, string entLookup, Guid albumID)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var existingAlbum = await g.V<Album>(userId)
+                .Out<Owns>()
+                .OfType<Album>()
+                .Where(e => e.ID == albumID)
+                .FirstOrDefaultAsync();
+
+            if (existingAlbum != null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
+                await g.V<Itinerary>(userId)
+                    .Out<Owns>()
+                    .OfType<Album>()
+                    .Where(x => x.ID == albumID)
+                    .Out<Contains>()
+                    .OfType<Photo>()
+                    .Drop();
 
-                var existingAlbumQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, albumID);
-                
-                var existingAlbums = await Submit<Album>(existingAlbumQuery);
+                await g.V<Itinerary>(userId)
+                    .Out<Owns>()
+                    .OfType<Album>()
+                    .Where(x => x.ID == albumID)
+                    .Drop();
 
-                var existingAlbum = existingAlbums?.FirstOrDefault();
-
-                if (existingAlbum != null)
+                return new BaseResponse()
                 {
-                    var deletePhotosQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, albumID)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
-                    .Drop();
-
-                    await Submit(deletePhotosQuery);
-
-                    var deleteQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.AlbumVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, albumID)
-                    .Drop();
-
-                    await Submit(deleteQuery);
-
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This album does not exist for this user")};
-            });
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This album does not exist for this user")};
         }
 
         public virtual async Task<BaseResponse> DeleteItinerary(string email, string entLookup, Guid itineraryID)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+            
+            var existingItinerary = await g.V<Itinerary>(userId)
+                .Out<Owns>()
+                .OfType<Itinerary>()
+                .Where(x => x.ID == itineraryID)
+                .FirstOrDefaultAsync();
+
+            if (existingItinerary != null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
+                await g.V<Itinerary>(userId)
+                .Out<Owns>()
+                .OfType<Itinerary>()
+                .Where(x => x.ID == itineraryID)
+                .Drop();
 
-                var existingItineraryQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryID);
-                
-                var existingItineraries = await Submit<Itinerary>(existingItineraryQuery);
-
-                var existingItinerary = existingItineraries?.FirstOrDefault();
-
-                if (existingItinerary != null)
+                return new BaseResponse()
                 {
-                    var deleteQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itineraryID)
-                    .Drop();
-
-                    await Submit(deleteQuery);
-
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This itinerary does not exist for this user")};
-            });
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This itinerary does not exist for this user")};
         }
 
-        public virtual async Task<BaseResponse> DeleteLocation(string email, string entLookup, Guid locationID)
-        {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+        // public virtual async Task<BaseResponse> DeleteLocation(string email, string entLookup, Guid locationID)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var userId = await ensureAmblOnUser(email, entLookup);
 
-                var existingLocationQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, locationID);
+        //         var existingLocationQuery = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.LocationVertexName)
+        //             .Has(AmblOnGraphConstants.IDPropertyName, locationID);
                 
-                var existingLocations = await Submit<Location>(existingLocationQuery);
+        //         var existingLocations = await Submit<Location>(existingLocationQuery);
 
-                var existingLocation = existingLocations?.FirstOrDefault();
+        //         var existingLocation = existingLocations?.FirstOrDefault();
 
-                if (existingLocation != null)
-                {
-                    var deleteQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, locationID)
-                    .Drop();
+        //         if (existingLocation != null)
+        //         {
+        //             var deleteQuery = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.LocationVertexName)
+        //             .Has(AmblOnGraphConstants.IDPropertyName, locationID)
+        //             .Drop();
 
-                    await Submit(deleteQuery);
+        //             await Submit(deleteQuery);
 
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This location does not exist in the user's layer")};
-            });
-        }
+        //             return new BaseResponse()
+        //             {
+        //                 Status = Status.Success
+        //             };
+        //         }
+        //         else
+        //             return new BaseResponse() { Status = Status.NotLocated.Clone("This location does not exist in the user's layer")};
+        //     });
+        // }
 
-        public virtual async Task<BaseResponse> DeleteMap(string email, string entLookup, Guid mapID)
-        {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+        // public virtual async Task<BaseResponse> DeleteMap(string email, string entLookup, Guid mapID)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var userId = await ensureAmblOnUser(email, entLookup);
 
-                var existingMapQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, mapID);
+        //         var existingMapQuery = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.MapVertexName)
+        //             .Has(AmblOnGraphConstants.IDPropertyName, mapID);
                 
-                var existingMaps = await Submit<Map>(existingMapQuery);
+        //         var existingMaps = await Submit<Map>(existingMapQuery);
 
-                var existingMap = existingMaps?.FirstOrDefault();
+        //         var existingMap = existingMaps?.FirstOrDefault();
 
-                if (existingMap != null)
-                {
-                    var deleteQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, mapID)
-                    .Drop();
+        //         if (existingMap != null)
+        //         {
+        //             var deleteQuery = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.MapVertexName)
+        //             .Has(AmblOnGraphConstants.IDPropertyName, mapID)
+        //             .Drop();
 
-                    await Submit(deleteQuery);
+        //             await Submit(deleteQuery);
 
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This map does not exist for this user")};
-            });
-        }
+        //             return new BaseResponse()
+        //             {
+        //                 Status = Status.Success
+        //             };
+        //         }
+        //         else
+        //             return new BaseResponse() { Status = Status.NotLocated.Clone("This map does not exist for this user")};
+        //     });
+        // }
 
         public virtual async Task<BaseResponse> DeletePhoto(string email, string entLookup, Guid photoID)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var existingPhoto = await g.V(userId)
+                .Out<Owns>()
+                .OfType<Photo>()
+                .Where(x => x.ID == photoID)
+                .FirstOrDefaultAsync();
+
+            if (existingPhoto != null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
 
-                var existingPhotoQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, photoID);
-                
-                var existingPhotos = await Submit<Photo>(existingPhotoQuery);
-
-                var existingPhoto = existingPhotos?.FirstOrDefault();
-
-                if (existingPhoto != null)
-                {
-                    var deleteQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, photoID)
+                await g.V(userId)
+                    .Out<Owns>()
+                    .OfType<Photo>()
+                    .Where(x => x.ID == photoID)
                     .Drop();
 
-                    await Submit(deleteQuery);
-
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This photo does not exist for the user")};
-            });
+                return new BaseResponse()
+                {
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This photo does not exist for the user")};
         }
         
         // public virtual async Task<BaseResponse> DeleteSharedMap(string email, string entLookup, Guid mapID)
@@ -1178,128 +1087,119 @@ namespace AmblOn.State.API.Users.Graphs
 
         public virtual async Task<BaseResponse> DeleteTopList(string email, string entLookup, Guid topListID)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var existingTopList = await g.V(userId)
+                .Out<Owns>()
+                .OfType<TopList>()
+                .Where(x => x.ID == topListID)
+                .FirstOrDefaultAsync();
+
+            if (existingTopList != null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
-
-                var existingTopListQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.TopListVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, topListID);
-                
-                var existingTopLists = await Submit<TopList>(existingTopListQuery);
-
-                // Get the top list vertex
-                var existingTopList = existingTopLists?.FirstOrDefault();
-
-                if (existingTopList != null)
-                {
-                    var deleteTopListQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.TopListVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, topListID)
+                await g.V(userId)
+                    .Out<Owns>()
+                    .OfType<TopList>()
+                    .Where(x => x.ID == topListID)
                     .Drop();
 
-                    await Submit(deleteTopListQuery);
-
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This top list does not exist for this user")};
-            });
-        }
-
-        public virtual async Task<BaseResponse> DedupLocationsByMap(string email, string entLookup, Guid mapID)
-        {
-            return await withG(async (client, g) =>
-            {
-                var dedupeGuids = new List<Guid>();
-
-                var userId = await ensureAmblOnUser(email, entLookup);
-
-                // Load all locations for a mapID
-                var query = g.V(mapID)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.LocationVertexName);
-                    
-                var locationSet = await Submit<Location>(query);
-
-                // Create collections of maps group by lat/lon (sufficient for "equality")
-                var locationGroups = from l in locationSet.ToList()
-                                    group l by new { Lat = l.Latitude, Lon = l.Longitude} into locGroup
-                                    orderby locGroup.Key.Lat, locGroup.Key.Lon
-                                    select locGroup;
-
-                // For each group, take the guids for all but one.
-                foreach(var locGroup in locationGroups) {
-                    int locSize = locGroup.Count();
-                    if (locSize > 1){
-                        var locGuids =  locGroup.Select(l => l.ID)
-                                                .Take(locSize-1)
-                                                .ToArray();
-                        //dedupeGuids.AddRange(locGuids);
-                    }
-                } 
-                
-                // Delete the extraneous locations
-                var dedupQuery = g.V(mapID)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.LocationVertexName)
-                    .Has("id",  P.Within(dedupeGuids))
-                    .Drop();
-
-                var results = await Submit<Location>(dedupQuery);
-               
                 return new BaseResponse()
                 {
-                        Status = Status.Success
+                    Status = Status.Success
                 };
-            });
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This top list does not exist for this user")};
         }
-        
-        public virtual async Task<BaseResponse> DeleteMaps(string email, string entLookup, Guid[] mapIDs)
-        {
-            try {
-            return await withG(async (client, g) =>
-            {
-                var stringGuids = mapIDs.Select(m => m.ToString()).ToArray();
 
-                var userId = await ensureAmblOnUser(email, entLookup);
+        // public virtual async Task<BaseResponse> DedupLocationsByMap(string email, string entLookup, Guid mapID)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var dedupeGuids = new List<Guid>();
+
+        //         var userId = await ensureAmblOnUser(email, entLookup);
+
+        //         // Load all locations for a mapID
+        //         var query = g.V(mapID)
+        //             .Out(AmblOnGraphConstants.ContainsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.LocationVertexName);
+                    
+        //         var locationSet = await Submit<Location>(query);
+
+        //         // Create collections of maps group by lat/lon (sufficient for "equality")
+        //         var locationGroups = from l in locationSet.ToList()
+        //                             group l by new { Lat = l.Latitude, Lon = l.Longitude} into locGroup
+        //                             orderby locGroup.Key.Lat, locGroup.Key.Lon
+        //                             select locGroup;
+
+        //         // For each group, take the guids for all but one.
+        //         foreach(var locGroup in locationGroups) {
+        //             int locSize = locGroup.Count();
+        //             if (locSize > 1){
+        //                 var locGuids =  locGroup.Select(l => l.ID)
+        //                                         .Take(locSize-1)
+        //                                         .ToArray();
+        //                 //dedupeGuids.AddRange(locGuids);
+        //             }
+        //         } 
+                
+        //         // Delete the extraneous locations
+        //         var dedupQuery = g.V(mapID)
+        //             .Out(AmblOnGraphConstants.ContainsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.LocationVertexName)
+        //             .Has("id",  P.Within(dedupeGuids))
+        //             .Drop();
+
+        //         var results = await Submit<Location>(dedupQuery);
                
-                var existingMapsQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has("id",  P.Within(stringGuids));
+        //         return new BaseResponse()
+        //         {
+        //                 Status = Status.Success
+        //         };
+        //     });
+        // }
+        
+        // public virtual async Task<BaseResponse> DeleteMaps(string email, string entLookup, Guid[] mapIDs)
+        // {
+        //     try {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var stringGuids = mapIDs.Select(m => m.ToString()).ToArray();
+
+        //         var userId = await ensureAmblOnUser(email, entLookup);
+               
+        //         var existingMapsQuery = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.MapVertexName)
+        //             .Has("id",  P.Within(stringGuids));
    
-                var existingMaps = await Submit<Map>(existingMapsQuery);
+        //         var existingMaps = await Submit<Map>(existingMapsQuery);
 
-                if (existingMaps != null)
-                {
-                    var deleteQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.MapVertexName)
-                    .Has("id",  P.Within(stringGuids))
-                    .Drop();
+        //         if (existingMaps != null)
+        //         {
+        //             var deleteQuery = g.V(userId)
+        //             .Out(AmblOnGraphConstants.OwnsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.MapVertexName)
+        //             .Has("id",  P.Within(stringGuids))
+        //             .Drop();
 
-                    await Submit(deleteQuery);
+        //             await Submit(deleteQuery);
 
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("These maps do not exist for this user")};
+        //             return new BaseResponse()
+        //             {
+        //                 Status = Status.Success
+        //             };
+        //         }
+        //         else
+        //             return new BaseResponse() { Status = Status.NotLocated.Clone("These maps do not exist for this user")};
               
-            });
-                          } catch (Exception ex) {
-                   var result = ex.Message;
-                   throw;
-               }
-        }
+        //     });
+        //                   } catch (Exception ex) {
+        //            var result = ex.Message;
+        //            throw;
+        //        }
+        // }
 
         #endregion
 
@@ -1595,40 +1495,31 @@ namespace AmblOn.State.API.Users.Graphs
             });
         }
 
-        public virtual async Task<BaseResponse> EditPhoto(string email, string entLookup, UserPhoto photo, Guid albumID)
+        public virtual async Task<BaseResponse> EditPhoto(string email, string entLookup, Photo photo, Guid albumID)
         {
-            return await withG(async (client, g) =>
+            var userId = await ensureAmblOnUser(email, entLookup);
+
+            var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL + "|" + photo.LocationID.ToString();
+
+            var existingPhoto = await g.V(userId)
+                .Out<Owns>()
+                .OfType<Photo>()
+                .Where(x => x.ID == photo.ID)
+                .FirstOrDefaultAsync();
+            
+            if (existingPhoto != null)
             {
-                var userId = await ensureAmblOnUser(email, entLookup);
+                await g.V(photo.ID)
+                    .Update(photo);
 
-                var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photodd.URL + "|" + photo.LocationID.ToString();
-
-                var existingPhotoQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.PhotoVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, photo.ID);
-                
-                var existingPhotos = await Submit<Photo>(existingPhotoQuery);
-
-                var existingPhoto = existingPhotos?.FirstOrDefault();
-
-                if (existingPhoto != null)
+                return new BaseResponse()
                 {
-                    var editQuery = g.V(photo.ID)
-                        .Property("Lookup", lookup)
-                        .Property("Caption", photo.Caption)
-                        .Property("URL", photo.URL);
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This photo does not exist for this user")};
 
-                    await Submit(editQuery);
-
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This photo does not exist for this user")};
-            });
         }
 
         // public virtual async Task<BaseResponse> EditSharedMap(string email, string entLookup, UserMap map)
@@ -1675,96 +1566,71 @@ namespace AmblOn.State.API.Users.Graphs
 
         public virtual async Task<BaseResponse> EditTopList(string email, string entLookup, UserTopList topList)
         {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+            var userId = await ensureAmblOnUser(email, entLookup);
 
-                var lookup = userId.ToString() + "|" + topList.Title.Replace(" ","");
+            var lookup = userId.ToString() + "|" + topList.Title.Replace(" ","");
 
-                var existingTopListQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.TopListVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, topList.ID);
-                
-                var existingTopLists = await Submit<TopList>(existingTopListQuery);
+            var existingTopList = await g.V(userId)
+                .Out<Owns>()
+                .OfType<UserInfo>()
+                .Where(x => x.Lookup == lookup)
+                .FirstOrDefaultAsync();
+            
+            if (existingTopList != null)
+            {    
+                // Update the top list properties
 
-                // Retrieve the top list
-                var existingTopList = existingTopLists?.FirstOrDefault();
+                await g.V(topList.ID)
+                    .Update(topList);
 
-                
-                if (existingTopList != null)
-                {    
-                    // Update the top list properties                                
-                    var editQuery = g.V(topList.ID)
-                        .Property("Lookup", lookup)
-                        .Property("Title", topList.Title ?? "")
-                        .Property("OrderedValue", topList.OrderedValue);
+                // Delete existing edges                                
 
-                    
-                    await Submit(editQuery);
+                await g.V(existingTopList.ID)
+                    .OutE<Contains>()
+                    .OfType<Location>()
+                    .Drop();
 
-                    // Delete existing edges
-                    var existingTopListLocsQuery = g.V(existingTopList.ID)
-                                            .OutE(AmblOnGraphConstants.ContainsEdgeName)
-                                            .HasLabel(AmblOnGraphConstants.LocationVertexName)
-                                            .Drop();
-
-                    await Submit(existingTopListLocsQuery);
-
-                    // Add new edges from ordered list 
-                    foreach (UserLocation loc in topList.LocationList) {
-                        var locationQuery = g.V(existingTopList.ID)
-                                             .AddE(AmblOnGraphConstants.ContainsEdgeName)
-                                             .To(g.V(loc.ID));
-                        await Submit(locationQuery);
-                    }
-
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
+                // Add new edges from ordered list 
+                foreach (UserLocation loc in topList.LocationList) {
+                    await g.V(existingTopList.ID)
+                        .AddE<Contains>()
+                        .To(x => x.V(loc.ID))
+                        .FirstOrDefaultAsync();
                 }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This top list does not exist for this user")};
-            });
+
+                return new BaseResponse()
+                {
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This top list does not exist for this user")};
         }
 
         public virtual async Task<BaseResponse> EditUserInfo(string email, string entLookup, UserInfo userInfo)
         {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+            var userId = await ensureAmblOnUser(email, entLookup);
 
-                var lookup = userId.ToString() + "|UserInfo";
+            var lookup = userId.ToString() + "|UserInfo";
 
-                var existingUserInfoQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.UserInfoVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, userInfo.ID);
-                
-                var existingUserInfos = await Submit<UserInfo>(existingUserInfoQuery);
+            var existingUserInfo = await g.V(userId)
+                .Out<Owns>()
+                .OfType<UserInfo>()
+                .Where(x => x.Lookup == lookup)
+                .FirstOrDefaultAsync();
 
-                var existingUserInfo = existingUserInfos?.FirstOrDefault();
+            if (existingUserInfo != null)
+            {                               
+                await g.V(userInfo.ID)
+                    .Update(userInfo);
 
-                if (existingUserInfo != null)
-                {                               
-                    var editQuery = g.V(userInfo.ID)
-                        .Property("Country", userInfo.Country ?? "")
-                        .Property("FirstName", userInfo.FirstName ?? "")
-                        .Property("LastName", userInfo.LastName)
-                        .Property("Zip", userInfo.Zip);
-
-                    
-                    await Submit(editQuery);
-
-                    return new BaseResponse()
-                    {
-                        Status = Status.Success
-                    };
-                }
-                else
-                    return new BaseResponse() { Status = Status.NotLocated.Clone("This User Info record does not exist for this user")};
-            });
+                return new BaseResponse()
+                {
+                    Status = Status.Success
+                };
+            }
+            else
+                return new BaseResponse() { Status = Status.NotLocated.Clone("This User Info record does not exist for this user")};
         }
 
         // public virtual async Task<BaseResponse> EditExcludedCurations(string email, string entLookup, ExcludedCurations curations)
@@ -1815,113 +1681,104 @@ namespace AmblOn.State.API.Users.Graphs
         
         public virtual async Task<BaseResponse> QuickEditActivity(Activity activity)
         {
-            return await withG(async (client, g) =>
-            {
-                var editQuery = g.V(activity.ID)
-                    .Property("Checked", activity.Checked)
-                    .Property("Editable", activity.Editable)
-                    .Property("Favorited", activity.Favorited)
-                    .Property("Notes", activity.Notes ?? "")
-                    .Property("Order", activity.Order.ToString() ?? "")
-                    .Property("Title", activity.Title ?? "")
-                    .Property("TransportIcon", activity.TransportIcon ?? "")
-                    .Property("WidgetIcon", activity.WidgetIcon ?? "");
 
-                await Submit(editQuery);
-
-                return new BaseResponse()
-                {
-                    Status = Status.Success
-                };
+            var editQuery = await g.V(activity.ID)
+                .Update(activity);
                 
-            });
+                // ("Checked", activity.Checked)
+                // .Property("Editable", activity.Editable)
+                // .Property("Favorited", activity.Favorited)
+                // .Property("Notes", activity.Notes ?? "")
+                // .Property("Order", activity.Order.ToString() ?? "")
+                // .Property("Title", activity.Title ?? "")
+                // .Property("TransportIcon", activity.TransportIcon ?? "")
+                // .Property("WidgetIcon", activity.WidgetIcon ?? "");
+
+            return new BaseResponse()
+            {
+                Status = Status.Success
+            };
         }        
         #endregion 
 
         #region List
         public virtual async Task<BaseResponse<UserInfo>> GetUserInfo(string email, string entLookup)
         {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+            var userId = await ensureAmblOnUser(email, entLookup);
 
-                var lookup = userId.ToString() + "|UserInfo";
+            var lookup = userId.ToString() + "|UserInfo";
 
-                var existingUserInfoQuery = g.V(userId)
-                    .Out(AmblOnGraphConstants.OwnsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.UserInfoVertexName)
-                    .Has(AmblOnGraphConstants.LookupPropertyName, lookup);
-                
-                var existingUserInfos = await Submit<UserInfo>(existingUserInfoQuery);
+            var existingUserInfo = await g.V(userId)
+                .Out<Owns>()
+                .OfType<UserInfo>()
+                .Where(x => x.Lookup == lookup)
+                .FirstOrDefaultAsync();
 
-                var existingUserInfo = existingUserInfos?.FirstOrDefault();
-
-                if (existingUserInfo != null)
-                {                               
-                    return new BaseResponse<UserInfo>()
-                    {
-                        Status = Status.Success,
-                        Model = existingUserInfo
-                    };
-                }
-                else
-                    return new BaseResponse<UserInfo>()
-                    {
-                        Status = Status.NotLocated
-                    };
-            });
+            if (existingUserInfo != null)
+            {                               
+                return new BaseResponse<UserInfo>()
+                {
+                    Status = Status.Success,
+                    Model = existingUserInfo
+                };
+            }
+            else
+                return new BaseResponse<UserInfo>()
+                {
+                    Status = Status.NotLocated
+                };
         }
-        public virtual async Task<List<Activity>> ListActivities(string email, string entLookup, Guid activityGroupId)
-        {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+        // public virtual async Task<List<Activity>> ListActivities(string email, string entLookup, Guid activityGroupId)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var userId = await ensureAmblOnUser(email, entLookup);
 
-                var query = g.V(activityGroupId)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityVertexName);
+        //         var query = g.V(activityGroupId)
+        //             .Out(AmblOnGraphConstants.ContainsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.ActivityVertexName);
 
-                var results = await Submit<Activity>(query);
+        //         var results = await Submit<Activity>(query);
 
-                results.ToList().ForEach(
-                    (activity) =>
-                    {
-                        var locationId = getActivityLocationID(activity.ID).GetAwaiter().GetResult();
-                        activity.LocationID = locationId;
-                    });
+        //         results.ToList().ForEach(
+        //             (activity) =>
+        //             {
+        //                 var locationId = getActivityLocationID(activity.ID).GetAwaiter().GetResult();
+        //                 activity.LocationID = locationId;
+        //             });
 
-                return results.ToList();
-            });
-        }
+        //         return results.ToList();
+        //     });
+        // }
 
-        public virtual async Task<List<ActivityGroup>> ListActivityGroups(string email, string entLookup, Itinerary itinerary)
-        {
-            return await withG(async (client, g) =>
-            {
-                var userId = await ensureAmblOnUser(email, entLookup);
+        // public virtual async Task<List<ActivityGroup>> ListActivityGroups(string email, string entLookup, Itinerary itinerary)
+        // {
+        //     return await withG(async (client, g) =>
+        //     {
+        //         var userId = await ensureAmblOnUser(email, entLookup);
 
-                // Check to see if the itinerary is shared. If shared, switch the "Out" part of the query to "CanView" instead of "Owns"
-                var outVertexName = "";
+        //         // Check to see if the itinerary is shared. If shared, switch the "Out" part of the query to "CanView" instead of "Owns"
+        //         var outVertexName = "";
 
-                if(itinerary.Shared){
-                    outVertexName = "CanView";               
-                }
-                else{
-                    outVertexName = "Owns";
-                }
+        //         if(itinerary.Shared){
+        //             outVertexName = "CanView";               
+        //         }
+        //         else{
+        //             outVertexName = "Owns";
+        //         }
 
-                var query = g.V(userId)
-                    .Out(outVertexName)
-                    .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
-                    .Has(AmblOnGraphConstants.IDPropertyName, itinerary.ID)
-                    .Out(AmblOnGraphConstants.ContainsEdgeName)
-                    .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName);
+        //         var query = g.V(userId)
+        //             .Out(outVertexName)
+        //             .HasLabel(AmblOnGraphConstants.ItineraryVertexName)
+        //             .Has(AmblOnGraphConstants.IDPropertyName, itinerary.ID)
+        //             .Out(AmblOnGraphConstants.ContainsEdgeName)
+        //             .HasLabel(AmblOnGraphConstants.ActivityGroupVertexName);
 
-                var results = await Submit<ActivityGroup>(query);
+        //         var results = await Submit<ActivityGroup>(query);
 
-                return results.ToList();
-            });
-        }
+        //         return results.ToList();
+        //     });
+        // }
 
         // public virtual async Task<List<Accolade>> ListAccolades(string email, string entLookup, Guid locationId)
         // {
@@ -1939,7 +1796,7 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        public virtual async Task<List<UserAlbum>> ListAlbums(string email, string entLookup)
+        public virtual async Task<List<Album>> ListAlbums(string email, string entLookup)
         {
             return await withG(async (client, g) =>
             {
@@ -2066,9 +1923,13 @@ namespace AmblOn.State.API.Users.Graphs
         
         public virtual async Task<List<Itinerary>> ListItineraries(string email, string entLookup)
         {
-            return await withG(async (client, g) =>
-            {
                 var userId = await ensureAmblOnUser(email, entLookup);
+
+                var ownedList = await g.V(userId)
+                    .Out<Owns>()
+                    .OfType<Itinerary>()
+                    .Project<Itinerary>(x => x.ToDynamic().By(itinerary => itinerary.ID))
+
 
                 var query = g.V(userId)
                     .Out(AmblOnGraphConstants.OwnsEdgeName)
@@ -2149,7 +2010,6 @@ namespace AmblOn.State.API.Users.Graphs
                 results.AddRange(sharedList);
                 
                 return results.ToList();
-            });
         }
 
         // public virtual async Task<List<Layer>> ListLayers(string email, string entLookup)
@@ -2432,7 +2292,7 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
         
-        public virtual async Task<List<TopList>> ListTopLists(string email, string entLookup)
+        public virtual async Task<List<UserTopList>> ListTopLists(string email, string entLookup)
         {
                 var userId = await ensureAmblOnUser(email, entLookup);
 

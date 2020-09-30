@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using LCU.Graphs;
+using LCU.Presentation;
 
 namespace AmblOn.State.API.Users.Models
 {
@@ -11,6 +12,9 @@ namespace AmblOn.State.API.Users.Models
     {
         [DataMember]
         public virtual string Caption {get; set;}
+
+        [DataMember]
+        public virtual ImageMessage ImageData {get; set;}
 
         [DataMember]
         public virtual string Lookup {get; set;}
