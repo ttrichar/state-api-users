@@ -33,16 +33,12 @@ namespace AmblOn.State.API.Users
     {
         #region Fields
         protected AmblOnGraph amblGraph;
-
-        protected AmblOnGraphFactory amblGraphFactory;
         #endregion
 
         #region Constructors
-        public Refresh(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
+        public Refresh(AmblOnGraph amblGraph)
         {
             this.amblGraph = amblGraph;
-
-            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 
@@ -84,24 +80,25 @@ namespace AmblOn.State.API.Users
         #region Helpers
         protected virtual async Task<Status> refreshUsers(UsersStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshUsers(amblGraph, amblGraphFactory, stateDetails.EnterpriseLookup, stateDetails.Username);
+            await harness.RefreshUsers(amblGraph, stateDetails.EnterpriseLookup, stateDetails.Username);
 
             return Status.Success;
         }
 
         protected virtual async Task<Status> refreshItineraries(ItinerariesStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshItineraries(amblGraph, amblGraphFactory, stateDetails.EnterpriseLookup, stateDetails.Username);
+            await harness.RefreshItineraries(amblGraph, stateDetails.EnterpriseLookup, stateDetails.Username);
 
             return Status.Success;
         }
 
         protected virtual async Task<Status> refreshLocations(LocationsStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshLocations(amblGraph, amblGraphFactory, stateDetails.EnterpriseLookup, stateDetails.Username);
+            await harness.RefreshLocations(amblGraph, stateDetails.EnterpriseLookup, stateDetails.Username);
 
             return Status.Success;
         }
         #endregion
     }
 }
+ 

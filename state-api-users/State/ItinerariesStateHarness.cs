@@ -166,7 +166,7 @@ namespace AmblOn.State.API.Itineraries.State
 
         #region Edit
         
-        public virtual async Task EditItinerary(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory, string username, string entLookup, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
+        public virtual async Task EditItinerary(AmblOnGraph amblGraph, string username, string entLookup, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
         {
             State.Loading = true;
             
@@ -356,7 +356,7 @@ namespace AmblOn.State.API.Itineraries.State
 
             var query = baseQuery + aGquery + ").out(\"Contains\").coalesce(" + aQuery + ")";
 
-            var resp = await amblGraph.EditOrder(email, entLookup, query);
+            //var resp = await amblGraph.EditOrder(email, entLookup, query);
 
             State.UserItineraries = await fetchUserItineraries(amblGraph, email, entLookup);
         } 
@@ -372,7 +372,7 @@ namespace AmblOn.State.API.Itineraries.State
         
         #endregion
 
-        public virtual async Task RefreshItineraries(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entLookup, string username)
+        public virtual async Task RefreshItineraries(AmblOnGraph amblGraph, string entLookup, string username)
         {
             ensureStateObject();
 

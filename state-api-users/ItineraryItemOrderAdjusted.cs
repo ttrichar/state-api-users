@@ -33,16 +33,13 @@ namespace AmblOn.State.API.Users
     {
         #region Fields
         protected AmblOnGraph amblGraph;
-        protected AmblOnGraphFactory amblGraphFactory;
 
         #endregion
 
         #region Constructors
-        public ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
+        public ItineraryItemOrderAdjusted(AmblOnGraph amblGraph)
         {
             this.amblGraph = amblGraph; 
-
-            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 

@@ -35,16 +35,13 @@ namespace AmblOn.State.API.Users
     {
         #region Fields
         protected AmblOnGraph amblGraph;
-        protected AmblOnGraphFactory amblGraphFactory;
 
         #endregion
 
         #region Constructors
-        public EditItinerary(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
+        public EditItinerary(AmblOnGraph amblGraph)
         {
             this.amblGraph = amblGraph; 
-
-            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 
@@ -63,7 +60,7 @@ namespace AmblOn.State.API.Users
 
                 var username = stateDetails.Username;
 
-                await harness.EditItinerary(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.Itinerary, reqData.ActivityLocationLookups);               
+                await harness.EditItinerary(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.Itinerary, reqData.ActivityLocationLookups);               
                 
                 var locationStateDetails = StateUtils.LoadStateDetails(req);
 
@@ -76,7 +73,7 @@ namespace AmblOn.State.API.Users
                 {
                     log.LogInformation($"EditItinerary Location Refresh");
 
-                    await newharness.RefreshLocations(amblGraph, amblGraphFactory, locationStateDetails.EnterpriseLookup, username);
+                    await newharness.RefreshLocations(amblGraph, locationStateDetails.EnterpriseLookup, username);
 
                     return Status.Success;
                 });  

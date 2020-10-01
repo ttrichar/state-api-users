@@ -1101,7 +1101,7 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task Load(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entLookup)
+        public virtual async Task Load(AmblOnGraph amblGraph, string username, string entLookup)
         {
             // ensureStateObject();
 
@@ -1134,7 +1134,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task RefreshUsers(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entLookup, string username)
+        public virtual async Task RefreshUsers(AmblOnGraph amblGraph, string entLookup, string username)
         {
             ensureStateObject();
 

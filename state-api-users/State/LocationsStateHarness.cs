@@ -164,7 +164,7 @@ namespace AmblOn.State.API.Locations.State
         
         #endregion
 
-        public virtual async Task RefreshLocations(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entLookup, string username)
+        public virtual async Task RefreshLocations(AmblOnGraph amblGraph, string entLookup, string username)
         {
             ensureStateObject();
 

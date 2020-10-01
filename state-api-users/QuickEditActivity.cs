@@ -31,16 +31,13 @@ namespace AmblOn.State.API.Users
     {
         #region Fields
         protected AmblOnGraph amblGraph;
-        protected AmblOnGraphFactory amblGraphFactory;
 
         #endregion
 
         #region Constructors
-        public QuickEditActivity(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
+        public QuickEditActivity(AmblOnGraph amblGraph)
         {
             this.amblGraph = amblGraph; 
-
-            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 

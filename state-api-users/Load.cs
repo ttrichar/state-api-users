@@ -23,16 +23,12 @@ namespace AmblOn.State.API.Users
         #region Fields
         protected AmblOnGraph amblGraph;
 
-        protected AmblOnGraphFactory amblGraphFactory;
-
         #endregion
 
         #region Constructors
-        public Load(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
+        public Load(AmblOnGraph amblGraph)
         {
             this.amblGraph = amblGraph;
-
-            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 
@@ -48,7 +44,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.Load(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseLookup);
+                await harness.Load(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup);
 
                 return Status.Success;
             });
