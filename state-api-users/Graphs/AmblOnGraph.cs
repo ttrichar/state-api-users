@@ -1506,7 +1506,7 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
-            var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL + "|" + photo.LocationID.ToString();
+            //var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL + "|" + photo.LocationID.ToString();
 
             var existingPhoto = await g.V(userId)
                 .Out<Owns>()
@@ -1962,7 +1962,7 @@ namespace AmblOn.State.API.Users.Graphs
         {
                 var userId = await ensureAmblOnUser(email, entLookup);
 
-                var ownedList = await g.V(userId)
+                var ownedItineraries = await g.V(userId)
                     .Out<Owns>()
                     .OfType<Itinerary>()
                     .Project(x => x.ToDynamic()
@@ -2026,7 +2026,29 @@ namespace AmblOn.State.API.Users.Graphs
 
                 // var ownedList = ownedResults.ToList();
 
-                ownedList.ForEach(
+                var ownedItinerariesDynamic = new List<Itinerary>();
+
+                // ownedItineraries.ForEach(
+                //     (owned) => {
+                //         var test = JsonConvert.SerializeObject(owned);
+
+                //         var test2 = JsonConvert.DeserializeObject<Itinerary>(test);
+                //     }
+                // );
+                var testing = JsonConvert.SerializeObject(ownedItineraries);
+
+                JArray jsonVal = JArray.Parse(testing) as JArray;
+
+                var testing2 = JsonConvert.DeserializeObject(testing);
+
+                var specificThings = ownedItineraries.Select(t => ((object)t).JSONConvert<Itinerary>()).ToList();
+
+                // var toBeNamed = from i in ownedItinerariesDynamic
+                //  select i as Itinerary;
+            
+                // var ownedItinerariesList = toBeNamed.ToList<Itinerary>();
+
+                specificThings.ForEach(
                     (owned) =>
                     {
                         var AGList = owned;
@@ -2132,7 +2154,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var results = new List<dynamic>();
                 var test = sharedList.ToList();            
 
-                results.AddRange(ownedList);
+                //results.AddRange(ownedList);
                 results.AddRange(sharedList);
 
                 var itineraryList = from i in results

@@ -19,8 +19,8 @@ namespace AmblOn.State.API.Users.Models
         [DataMember]
         public virtual string Lookup {get; set;}
 
-        [DataMember]
-        public virtual Guid LocationID {get; set;}
+        // [DataMember]
+        // public virtual Guid LocationID {get; set;}
 
         [DataMember]
         public virtual string URL { get; set; }

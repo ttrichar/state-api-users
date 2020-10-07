@@ -1879,7 +1879,7 @@ namespace AmblOn.State.API.Users.State
                 ID = photo.ID,
                 Caption = photo.Caption,
                 URL = photo.URL,
-                LocationID = photo.LocationID
+                //LocationID = photo.LocationID
             };
         }
 
