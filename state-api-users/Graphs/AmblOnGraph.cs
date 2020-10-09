@@ -16,19 +16,55 @@ using Microsoft.Extensions.Logging;
 using ExRam.Gremlinq.Core;
 using LCU.Graphs.Registry.Enterprises.Edges;
 using Microsoft.VisualStudio.Services.Common;
+using System.Net.WebSockets;
+using Gremlin.Net.Structure.IO.GraphSON;
 
 namespace AmblOn.State.API.Users.Graphs
 {
     public class AmblOnGraph : LCUGraph
     {
         #region Properties
+        public GremlinClient gremlinClient { get; set;}
 
         #endregion
 
         #region Constructors
         public AmblOnGraph(LCUGraphConfig graphConfig, ILogger<AmblOnGraph> logger)
             : base(graphConfig, logger)
-        { }
+        {
+            string containerLink = "/dbs/AmblOn/colls/AmblOnPrd";
+
+            var Host = "ambl-on-prd.gremlin.cosmos.azure.com";
+
+            var APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY");
+
+            var gremlinServer = new GremlinServer(
+                    Host, 443, true, username: containerLink, password: APIKey);
+
+            ConnectionPoolSettings connectionPoolSettings = new ConnectionPoolSettings()
+            {
+                MaxInProcessPerConnection = 10,
+                PoolSize = 30, 
+                ReconnectionAttempts= 3,
+                ReconnectionBaseDelay = TimeSpan.FromMilliseconds(500)
+            };
+
+            var webSocketConfiguration =
+                new Action<ClientWebSocketOptions>(options =>
+                {
+                    options.KeepAliveInterval = TimeSpan.FromSeconds(10);
+                });
+            
+            gremlinClient = new GremlinClient(
+                gremlinServer, 
+                new GraphSON2Reader(), 
+                new GraphSON2Writer(), 
+                GremlinClient.GraphSON2MimeType, 
+                connectionPoolSettings,  
+                webSocketConfiguration);
+         }
+
+
         #endregion
 
         #region API Methods 
@@ -88,10 +124,11 @@ namespace AmblOn.State.API.Users.Graphs
         public virtual async Task<BaseResponse<Guid>> AddActivityToAG(string email, string entLookup, Guid itineraryId, Guid activityGroupId, Activity activity)
         {
             var userId = await ensureAmblOnUser(email, entLookup);
-
+            
             var lookup = userId.ToString() + "|" + itineraryId.ToString() + "|" + activityGroupId.ToString() + "|" + activity.Title.Replace(" ", "_") + "|" + 
             (activity.LocationID.HasValue ? activity.LocationID.Value.ToString() : Guid.Empty.ToString()) + "|" + activity.Order.ToString();
 
+            
             var activityID = activity.ID;
 
             var existingActivity = await g.V(userId)
@@ -1807,28 +1844,28 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
-            var albums = await g.V(userId)
-                    .Out<Owns>()
-                    .OfType<Album>()
-                    .Project(x => x.ToDynamic()
-                        .By(a => a.ID)
-                        .By(a => a.PartitionKey)
-                        .By(a => a.Label)
-                        .By(a => a.Lookup)
-                        .By(a => a.Title)
-                        .By(
-                        "Photos",
-                        __ => __
-                            .Out<Contains>()
-                            .OfType<Photo>()
-                            .Project(x => x.ToDynamic()
-                                .By(p => p.ID)
-                                .By(p => p.PartitionKey)
-                                .By(p => p.Label)
-                                .By(p => p.Lookup)
-                                .By(p => p.Caption)
-                                .By(p => p.URL)
-                                )));
+            // var albums = await g.V(userId)
+            //         .Out<Owns>()
+            //         .OfType<Album>()
+            //         .Project(x => x.ToDynamic()
+            //             .By(a => a.ID)
+            //             .By(a => a.PartitionKey)
+            //             .By(a => a.Label)
+            //             .By(a => a.Lookup)
+            //             .By(a => a.Title)
+            //             .By(
+            //             "Photos",
+            //             __ => __
+            //                 .Out<Contains>()
+            //                 .OfType<Photo>()
+            //                 .Project(x => x.ToDynamic()
+            //                     .By(p => p.ID)
+            //                     .By(p => p.PartitionKey)
+            //                     .By(p => p.Label)
+            //                     .By(p => p.Lookup)
+            //                     .By(p => p.Caption)
+            //                     .By(p => p.URL)
+            //                     )));
 
             // var query = g.V(userId)
             //     .Out(AmblOnGraphConstants.OwnsEdgeName)
@@ -1843,7 +1880,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                 var results = new List<dynamic>();         
 
-                results.AddRange(albums);
+                //results.AddRange(albums);
 
                 var albumList = from a in results
                     select a as Album;
@@ -1877,13 +1914,13 @@ namespace AmblOn.State.API.Users.Graphs
         //                 owned.Editable = true;
         //             });
 
-        //         var sharedQuery = g.V(userId)
-        //               .Out(AmblOnGraphConstants.CanViewEdgeName)
-        //               .HasLabel(AmblOnGraphConstants.ItineraryVertexName);
+                // var sharedQuery = g.V(userId)
+                //      .Out(AmblOnGraphConstants.CanViewEdgeName)
+                //       .HasLabel(AmblOnGraphConstants.ItineraryVertexName);
 
-        //         var sharedResults = await Submit<Itinerary>(sharedQuery);
+                // var sharedResults = await Submit<Itinerary>(sharedQuery);
 
-        //         var sharedList = sharedResults.ToList();
+                //  var sharedList = sharedResults.ToList();
 
         //         sharedList.ForEach(
         //             (shared) =>
@@ -1962,53 +1999,76 @@ namespace AmblOn.State.API.Users.Graphs
         {
                 var userId = await ensureAmblOnUser(email, entLookup);
 
-                var ownedItineraries = await g.V(userId)
-                    .Out<Owns>()
-                    .OfType<Itinerary>()
-                    .Project(x => x.ToDynamic()
-                        .By(i => i.ID)
-                        .By(i => i.PartitionKey)
-                        .By(i => i.Label)
-                        .By(i => i.Lookup)
-                        .By(i => i.Shared)
-                        .By(i => i.SharedByUsername)
-                        .By(i => i.SharedByUserID)
-                        .By(i => i.Title)
-                        .By(i => i.Editable)
-                        .By(i => i.CreatedDateTime)
-                        .By(
-                        "ActivityGroups",
-                        __ => __
-                            .Out<Contains>()
-                            .OfType<ActivityGroup>()
-                            .Project(x => x.ToDynamic()
-                                .By(ag => ag.ID)
-                                .By(ag => ag.PartitionKey)
-                                .By(ag => ag.Label)
-                                .By(ag => ag.Lookup)
-                                .By(ag => ag.GroupType)
-                                .By(ag => ag.Order)
-                                .By(ag => ag.Checked)
-                                .By(ag => ag.Title)
-                                .By(ag => ag.CreatedDateTime)
-                                .By("Activities", __ => __
-                                    .Out<Contains>()
-                                    .OfType<Activity>()
-                                    .Project(x => x.ToDynamic()
-                                        .By(a => a.ID)
-                                        .By(a => a.PartitionKey)
-                                        .By(a => a.Label)
-                                        .By(a => a.Lookup)
-                                        .By(a => a.Favorited)
-                                        .By(a => a.Order)
-                                        .By(a => a.Notes)
-                                        .By(a => a.TransportIcon)
-                                        .By(a => a.WidgetIcon)
-                                        .By(a => a.LocationID)
-                                        .By(a => a.Checked)
-                                        .By(a => a.Title)
-                                        .By(a => a.CreatedDateTime)
-                                        )))));
+                var listItineraries = new Dictionary<string, string>{
+                    {"OwnedItineraries", "g.V('" + userId + "').Out('Owns').HasLabel('Itinerary').project('id', 'PartitionKey', 'Label', 'Lookup', 'Shared', 'SharedByUsername', 'SharedByUserID', 'Title', 'Editable', 'ActivityGroups').by('id').by('PartitionKey').by('label').by('Lookup').by('Shared').by('SharedByUsername').by('SharedByUserID').by('Title').by('Editable').by(out('Contains').HasLabel('ActivityGroup').project('id', 'PartitionKey', 'Label', 'Lookup', 'GroupType', 'Order', 'Checked', 'Title', 'Activities').by('id').by('PartitionKey').by('label').by('Lookup').by('GroupType').by('Order').by('Checked').by('Title').by(out('Contains').HasLabel('Activity').project('id', 'PartitionKey', 'Label', 'Lookup', 'Favorited', 'Order', 'Notes', 'TransportIcon', 'WidgetIcon', 'LocationID', 'Checked', 'Title').by('id').by('PartitionKey').by('label').by('Lookup').by('Favorited').by('Order').by('Notes').by('TransportIcon').by('WidgetIcon').by('LocationID').by('Checked').by('Title').fold()).fold())"},
+                    {"SharedItineraries", "g.V('" + userId + "').Out('CanView').HasLabel('Itinerary').project('id', 'PartitionKey', 'Label', 'Lookup', 'Shared', 'SharedByUsername', 'SharedByUserID', 'Title', 'Editable', 'ActivityGroups').by('id').by('PartitionKey').by('label').by('Lookup').by('Shared').by('SharedByUsername').by('SharedByUserID').by('Title').by('Editable').by(out('Contains').HasLabel('ActivityGroup').project('id', 'PartitionKey', 'Label', 'Lookup', 'GroupType', 'Order', 'Checked', 'Title', 'Activities').by('id').by('PartitionKey').by('label').by('Lookup').by('GroupType').by('Order').by('Checked').by('Title').by(out('Contains').HasLabel('Activity').project('id', 'PartitionKey', 'Label', 'Lookup', 'Favorited', 'Order', 'Notes', 'TransportIcon', 'WidgetIcon', 'LocationID', 'Checked', 'Title').by('id').by('PartitionKey').by('label').by('Lookup').by('Favorited').by('Order').by('Notes').by('TransportIcon').by('WidgetIcon').by('LocationID').by('Checked').by('Title').fold()).fold())"}
+                };
+                
+                
+
+                var ownedQuery = listItineraries["OwnedItineraries"];
+              
+                var ownedList = await SubmitCustom<Itinerary>(gremlinClient, ownedQuery);
+
+                ownedList.ForEach(
+                    (owned) =>
+                    {
+                        var AGList = owned;
+                        owned.Shared = false;
+                        owned.SharedByUserID = Guid.Empty;
+                        owned.SharedByUsername = "";
+                        owned.Editable = true;
+                    });
+
+                var sharedQuery = listItineraries["SharedItineraries"];
+
+                var sharedList = await SubmitCustom<Itinerary>(gremlinClient, sharedQuery);
+
+                sharedList.ForEach(
+                    (shared) =>
+                    {
+                        shared.Shared = true;
+                        shared.Editable = false;
+                    
+                        var user = g.V(shared.ID)
+                            .In<Owns>()
+                            .OfType<AmblOnUser>()
+                            .FirstOrDefaultAsync()
+                            .GetAwaiter()
+                            .GetResult();        
+
+                        var userInfo = g.V(user.ID)
+                            .Out<Owns>()
+                            .OfType<UserInfo>()
+                            .FirstOrDefaultAsync()
+                            .GetAwaiter()
+                            .GetResult();                        
+
+                        if (userInfo != null)
+                        {
+                            shared.SharedByUserID = user.ID;
+                            shared.SharedByUsername = userInfo.FirstName + " " + userInfo.LastName;
+                        }
+                        else{
+                            shared.SharedByUserID = user.ID;
+                            shared.SharedByUsername = user.Email;
+                        }
+                    });
+
+                var totalItineraries = new List<Itinerary>();
+
+                totalItineraries.AddRange(sharedList);
+                totalItineraries.AddRange(ownedList);
+                
+                   
+                
+
+
+                //var owned = listItineraries.Where(pair => pair.Key == "OwnedItineraries").Select(pair => pair.Value).ToString();
+
+                // var totalItineraries = await gremlinClient.SubmitAsync<Itinerary>(owned);
+                
+                return totalItineraries;
 
 
                 // var query = g.V(userId)
@@ -2026,7 +2086,7 @@ namespace AmblOn.State.API.Users.Graphs
 
                 // var ownedList = ownedResults.ToList();
 
-                var ownedItinerariesDynamic = new List<Itinerary>();
+                //var ownedItinerariesDynamic = new List<Itinerary>();
 
                 // ownedItineraries.ForEach(
                 //     (owned) => {
@@ -2035,77 +2095,77 @@ namespace AmblOn.State.API.Users.Graphs
                 //         var test2 = JsonConvert.DeserializeObject<Itinerary>(test);
                 //     }
                 // );
-                var testing = JsonConvert.SerializeObject(ownedItineraries);
+                // var testing = JsonConvert.SerializeObject(ownedItineraries);
 
-                JArray jsonVal = JArray.Parse(testing) as JArray;
+                // JArray jsonVal = JArray.Parse(testing) as JArray;
 
-                var testing2 = JsonConvert.DeserializeObject(testing);
+                // var testing2 = JsonConvert.DeserializeObject(testing);
 
-                var specificThings = ownedItineraries.Select(t => ((object)t).JSONConvert<Itinerary>()).ToList();
+                // var specificThings = ownedItineraries.Select(t => ((object)t).JSONConvert<Itinerary>()).ToList();
 
                 // var toBeNamed = from i in ownedItinerariesDynamic
                 //  select i as Itinerary;
             
                 // var ownedItinerariesList = toBeNamed.ToList<Itinerary>();
 
-                specificThings.ForEach(
-                    (owned) =>
-                    {
-                        var AGList = owned;
-                        owned.Shared = false;
-                        owned.SharedByUserID = Guid.Empty;
-                        owned.SharedByUsername = "";
-                        owned.Editable = true;
-                    });
+                // specificThings.ForEach(
+                //     (owned) =>
+                //     {
+                //         var AGList = owned;
+                //         owned.Shared = false;
+                //         owned.SharedByUserID = Guid.Empty;
+                //         owned.SharedByUsername = "";
+                //         owned.Editable = true;
+                //     });
 
             
-                var sharedList = await g.V(userId)
-                    .Out<CanView>()
-                    .OfType<Itinerary>()
-                    .Project(x => x.ToDynamic()
-                        .By(i => i.ID)
-                        .By(i => i.PartitionKey)
-                        .By(i => i.Label)
-                        .By(i => i.Lookup)
-                        .By(i => i.Shared)
-                        .By(i => i.SharedByUsername)
-                        .By(i => i.SharedByUserID)
-                        .By(i => i.Title)
-                        .By(i => i.Editable)
-                        .By(i => i.CreatedDateTime)
-                        .By(
-                        "ActivityGroups",
-                        __ => __
-                            .Out<Contains>()
-                            .OfType<ActivityGroup>()
-                            .Project(x => x.ToDynamic()
-                                .By(ag => ag.ID)
-                                .By(ag => ag.PartitionKey)
-                                .By(ag => ag.Label)
-                                .By(ag => ag.Lookup)
-                                .By(ag => ag.GroupType)
-                                .By(ag => ag.Order)
-                                .By(ag => ag.Checked)
-                                .By(ag => ag.Title)
-                                .By(ag => ag.CreatedDateTime)
-                                .By("Activities", __ => __
-                                    .Out<Contains>()
-                                    .OfType<Activity>()
-                                    .Project(x => x.ToDynamic()
-                                        .By(a => a.ID)
-                                        .By(a => a.PartitionKey)
-                                        .By(a => a.Label)
-                                        .By(a => a.Lookup)
-                                        .By(a => a.Favorited)
-                                        .By(a => a.Order)
-                                        .By(a => a.Notes)
-                                        .By(a => a.TransportIcon)
-                                        .By(a => a.WidgetIcon)
-                                        .By(a => a.LocationID)
-                                        .By(a => a.Checked)
-                                        .By(a => a.Title)
-                                        .By(a => a.CreatedDateTime)
-                                        )))));
+                // var sharedList = await g.V(userId)
+                //     .Out<CanView>()
+                //     .OfType<Itinerary>()
+                //     .Project(x => x.ToDynamic()
+                //         .By(i => i.ID)
+                //         .By(i => i.PartitionKey)
+                //         .By(i => i.Label)
+                //         .By(i => i.Lookup)
+                //         .By(i => i.Shared)
+                //         .By(i => i.SharedByUsername)
+                //         .By(i => i.SharedByUserID)
+                //         .By(i => i.Title)
+                //         .By(i => i.Editable)
+                //         .By(i => i.CreatedDateTime)
+                //         .By(
+                //         "ActivityGroups",
+                //         __ => __
+                //             .Out<Contains>()
+                //             .OfType<ActivityGroup>()
+                //             .Project(x => x.ToDynamic()
+                //                 .By(ag => ag.ID)
+                //                 .By(ag => ag.PartitionKey)
+                //                 .By(ag => ag.Label)
+                //                 .By(ag => ag.Lookup)
+                //                 .By(ag => ag.GroupType)
+                //                 .By(ag => ag.Order)
+                //                 .By(ag => ag.Checked)
+                //                 .By(ag => ag.Title)
+                //                 .By(ag => ag.CreatedDateTime)
+                //                 .By("Activities", __ => __
+                //                     .Out<Contains>()
+                //                     .OfType<Activity>()
+                //                     .Project(x => x.ToDynamic()
+                //                         .By(a => a.ID)
+                //                         .By(a => a.PartitionKey)
+                //                         .By(a => a.Label)
+                //                         .By(a => a.Lookup)
+                //                         .By(a => a.Favorited)
+                //                         .By(a => a.Order)
+                //                         .By(a => a.Notes)
+                //                         .By(a => a.TransportIcon)
+                //                         .By(a => a.WidgetIcon)
+                //                         .By(a => a.LocationID)
+                //                         .By(a => a.Checked)
+                //                         .By(a => a.Title)
+                //                         .By(a => a.CreatedDateTime)
+                //                         )))));
 
                 // var sharedQuery = g.V(userId)
                 //     .Out(AmblOnGraphConstants.CanViewEdgeName)
@@ -2122,47 +2182,47 @@ namespace AmblOn.State.API.Users.Graphs
 
                 // var sharedList = sharedResults.ToList();
 
-                sharedList.ForEach(
-                    async(shared) =>
-                    {
-                        shared.Shared = true;
-                        shared.Editable = false;
+                // sharedList.ForEach(
+                //     async(shared) =>
+                //     {
+                //         shared.Shared = true;
+                //         shared.Editable = false;
 
-                        //var user = await g.V(shared.ID)
+                //         //var user = await g.V(shared.ID)
                         
-                        var user = await g.V(shared.ID)
-                            .In<Owns>()
-                            .OfType<AmblOnUser>()
-                            .FirstOrDefaultAsync();        
+                //         var user = await g.V(shared.ID)
+                //             .In<Owns>()
+                //             .OfType<AmblOnUser>()
+                //             .FirstOrDefaultAsync();        
 
-                        var userInfo = await g.V(shared.ID)
-                            .Out<Owns>()
-                            .OfType<UserInfo>()
-                            .FirstOrDefaultAsync();                     
+                //         var userInfo = await g.V(shared.ID)
+                //             .Out<Owns>()
+                //             .OfType<UserInfo>()
+                //             .FirstOrDefaultAsync();                     
 
-                        if (userInfo != null)
-                        {
-                            shared.SharedByUserID = user.ID;
-                            shared.SharedByUsername = userInfo.FirstName + " " + userInfo.LastName;
-                        }
-                        else{
-                            shared.SharedByUserID = user.ID;
-                            shared.SharedByUsername = user.Email;
-                        }
-                    });
+                //         if (userInfo != null)
+                //         {
+                //             shared.SharedByUserID = user.ID;
+                //             shared.SharedByUsername = userInfo.FirstName + " " + userInfo.LastName;
+                //         }
+                //         else{
+                //             shared.SharedByUserID = user.ID;
+                //             shared.SharedByUsername = user.Email;
+                //         }
+                //     });
 
-                var results = new List<dynamic>();
-                var test = sharedList.ToList();            
+                // var results = new List<dynamic>();
+                // var test = sharedList.ToList();            
 
-                //results.AddRange(ownedList);
-                results.AddRange(sharedList);
+                // //results.AddRange(ownedList);
+                // results.AddRange(sharedList);
 
-                var itineraryList = from i in results
-                    select i as Itinerary;
+                // var itineraryList = from i in results
+                //     select i as Itinerary;
 
-                var completeItineraryList = itineraryList.ToList<Itinerary>();
+                // var completeItineraryList = itineraryList.ToList<Itinerary>();
                 
-                return completeItineraryList.ToList();
+                // return completeItineraryList.ToList();
         }
 
         // public virtual async Task<List<Layer>> ListLayers(string email, string entLookup)
@@ -2834,6 +2894,18 @@ namespace AmblOn.State.API.Users.Graphs
 
             return user;
         }
+
+		public virtual async Task<List<T>> SubmitCustom<T>(GremlinClient client, string script)
+		{
+            ResultSet<dynamic> res = await client.SubmitAsync<dynamic>(script);
+
+            var vals = res?.Select<dynamic, T>(ta =>
+            {
+                return ((object)ta).JSONConvert<T>();       
+            })?.ToList();
+
+            return vals;
+		}        
         #endregion
     }
 }
