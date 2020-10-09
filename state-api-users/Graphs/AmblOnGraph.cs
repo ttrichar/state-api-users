@@ -2298,15 +2298,8 @@ namespace AmblOn.State.API.Users.Graphs
         public virtual async Task<List<Location>> PopulateAllLocations(string email, string entLookup)
         {
             var userId = await ensureAmblOnUser(email, entLookup);
-
-            // var query = g.V(userId)
-            //     .Out(AmblOnGraphConstants.OwnsEdgeName)
-            //     .HasLabel(AmblOnGraphConstants.LayerVertexName)
-            //     .Has(AmblOnGraphConstants.IDPropertyName, layerID)
-            //     .Out(AmblOnGraphConstants.ContainsEdgeName)
-            //     .HasLabel(AmblOnGraphConstants.LocationVertexName);
             
-            var locations = await g.V<Location>(userId)
+            var ownedLocations = await g.V(userId)
                 .Out<Owns>()
                 .OfType<Activity>()
                 .Out<OccursAt>()
@@ -2314,35 +2307,25 @@ namespace AmblOn.State.API.Users.Graphs
                 .Dedup()
                 .ToListAsync();
 
-            // var query = g.V(userId)
-            //     .Out(AmblOnGraphConstants.OwnsEdgeName)
-            //     .HasLabel(AmblOnGraphConstants.ActivityVertexName)
-            //     .Out(AmblOnGraphConstants.OccursAtEdgeName)
-            //     .Dedup();                                       
+            var sharedLocations = await g.V(userId)
+                .Out<CanView>()
+                .OfType<Itinerary>()
+                .Out<Contains>()
+                .OfType<ActivityGroup>()
+                .Out<Contains>()
+                .OfType<Activity>()
+                .Out<OccursAt>()
+                .OfType<Location>()
+                .Dedup()
+                .ToListAsync();
 
-            // var query2 = g.V(userId)
-            //     .Out(AmblOnGraphConstants.OwnsEdgeName)
-            //     .HasLabel(AmblOnGraphConstants.LocationVertexName);              
+            var allLocations = new List<Location>();    
 
-            // if (results.ToList().Count == 0)
-            // {
-            //     query = g.V(userId)
-            //         .Out(AmblOnGraphConstants.OwnsEdgeName)
-            //         .HasLabel(AmblOnGraphConstants.SharedLayerVertexName)
-            //         .Has(AmblOnGraphConstants.IDPropertyName, layerID)
-            //         .Out(AmblOnGraphConstants.InheritsEdgeName)
-            //         .HasLabel(AmblOnGraphConstants.LayerVertexName)
-            //         .Out(AmblOnGraphConstants.ContainsEdgeName)
-            //         .HasLabel(AmblOnGraphConstants.LocationVertexName);
+            allLocations.AddRange(ownedLocations);
 
-            //     results = await Submit<Location>(query);                  
-            // }
-            //Query to return locations directly associated with AmblOnUser account
-            // var otherResults = await Submit<Location>(query2);
+            allLocations.AddRange(sharedLocations);
 
-            // var totalResults = results.ToList();
-
-            // totalResults.AddRange(otherResults.ToList());
+            List<Location> locations = allLocations.Distinct().ToList();
 
             return locations;
         }
