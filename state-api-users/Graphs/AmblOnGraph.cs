@@ -25,7 +25,6 @@ namespace AmblOn.State.API.Users.Graphs
     {
         #region Properties
         public GremlinClient gremlinClient { get; set;}
-
         #endregion
 
         #region Constructors
@@ -170,7 +169,8 @@ namespace AmblOn.State.API.Users.Graphs
                         Favorited = activity.Favorited,
                         Title = activity.Title ?? "",
                         TransportIcon = activity.TransportIcon ?? "",
-                        WidgetIcon = activity.TransportIcon ?? ""
+                        WidgetIcon = activity.TransportIcon ?? "",
+                        ID = Guid.NewGuid()
                     })
                     .FirstOrDefaultAsync();
 
@@ -245,7 +245,8 @@ namespace AmblOn.State.API.Users.Graphs
                     GroupType = activityGroup.GroupType ?? "",
                     Order = activityGroup.Order,
                     Checked = activityGroup.Checked,
-                    Title = activityGroup.Title ?? ""
+                    Title = activityGroup.Title ?? "",
+                    ID = Guid.NewGuid()
                 })
                 .FirstOrDefaultAsync();
 
@@ -281,15 +282,16 @@ namespace AmblOn.State.API.Users.Graphs
             var existingAlbum = await g.V<Album>(userId)
                 .Out<Owns>()
                 .OfType<Album>()
-                .Where(e => e.ID == album.ID)
+                .Where(e => e.Lookup == lookup)
                 .FirstOrDefaultAsync();
 
             if (existingAlbum == null)
             {
                 var createdAlbum = await g.AddV<Album>(new Album(){
-                    PartitionKey = entLookup.ToString(),
+                    PartitionKey = entLookup.ToString() + "|" + lookup,
                     Lookup = lookup, 
-                    Title = album.Title ?? ""
+                    Title = album.Title ?? "",
+                    ID = Guid.NewGuid()
                 })
                 .FirstOrDefaultAsync();
 
@@ -333,7 +335,8 @@ namespace AmblOn.State.API.Users.Graphs
                     SharedByUsername = "",
                     SharedByUserID = Guid.Empty,
                     Editable = itinerary.Editable,
-                    Title = itinerary.Title ?? ""
+                    Title = itinerary.Title ?? "",
+                    ID = Guid.NewGuid()
                 })
                 .FirstOrDefaultAsync();
 
@@ -533,16 +536,17 @@ namespace AmblOn.State.API.Users.Graphs
                 .Where(x => x.ID == albumID)
                 .Out<Contains>()
                 .OfType<Photo>()
-                .Where(x => x.ID == photo.ID)
+                .Where(x => x.Lookup == lookup)
                 .FirstOrDefaultAsync();
 
             if (existingPhoto == null)
             {
                 var createdPhoto = await g.AddV<Photo>(new Photo(){
-                    PartitionKey = entLookup.ToString(),
+                    PartitionKey = entLookup.ToString() + "|" + lookup,
                     Lookup = lookup, 
                     Caption = photo.Caption ?? "",
                     URL = photo.URL ?? "",
+                    ID = Guid.NewGuid()
                 })
                 .FirstOrDefaultAsync();
 
@@ -751,6 +755,7 @@ namespace AmblOn.State.API.Users.Graphs
                     Lookup = lookup, 
                     Title = topList.Title ?? "",
                     OrderedValue = topList.OrderedValue ?? "",
+                    ID = Guid.NewGuid()
                 })
                 .FirstOrDefaultAsync();
 
@@ -805,7 +810,8 @@ namespace AmblOn.State.API.Users.Graphs
                     Country = userInfo.Country ?? "",
                     FirstName = userInfo.FirstName ?? "",
                     LastName = userInfo.LastName ?? "",
-                    Zip = userInfo.Zip ?? ""
+                    Zip = userInfo.Zip ?? "",
+                    ID = Guid.NewGuid()
                 })
                 .FirstOrDefaultAsync();
 
@@ -865,30 +871,11 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
-            var existingActivity = await g.V(userId)
-                .Out<Owns>()
-                .OfType<Itinerary>()
-                .Where(e => e.ID == itineraryId)
-                .Out<Contains>()
-                .OfType<ActivityGroup>()
-                .Where(e => e.ID == activityGroupId)
-                .Out<Contains>()
-                .OfType<Activity>()
-                .Where(e => e.ID == activityId)                    
-                .FirstOrDefaultAsync();
+            var existingActivity = await g.V<Activity>(activityId);    
 
             if (existingActivity != null)
             {
-                await g.V(userId)
-                    .Out<Owns>()
-                    .OfType<Itinerary>()
-                    .Where(e => e.ID == itineraryId)
-                    .Out<Contains>()
-                    .OfType<ActivityGroup>()
-                    .Where(e => e.ID == activityGroupId)
-                    .Out<Contains>()
-                    .OfType<Activity>()
-                    .Where(e => e.ID == activityId)
+                await g.V<Activity>(activityId)
                     .Drop();
 
                 return new BaseResponse()
@@ -904,24 +891,11 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
-            var existingActivityGroup = await g.V(userId)
-                .Out<Owns>()
-                .OfType<Itinerary>()
-                .Where(e => e.ID == itineraryId)
-                .Out<Contains>()
-                .OfType<ActivityGroup>()
-                .Where(e => e.ID == activityGroupId)
-                .FirstOrDefaultAsync();
+            var existingActivityGroup = await g.V<ActivityGroup>(activityGroupId); 
 
             if (existingActivityGroup != null)
             {
-                await g.V(userId)
-                    .Out<Owns>()
-                    .OfType<Itinerary>()
-                    .Where(e => e.ID == itineraryId)
-                    .Out<Contains>()
-                    .OfType<ActivityGroup>()
-                    .Where(e => e.ID == activityGroupId)
+                await g.V<ActivityGroup>(activityGroupId)
                     .Drop();
 
                 return new BaseResponse()
@@ -938,26 +912,16 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
-            var existingAlbum = await g.V<Album>(userId)
-                .Out<Owns>()
-                .OfType<Album>()
-                .Where(e => e.ID == albumID)
-                .FirstOrDefaultAsync();
+            var existingAlbum = await g.V<Album>(albumID);
 
             if (existingAlbum != null)
             {
-                await g.V<Itinerary>(userId)
-                    .Out<Owns>()
-                    .OfType<Album>()
-                    .Where(x => x.ID == albumID)
+                await g.V<Album>(albumID)
                     .Out<Contains>()
                     .OfType<Photo>()
                     .Drop();
 
-                await g.V<Itinerary>(userId)
-                    .Out<Owns>()
-                    .OfType<Album>()
-                    .Where(x => x.ID == albumID)
+                await g.V<Album>(albumID)
                     .Drop();
 
                 return new BaseResponse()
@@ -1252,10 +1216,7 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
-            var existingActivity = await g.V<AmblOnUser>(userId)
-                .Out<Owns>()
-                .OfType<Activity>()
-                .Where(e => e.ID == activity.ID)
+            var existingActivity = await g.V<Activity>(activity.ID)
                 .FirstOrDefaultAsync();
 
             if (existingActivity != null)
@@ -1272,7 +1233,15 @@ namespace AmblOn.State.API.Users.Graphs
                 //         .Property("WidgetIcon", activity.WidgetIcon ?? "");
 
                 var editedActivity = await g.V<Activity>(existingActivity.ID)
-                    .Update(activity)
+                    .Property("Checked", activity.Checked)
+                    .Property("CreatedDateTime", activity.CreatedDateTime)
+                    .Property("Favorited", activity.Favorited)
+                    .Property("LocationID", activity.LocationID ?? Guid.Empty)
+                    .Property("Notes", activity.Notes ?? "")
+                    .Property("Order", activity.Order)
+                    .Property("Title", activity.Title ?? "")
+                    .Property("TransportIcon", activity.TransportIcon ?? "")
+                    .Property("WidgetIcon", activity.WidgetIcon ?? "")
                     .FirstOrDefaultAsync();
 
                 if (existingActivity.LocationID != activity.LocationID)
@@ -1315,7 +1284,10 @@ namespace AmblOn.State.API.Users.Graphs
                 //     .Property("Title", activityGroup.Title ?? "");
 
                 var editedActivityGroup = await g.V<ActivityGroup>(existingActivityGroup.ID)
-                    .Update(activityGroup)
+                    .Property("GroupType", activityGroup.GroupType ?? "")
+                    .Property("CreatedDateTime", activityGroup.CreatedDateTime)
+                    .Property("Order", activityGroup.Order)
+                    .Property("Title", activityGroup.Title ?? "")
                     .FirstOrDefaultAsync();
 
                 return new BaseResponse<Guid>()
@@ -1385,7 +1357,8 @@ namespace AmblOn.State.API.Users.Graphs
                     //     .Property("Title", album.Title ?? "");
 
                     await g.V<Album>(album.ID)
-                        .Update(album);
+                        .Property("Lookup", lookup)
+                        .Property("Title", album.Title ?? "");
 
                     return new BaseResponse()
                     {
@@ -1397,29 +1370,27 @@ namespace AmblOn.State.API.Users.Graphs
         }
         public virtual async Task<BaseResponse> EditItinerary(string email, string entLookup, Itinerary itinerary)
         {
+
+            var test = itinerary.ID.ToString();
+
             var userId = await ensureAmblOnUser(email, entLookup);
 
             var lookup = $"{userId.ToString()}|{itinerary.Title.Replace(" ", "_")}";
 
-            var existingItinerary = await g.V<Itinerary>(userId)
-                .Out<Owns>()
-                .OfType<Itinerary>()
-                .Where(x => x.ID == itinerary.ID)
+            var existingItinerary = await g.V<Itinerary>(itinerary.ID)
                 .FirstOrDefaultAsync();
+
 
             if (existingItinerary != null)
             {
-                // var editQuery = g.V(itinerary.ID)
-                //     .Property("CreatedDateTime", itinerary.CreatedDateTime)
-                //     .Property("Title", itinerary.Title ?? "")
-                //     .Property("Shared", itinerary.Shared)
-                //     .Property("SharedByUsername", itinerary.SharedByUsername ?? "")
-                //     .Property("SharedByUserID", itinerary.SharedByUserID)
-                //     .Property("Editable", itinerary.Editable)
-                //     .Property("Lookup", lookup);
-
                 await g.V<Itinerary>(itinerary.ID)
-                    .Update(itinerary);
+                    .Property("CreatedDateTime", itinerary.CreatedDateTime)
+                    .Property("Title", itinerary.Title ?? "")
+                    .Property("Shared", itinerary.Shared)
+                    .Property("SharedByUsername", itinerary.SharedByUsername ?? "")
+                    .Property("SharedByUserID", itinerary.SharedByUserID)
+                    .Property("Editable", itinerary.Editable)
+                    .Property("Lookup", lookup);
 
                 return new BaseResponse()
                 {
@@ -1543,7 +1514,7 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
-            //var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL + "|" + photo.LocationID.ToString();
+            var lookup = userId.ToString() + "|" + albumID.ToString() + "|" + photo.URL;
 
             var existingPhoto = await g.V(userId)
                 .Out<Owns>()
@@ -1554,7 +1525,9 @@ namespace AmblOn.State.API.Users.Graphs
             if (existingPhoto != null)
             {
                 await g.V(photo.ID)
-                    .Update(photo);
+                    .Property("Lookup", lookup)
+                    .Property("Caption", photo.Caption)
+                    .Property("URL", photo.URL);
 
                 return new BaseResponse()
                 {
@@ -1625,7 +1598,9 @@ namespace AmblOn.State.API.Users.Graphs
                 // Update the top list properties
 
                 await g.V(topList.ID)
-                    .Update(topList);
+                    .Property("Lookup", lookup)
+                    .Property("Title", topList.Title ?? "")
+                    .Property("OrderedValue", topList.OrderedValue);
 
                 // Delete existing edges                                
 
@@ -1666,7 +1641,10 @@ namespace AmblOn.State.API.Users.Graphs
             if (existingUserInfo != null)
             {                               
                 await g.V(userInfo.ID)
-                    .Update(userInfo);
+                    .Property("Country", userInfo.Country ?? "")
+                    .Property("FirstName", userInfo.FirstName ?? "")
+                    .Property("LastName", userInfo.LastName)
+                    .Property("Zip", userInfo.Zip);
 
                 return new BaseResponse()
                 {
@@ -1727,7 +1705,14 @@ namespace AmblOn.State.API.Users.Graphs
         {
 
             var editQuery = await g.V(activity.ID)
-                .Update(activity);
+                .Property("Checked", activity.Checked)
+                .Property("Editable", activity.Editable)
+                .Property("Favorited", activity.Favorited)
+                .Property("Notes", activity.Notes ?? "")
+                .Property("Order", activity.Order.ToString() ?? "")
+                .Property("Title", activity.Title ?? "")
+                .Property("TransportIcon", activity.TransportIcon ?? "")
+                .Property("WidgetIcon", activity.WidgetIcon ?? "");
                 
                 // ("Checked", activity.Checked)
                 // .Property("Editable", activity.Editable)
@@ -1844,6 +1829,8 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
+            var listAlbums = "g.V('" + userId + "').Out('Owns').HasLabel('Album').project('id', 'PartitionKey', 'Label', 'Lookup', 'Title', 'Photos').by('id').by('PartitionKey').by('label').by('Lookup').by('Title').by(out('Contains').HasLabel('Photo').project('id', 'PartitionKey', 'Label', 'Lookup', 'Caption', 'URL').by('id').by('PartitionKey').by('label').by('Lookup').by('Caption').by('URL').fold())";
+
             // var albums = await g.V(userId)
             //         .Out<Owns>()
             //         .OfType<Album>()
@@ -1878,17 +1865,9 @@ namespace AmblOn.State.API.Users.Graphs
 
             // var results = await SubmitJSON<UserAlbum>(query);
 
-                var results = new List<dynamic>();         
-
-                //results.AddRange(albums);
-
-                var albumList = from a in results
-                    select a as Album;
-
-                var completeItineraryList = albumList.ToList<Album>();
+            var albumList = await SubmitCustom<Album>(gremlinClient, listAlbums);       
                 
-
-            return completeItineraryList.ToList();
+            return albumList;
         }
 
         // public virtual async Task<List<Itinerary>> ListItineraries(string email, string entLookup)
@@ -2004,8 +1983,6 @@ namespace AmblOn.State.API.Users.Graphs
                     {"SharedItineraries", "g.V('" + userId + "').Out('CanView').HasLabel('Itinerary').project('id', 'PartitionKey', 'Label', 'Lookup', 'Shared', 'SharedByUsername', 'SharedByUserID', 'Title', 'Editable', 'ActivityGroups').by('id').by('PartitionKey').by('label').by('Lookup').by('Shared').by('SharedByUsername').by('SharedByUserID').by('Title').by('Editable').by(out('Contains').HasLabel('ActivityGroup').project('id', 'PartitionKey', 'Label', 'Lookup', 'GroupType', 'Order', 'Checked', 'Title', 'Activities').by('id').by('PartitionKey').by('label').by('Lookup').by('GroupType').by('Order').by('Checked').by('Title').by(out('Contains').HasLabel('Activity').project('id', 'PartitionKey', 'Label', 'Lookup', 'Favorited', 'Order', 'Notes', 'TransportIcon', 'WidgetIcon', 'LocationID', 'Checked', 'Title').by('id').by('PartitionKey').by('label').by('Lookup').by('Favorited').by('Order').by('Notes').by('TransportIcon').by('WidgetIcon').by('LocationID').by('Checked').by('Title').fold()).fold())"}
                 };
                 
-                
-
                 var ownedQuery = listItineraries["OwnedItineraries"];
               
                 var ownedList = await SubmitCustom<Itinerary>(gremlinClient, ownedQuery);
@@ -2060,10 +2037,6 @@ namespace AmblOn.State.API.Users.Graphs
                 totalItineraries.AddRange(sharedList);
                 totalItineraries.AddRange(ownedList);
                 
-                   
-                
-
-
                 //var owned = listItineraries.Where(pair => pair.Key == "OwnedItineraries").Select(pair => pair.Value).ToString();
 
                 // var totalItineraries = await gremlinClient.SubmitAsync<Itinerary>(owned);
@@ -2622,21 +2595,20 @@ namespace AmblOn.State.API.Users.Graphs
 
             if (existingLocation != null){
                 await g.V<Location>(existingLocation.ID)
-                    .Update(location);
-                // var editQuery = g.V(existingLocation.ID)
-                // .Property("Address", location.Address ?? "")
-                // .Property("Country", location.Country ?? "")
-                // .Property("Icon", location.Icon ?? "")
-                // .Property("Instagram", location.Instagram ?? "")
-                // .Property("IsHidden", location.IsHidden ?? "")
-                // .Property("Latitude", location.Latitude)
-                // .Property("Longitude", location.Longitude)
-                // .Property("State", location.State ?? "")
-                // .Property("Telephone", location.Telephone ?? "")
-                // .Property("Title", location.Title ?? "")
-                // .Property("Town", location.Town ?? "")
-                // .Property("Website", location.Website ?? "")
-                // .Property("ZipCode", location.ZipCode ?? "");
+                    .Update(location)
+                    .Property("Address", location.Address ?? "")
+                    .Property("Country", location.Country ?? "")
+                    .Property("Icon", location.Icon ?? "")
+                    .Property("Instagram", location.Instagram ?? "")
+                    .Property("IsHidden", location.IsHidden ?? "")
+                    .Property("Latitude", location.Latitude)
+                    .Property("Longitude", location.Longitude)
+                    .Property("State", location.State ?? "")
+                    .Property("Telephone", location.Telephone ?? "")
+                    .Property("Title", location.Title ?? "")
+                    .Property("Town", location.Town ?? "")
+                    .Property("Website", location.Website ?? "")
+                    .Property("ZipCode", location.ZipCode ?? "");
 
                 return existingLocation;
             }

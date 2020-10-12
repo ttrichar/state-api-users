@@ -41,14 +41,15 @@ namespace AmblOn.State.API.Itineraries.State
         #endregion
 
         #region Fields 
+        protected readonly ILogger logger;
         #endregion
 
         #region Properties 
         #endregion
 
         #region Constructors
-        public ItinerariesStateHarness(ItinerariesState state)
-            : base(state ?? new ItinerariesState())
+        public ItinerariesStateHarness(ItinerariesState state, ILogger logger)
+            : base(state ?? new ItinerariesState(), logger)
         { }
         #endregion
 

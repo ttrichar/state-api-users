@@ -47,8 +47,8 @@ namespace AmblOn.State.API.Users.State
         #endregion
 
         #region Constructors
-        public UsersStateHarness(UsersState state)
-            : base(state ?? new UsersState())
+        public UsersStateHarness(UsersState state, ILogger logger)
+            : base(state ?? new UsersState(), logger)
         { }
         #endregion
 
@@ -220,7 +220,7 @@ namespace AmblOn.State.API.Users.State
                 await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
                     new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
 
-                photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+                photo.URL = ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
                 photo.ImageData = null;
 
@@ -257,7 +257,7 @@ namespace AmblOn.State.API.Users.State
                     await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
                         new Guid(appId), "admin/" + username + "/albums/" + album.ID.ToString());
 
-                    photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+                    photo.URL = ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
                     photo.ImageData = null;
 

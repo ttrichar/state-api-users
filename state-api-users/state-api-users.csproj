@@ -5,7 +5,7 @@
     <RootNamespace>state_api_users</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="LCU.StateAPI" Version="1.300.20261.4" />
+    <PackageReference Include="LCU.StateAPI" Version="1.315.20286.10-prerelease" />
     <PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.1.0" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.1" />
     <PackageReference Include="System.Device.Location.Portable" Version="1.0.0" />

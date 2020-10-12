@@ -47,8 +47,8 @@ namespace AmblOn.State.API.Locations.State
         #endregion
 
         #region Constructors
-        public LocationsStateHarness(LocationsState state)
-            : base(state ?? new LocationsState())
+        public LocationsStateHarness(LocationsState state, ILogger logger)
+            : base(state ?? new LocationsState(), logger)
         { }
         #endregion
 
