@@ -1,12 +1,12 @@
 
 using System;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class Location : BusinessModel<Guid?>
+    public class Location : AmblOnVertex
     {
         [DataMember]
         public virtual string Address { get; set; }

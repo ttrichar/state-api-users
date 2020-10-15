@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 using LCU.Presentation;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class UserInfo : BusinessModel<Guid?>
+    public class UserInfo : AmblOnVertex
     {
 
         [DataMember]
@@ -21,6 +21,9 @@ namespace AmblOn.State.API.Users.Models
 
         [DataMember]
         public string LastName { get; set; }
+
+        [DataMember]
+        public virtual string Lookup { get; set; }
 
         [DataMember]
         public string Zip { get; set; }

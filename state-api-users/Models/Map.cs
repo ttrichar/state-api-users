@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class Map : BusinessModel<Guid>
+    public class Map : AmblOnVertex
     {   
         [DataMember]
         public virtual string Coordinates {get; set;}

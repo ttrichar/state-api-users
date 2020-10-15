@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Fathym.Business.Models;
+using LCU.Graphs;
 
 namespace AmblOn.State.API.Users.Models
 {
     [DataContract]
-    public class Itinerary : BusinessModel<Guid?>
+    public class Itinerary : AmblOnVertex
     {   
         
         [DataMember]
@@ -18,6 +18,9 @@ namespace AmblOn.State.API.Users.Models
 
         [DataMember]
         public virtual DateTime CreatedDateTime {get; set;}
+
+        [DataMember]
+        public virtual string Lookup {get; set;}
 
         [DataMember]
         public virtual bool Shared {get; set;}

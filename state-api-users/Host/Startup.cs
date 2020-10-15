@@ -16,7 +16,6 @@ using AmblOn.State.API.Users.Graphs;
 using LCU.Graphs;
 using LCU;
 using LCU.StateAPI.Hosting;
-using Fathym.Design.Factory;
 
 [assembly: FunctionsStartup(typeof(AmblOn.State.API.Users.Host.Startup))]
 
@@ -39,12 +38,19 @@ namespace AmblOn.State.API.Users.Host
 
             var loggerFactory = new LoggerFactory();
 
-            var amblGraphFactory = new AmblOnGraphFactory();
+            var amblGraph = new AmblOnGraph(
 
-            var amblGraph = amblGraphFactory.Create();
+                new LCUGraphConfig()
+                {
+                    APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY"),
+                    Database = Environment.GetEnvironmentVariable("LCU-GRAPH-DATABASE"),
+                    Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
+                    Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
+                },
+                loggerFactory.CreateLogger<AmblOnGraph>()
+            );
 
-            builder.Services.AddTransient<AmblOnGraph>((sp) => amblGraph);
-            builder.Services.AddSingleton<AmblOnGraphFactory>();
+            builder.Services.AddSingleton(amblGraph);
 
             // appMgr.RegisterApplicationProfile(details.ApplicationID, new LCU.ApplicationProfile()
             // {
@@ -52,29 +58,6 @@ namespace AmblOn.State.API.Users.Host
             //     DatabaseClientPoolSize = Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-POOL-SIZE").As<int>(4),
             //     DatabaseClientTTLMinutes = Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-TTL").As<int>(60)
             // });
-        }
-
-        public class AmblOnGraphFactory : IFactory<AmblOnGraph>
-        {
-            public virtual AmblOnGraph Create(params object[] args)
-            {
-                var amblGraph = new AmblOnGraph(new GremlinClientPoolManager(
-                    new ApplicationProfileManager(
-                        Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-POOL-SIZE").As<int>(4),
-                        Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-MAX-POOL-CONNS").As<int>(32),
-                        Environment.GetEnvironmentVariable("LCU-DATABASE-CLIENT-TTL").As<int>(60)
-                    ),
-                    new LCUGraphConfig()
-                    {
-                        APIKey = Environment.GetEnvironmentVariable("LCU-GRAPH-API-KEY"),
-                        Database = Environment.GetEnvironmentVariable("LCU-GRAPH-DATABASE"),
-                        Graph = Environment.GetEnvironmentVariable("LCU-GRAPH"),
-                        Host = Environment.GetEnvironmentVariable("LCU-GRAPH-HOST")
-                    })
-                );
-
-                return amblGraph;           
-            }
         }
         #endregion
     }

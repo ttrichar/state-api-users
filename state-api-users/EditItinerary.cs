@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using AmblOn.State.API.Users.Models;
-using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.Azure.Storage.Blob;using LCU.StateAPI.Utilities;
 using Microsoft.WindowsAzure.Storage;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
@@ -35,24 +35,21 @@ namespace AmblOn.State.API.Users
     {
         #region Fields
         protected AmblOnGraph amblGraph;
-        protected AmblOnGraphFactory amblGraphFactory;
 
         #endregion
 
         #region Constructors
-        public EditItinerary(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
+        public EditItinerary(AmblOnGraph amblGraph)
         {
             this.amblGraph = amblGraph; 
-
-            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 
         [FunctionName("EditItinerary")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
             [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
-            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob,
-            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/locations", FileAccess.ReadWrite)] CloudBlockBlob locationStateBlob)
+            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob,
+            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/locations", FileAccess.ReadWrite)] CloudBlockBlob locationStateBlob)
         {
             var status = await stateBlob.WithStateHarness<ItinerariesState, EditItineraryRequest, ItinerariesStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
@@ -63,7 +60,7 @@ namespace AmblOn.State.API.Users
 
                 var username = stateDetails.Username;
 
-                await harness.EditItinerary(amblGraph, amblGraphFactory, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itinerary, reqData.ActivityLocationLookups);               
+                await harness.EditItinerary(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.Itinerary, reqData.ActivityLocationLookups);               
                 
                 var locationStateDetails = StateUtils.LoadStateDetails(req);
 
@@ -76,7 +73,7 @@ namespace AmblOn.State.API.Users
                 {
                     log.LogInformation($"EditItinerary Location Refresh");
 
-                    await newharness.RefreshLocations(amblGraph, amblGraphFactory, locationStateDetails.EnterpriseAPIKey, username);
+                    await newharness.RefreshLocations(amblGraph, locationStateDetails.EnterpriseLookup, username);
 
                     return Status.Success;
                 });  
