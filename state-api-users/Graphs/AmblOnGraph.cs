@@ -169,7 +169,7 @@ namespace AmblOn.State.API.Users.Graphs
                         Favorited = activity.Favorited,
                         Title = activity.Title ?? "",
                         TransportIcon = activity.TransportIcon ?? "",
-                        WidgetIcon = activity.TransportIcon ?? "",
+                        WidgetIcon = activity.WidgetIcon ?? "",
                         ID = Guid.NewGuid()
                     })
                     .FirstOrDefaultAsync();
@@ -1370,7 +1370,6 @@ namespace AmblOn.State.API.Users.Graphs
         }
         public virtual async Task<BaseResponse> EditItinerary(string email, string entLookup, Itinerary itinerary)
         {
-
             var test = itinerary.ID.ToString();
 
             var userId = await ensureAmblOnUser(email, entLookup);
@@ -1379,7 +1378,6 @@ namespace AmblOn.State.API.Users.Graphs
 
             var existingItinerary = await g.V<Itinerary>(itinerary.ID)
                 .FirstOrDefaultAsync();
-
 
             if (existingItinerary != null)
             {
@@ -1499,16 +1497,12 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        // public virtual async Task<BaseResponse> EditOrder(string email, string entLookup, string query)
-        // {
-        //     return await withG(async (client, g) =>
-        //     {
-        //         var results = await SubmitJSON<Itinerary>(query);
+        public virtual async Task<BaseResponse> EditOrder(string email, string entLookup, string query)
+        {
+                var results = await SubmitCustom<Itinerary>(gremlinClient, query);
 
-        //         return new BaseResponse();
-                
-        //     });
-        // }
+                return new BaseResponse();            
+        }
 
         public virtual async Task<BaseResponse> EditPhoto(string email, string entLookup, Photo photo, Guid albumID)
         {

@@ -210,7 +210,7 @@ namespace AmblOn.State.API.Itineraries.State
                                     {
                                         var addActResp = new BaseResponse<Guid>();
                                         
-                                        if(activity.ID == null){
+                                        if(activity.ID == Guid.Empty){
                                             addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID, activityGroup.ID, activity);
 
                                             activity.ID = addActResp.Model;
@@ -330,7 +330,7 @@ namespace AmblOn.State.API.Itineraries.State
 
         public virtual async Task ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, string email, string entLookup, Itinerary itinerary, Guid? activityChanged)
         {
-            var baseQuery = "g.V(\"" + itinerary.ID.ToString() + "\").Out(\"Contains\").coalesce(";
+            var baseQuery = "g.V('" + itinerary.ID.ToString() + "').Out('Contains').coalesce(";
 
             var aGquery = "";
 
@@ -338,7 +338,7 @@ namespace AmblOn.State.API.Itineraries.State
 
             itinerary.ActivityGroups.ForEach(
                 (activitygroup) => {
-                    aGquery = aGquery + "has(\"id\", \"" + activitygroup.ID.ToString() + "\").property(\"Order\", \"" + activitygroup.Order.ToString()  + "\").property(\"Title\", \"" + activitygroup.Title.ToString() + "\"),";
+                    aGquery = aGquery + "has('id', '" + activitygroup.ID.ToString() + "').property('Order', '" + activitygroup.Order.ToString()  + "').property('Title', '" + activitygroup.Title.ToString() + "'),";
 
                     activitygroup.Activities.ForEach(
                         (activity) => {
@@ -347,17 +347,17 @@ namespace AmblOn.State.API.Itineraries.State
 
                                 var vertexMoveEdge = rnd.Next(1, 10000);                          
 
-                                aQuery = aQuery + "has(\"id\", \"" + activity.ID.ToString() + "\").as(\"" + vertexMoveEdge.ToString() + "\").property(\"Order\", \"" + activity.Order.ToString() + "\").inE(\"Contains\").sideEffect(drop()).V(\"" + activitygroup.ID.ToString() + "\").addE(\"Contains\").to(\"" + vertexMoveEdge.ToString() + "\"),";
+                                aQuery = aQuery + "has('id', '" + activity.ID.ToString() + "').as('" + vertexMoveEdge.ToString() + "').property('Order', '" + activity.Order.ToString() + "').inE('Contains').sideEffect(drop()).V('" + activitygroup.ID.ToString() + "').addE('Contains').to('" + vertexMoveEdge.ToString() + "'),";
                             }
                             else{
-                                aQuery = aQuery + "has(\"id\", \"" + activity.ID.ToString() + "\").property(\"Order\", \"" + activity.Order.ToString() + "\"),";
+                                aQuery = aQuery + "has('id', '" + activity.ID.ToString() + "').property('Order', '" + activity.Order.ToString() + "'),";
                             }
                         });
                 });
 
-            var query = baseQuery + aGquery + ").out(\"Contains\").coalesce(" + aQuery + ")";
+            var query = baseQuery + aGquery + ").out('Contains').coalesce(" + aQuery + ")";
 
-            //var resp = await amblGraph.EditOrder(email, entLookup, query);
+            var resp = await amblGraph.EditOrder(email, entLookup, query);
 
             State.UserItineraries = await fetchUserItineraries(amblGraph, email, entLookup);
         } 
