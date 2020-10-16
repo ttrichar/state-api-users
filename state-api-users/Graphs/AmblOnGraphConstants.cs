@@ -1,5 +1,5 @@
 using Fathym;
-using Fathym.Business.Models;
+using LCU.Graphs;
 using Gremlin.Net.Process.Traversal;
 using LCU.Graphs;
 using Newtonsoft.Json.Linq;

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Runtime.Serialization;
 using AmblOn.State.API.Users.Models;
-using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.WindowsAzure.Storage.Blob;using LCU.StateAPI.Utilities;
+using Fathym;using Microsoft.Azure.WebJobs.Extensions.SignalRService;using AmblOn.State.API.Users.State;using Microsoft.Azure.Storage.Blob;using LCU.StateAPI.Utilities;
 using AmblOn.State.API.Users.Graphs;
 using AmblOn.State.API.AmblOn.State;
 
@@ -38,7 +38,7 @@ namespace AmblOn.State.API.Users
         [FunctionName("ChangeExcludedCurations")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
             [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
-            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
             return await stateBlob.WithStateHarness<UsersState, ChangeExcludedCurationsRequest, UsersStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
@@ -52,7 +52,7 @@ namespace AmblOn.State.API.Users
                     LocationIDs = reqData.LocationIDs
                 };
 
-                //await harness.ChangeExcludedCurations(amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, curationList);
+                //await harness.ChangeExcludedCurations(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, curationList);
 
                 return Status.Success;
             });

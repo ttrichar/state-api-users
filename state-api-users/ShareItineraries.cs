@@ -14,7 +14,7 @@ using System.Collections.Generic;
 using Fathym;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using AmblOn.State.API.Users.State;
-using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.Azure.Storage.Blob;
 using LCU.StateAPI.Utilities;
 using AmblOn.State.API.Users.Graphs;
 using LCU.Personas.Client.Applications;
@@ -53,7 +53,7 @@ namespace AmblOn.State.API.Users
         [FunctionName("ShareItineraries")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
             [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
-            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
             return await stateBlob.WithStateHarness<ItinerariesState, ShareItinerariesRequest, ItinerariesStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
@@ -62,7 +62,7 @@ namespace AmblOn.State.API.Users
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.ShareItineraries(appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseAPIKey, reqData.Itineraries, reqData.Usernames);
+                await harness.ShareItineraries(appMgr, amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.Itineraries, reqData.Usernames);
 
                 return harness.State.SharedStatus;           
             });

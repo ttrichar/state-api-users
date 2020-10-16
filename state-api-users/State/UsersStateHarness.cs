@@ -47,19 +47,19 @@ namespace AmblOn.State.API.Users.State
         #endregion
 
         #region Constructors
-        public UsersStateHarness(UsersState state)
-            : base(state ?? new UsersState())
+        public UsersStateHarness(UsersState state, ILogger logger)
+            : base(state ?? new UsersState(), logger)
         { }
         #endregion
 
         #region API Methods
 
         #region Add
-        // public virtual async Task AddAccolade(AmblOnGraph amblGraph, string username, string entApiKey, UserAccolade accolade, Guid locationId)
+        // public virtual async Task AddAccolade(AmblOnGraph amblGraph, string username, string entLookup, UserAccolade accolade, Guid locationId)
         // {
         //     ensureStateObject();
 
-        //     var accoladeResp = await amblGraph.AddAccolade(username, entApiKey, accolade, locationId);
+        //     var accoladeResp = await amblGraph.AddAccolade(username, entLookup, accolade, locationId);
 
         //     if (accoladeResp.Status)
         //     {
@@ -72,14 +72,14 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task AddAlbum(EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entApiKey, string appId,
-            UserAlbum album, List<ImageMessage> images)
+        public virtual async Task AddAlbum(EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entLookup, string appId,
+            Album album, List<ImageMessage> images)
         {
             ensureStateObject();
 
             album.Photos = mapImageDataToUserPhotos(album.Photos, images);
 
-            var albumResp = await amblGraph.AddAlbum(username, entApiKey, album);
+            var albumResp = await amblGraph.AddAlbum(username, entLookup, album);
 
             if (albumResp.Status)
             {
@@ -92,18 +92,18 @@ namespace AmblOn.State.API.Users.State
                 {
                     await album.Photos.Each(async (photo) =>
                     {
-                        await AddPhoto(entMgr, appMgr, amblGraph, username, entApiKey, appId, photo,
-                            album.ID.HasValue ? album.ID.Value : Guid.Empty);
+                        await AddPhoto(entMgr, appMgr, amblGraph, username, entLookup, appId, photo,
+                            album.ID);
                     });
                 }
             }
 
-            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entLookup);
 
             State.Loading = false;
         }
 
-        // public virtual async Task AddItinerary(AmblOnGraph amblGraph, string username, string entApiKey, Itinerary itinerary)
+        // public virtual async Task AddItinerary(AmblOnGraph amblGraph, string username, string entLookup, Itinerary itinerary)
         // {
         //     ensureStateObject();
 
@@ -111,7 +111,7 @@ namespace AmblOn.State.API.Users.State
         //     itinerary.Shared = false;
         //     itinerary.Editable = true;
 
-        //     var itineraryResp = await amblGraph.AddItinerary(username, entApiKey, itinerary);
+        //     var itineraryResp = await amblGraph.AddItinerary(username, entLookup, itinerary);
 
         //     if (itineraryResp.Status)
         //     {
@@ -121,7 +121,7 @@ namespace AmblOn.State.API.Users.State
         //         {
         //             activityGroup.CreatedDateTime = DateTime.Now;
 
-        //             var activityGroupResp = await amblGraph.AddActivityGroup(username, entApiKey, itinerary.ID.Value, activityGroup);
+        //             var activityGroupResp = await amblGraph.AddActivityGroup(username, entLookup, itinerary.ID.Value, activityGroup);
 
         //             if (activityGroupResp.Status)
         //             {
@@ -131,7 +131,7 @@ namespace AmblOn.State.API.Users.State
         //                 {
         //                     activity.CreatedDateTime = DateTime.Now;
 
-        //                     var activityResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
+        //                     var activityResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity);
 
         //                     if (activityResp.Status)
         //                     {
@@ -148,13 +148,13 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task AddLocation(AmblOnGraph amblGraph, string username, string entApiKey, UserLocation location)
+        // public virtual async Task AddLocation(AmblOnGraph amblGraph, string username, string entLookup, UserLocation location)
         // {
         //     ensureStateObject();
 
         //     if (State.UserLayers.Any(x => x.ID == location.LayerID && !x.Shared))
         //     {
-        //         var locationResp = await amblGraph.AddLocation(username, entApiKey, location);
+        //         var locationResp = await amblGraph.AddLocation(username, entLookup, location);
 
         //         if (locationResp.Status)
         //         {
@@ -178,16 +178,16 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task AddMap(AmblOnGraph amblGraph, string username, string entApiKey, UserMap map)
+        // public virtual async Task AddMap(AmblOnGraph amblGraph, string username, string entLookup, UserMap map)
         // {
         //     ensureStateObject();
 
         //     BaseResponse<Guid> mapResp = new BaseResponse<Guid>() { Status = Status.Initialized };
 
         //     if (!map.Shared)
-        //         mapResp = await amblGraph.AddMap(username, entApiKey, map);
+        //         mapResp = await amblGraph.AddMap(username, entLookup, map);
         //     else
-        //         mapResp = await amblGraph.AddSharedMap(username, entApiKey, map, (map.InheritedID.HasValue ? map.InheritedID.Value : Guid.Empty));
+        //         mapResp = await amblGraph.AddSharedMap(username, entLookup, map, (map.InheritedID.HasValue ? map.InheritedID.Value : Guid.Empty));
 
         //     if (mapResp.Status)
         //     {
@@ -203,12 +203,12 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task AddPhoto(EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entApiKey, string appId, 
-            UserPhoto photo, Guid albumID)
+        public virtual async Task AddPhoto(EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entLookup, string appId, 
+            Photo photo, Guid albumID)
         {
             ensureStateObject();
 
-            var ent = await entMgr.GetEnterprise(entApiKey);
+            var ent = await entMgr.GetEnterprise(entLookup);
 
             if(photo.ImageData != null){
                 var index = photo.ImageData.DataString.IndexOf(',');
@@ -220,31 +220,31 @@ namespace AmblOn.State.API.Users.State
                 await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
                     new Guid(appId), "admin/" + username + "/albums/" + albumID.ToString());
 
-                photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+                photo.URL = ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + albumID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
                 photo.ImageData = null;
 
-                var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, albumID);
+                var photoResp = await amblGraph.AddPhoto(username, entLookup, photo, albumID);
 
                 if (photoResp.Status)
                 {
                     photo.ID = photoResp.Model;
                 }
 
-                State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+                State.UserAlbums = await fetchUserAlbums(amblGraph, username, entLookup);
             }
 
             State.Loading = false;
         }
 
-        public virtual async Task AddPhoto(EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entApiKey, string appId, 
-            List<ImageMessage> images, UserAlbum album)
+        public virtual async Task AddPhoto(EnterpriseManagerClient entMgr, ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entLookup, string appId, 
+            List<ImageMessage> images, Album album)
         {
             ensureStateObject();
 
             album.Photos = mapImageDataToUserPhotos(album.Photos, images);
 
-            var ent = await entMgr.GetEnterprise(entApiKey);
+            var ent = await entMgr.GetEnterprise(entLookup);
 
             await album.Photos.Each(async (photo) =>{
                 if (photo.ImageData != null){
@@ -257,11 +257,11 @@ namespace AmblOn.State.API.Users.State
                     await appMgr.SaveFile(photo.ImageData.Data, ent.Model.ID, "", QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"], 
                         new Guid(appId), "admin/" + username + "/albums/" + album.ID.ToString());
 
-                    photo.URL = "/" + ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
+                    photo.URL = ent.Model.ID + "/" + appId + "/admin/" + username + "/albums/" + album.ID.ToString() + "/" + QueryHelpers.ParseQuery(photo.ImageData.Headers)["filename"];
 
                     photo.ImageData = null;
 
-                    var photoResp = await amblGraph.AddPhoto(username, entApiKey, photo, album.ID.Value);
+                    var photoResp = await amblGraph.AddPhoto(username, entLookup, photo, album.ID);
 
                     if (photoResp.Status)
                     {
@@ -271,12 +271,12 @@ namespace AmblOn.State.API.Users.State
 
             });
 
-            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entLookup);
 
             State.Loading = false;
         }
 
-        // public virtual async Task AddSelectedLayer(AmblOnGraph amblGraph, string username, string entApiKey, Guid layerID)
+        // public virtual async Task AddSelectedLayer(AmblOnGraph amblGraph, string username, string entLookup, Guid layerID)
         // {
         //     ensureStateObject();
 
@@ -284,7 +284,7 @@ namespace AmblOn.State.API.Users.State
         //         State.SelectedUserLayerIDs.Add(layerID);
 
         //     //TODO: Check for whether locations are in AllLocations
-        //     var locationsToAdd = await fetchVisibleUserLocations(amblGraph, username, entApiKey, new List<Guid>() { layerID });
+        //     var locationsToAdd = await fetchVisibleUserLocations(amblGraph, username, entLookup, new List<Guid>() { layerID });
 
         //     State.AllUserLocations.AddRange(locationsToAdd);
 
@@ -302,11 +302,11 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entApiKey, UserTopList topList)
+        public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entLookup, UserTopList topList)
         {
             ensureStateObject();
 
-            var topListResp = await amblGraph.AddTopList(username, entApiKey, topList);
+            var topListResp = await amblGraph.AddTopList(username, entLookup, topList);
 
             if (topListResp.Status)
             {
@@ -319,11 +319,11 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task AddUserInfo(AmblOnGraph amblGraph, string username, string entApiKey, UserInfo userInfo)
+        public virtual async Task AddUserInfo(AmblOnGraph amblGraph, string username, string entLookup, UserInfo userInfo)
         {
             ensureStateObject();
 
-            var userInfoResp = await amblGraph.AddUserInfo(username, entApiKey, userInfo);
+            var userInfoResp = await amblGraph.AddUserInfo(username, entLookup, userInfo);
 
             if (userInfoResp.Status)
             {
@@ -347,7 +347,7 @@ namespace AmblOn.State.API.Users.State
         //         userMap.Coordinates = coordinates;
 
         //         //TODO : Does this need to be reloaded
-        //         //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
+        //         //var visibleLocations = await fetchVisibleUserLocations(username, entLookup, State.SelectedUserLayerIDs);
 
         //         State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
         //                                     .Distinct()
@@ -359,21 +359,21 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task ChangeExcludedCurations(AmblOnGraph amblGraph, string username, string entApiKey, ExcludedCurations curations)
+        // public virtual async Task ChangeExcludedCurations(AmblOnGraph amblGraph, string username, string entLookup, ExcludedCurations curations)
         // {
         //     ensureStateObject();
 
         //     State.ExcludedCuratedLocations = curations;
 
-        //     await amblGraph.EditExcludedCurations(username, entApiKey, curations);
+        //     await amblGraph.EditExcludedCurations(username, entLookup, curations);
         // }
 
         #region Delete
-        // public virtual async Task DeleteAccolades(AmblOnGraph amblGraph, string username, string entApiKey, Guid[] accoladeIDs, Guid locationId)
+        // public virtual async Task DeleteAccolades(AmblOnGraph amblGraph, string username, string entLookup, Guid[] accoladeIDs, Guid locationId)
         // {
         //     ensureStateObject();
 
-        //     var accoladeResp = await amblGraph.DeleteAccolades(username, entApiKey, accoladeIDs, locationId);
+        //     var accoladeResp = await amblGraph.DeleteAccolades(username, entLookup, accoladeIDs, locationId);
 
         //     if (accoladeResp.Status)
         //     {
@@ -385,11 +385,11 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task DeleteAlbum(AmblOnGraph amblGraph, string username, string entApiKey, Guid albumID)
+        public virtual async Task DeleteAlbum(AmblOnGraph amblGraph, string username, string entLookup, Guid albumID)
         {
             ensureStateObject();
 
-            var albumResp = await amblGraph.DeleteAlbum(username, entApiKey, albumID);
+            var albumResp = await amblGraph.DeleteAlbum(username, entLookup, albumID);
 
             if (albumResp.Status)
             {
@@ -404,7 +404,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        // public virtual async Task DeleteItineraries(AmblOnGraph amblGraph, string username, string entApiKey, List<Guid> itineraryIDs)
+        // public virtual async Task DeleteItineraries(AmblOnGraph amblGraph, string username, string entLookup, List<Guid> itineraryIDs)
         // {
         //     ensureStateObject();
 
@@ -420,7 +420,7 @@ namespace AmblOn.State.API.Users.State
         //             {
         //                 await activityGroup.Activities.Each(async (activity) =>
         //                 {
-        //                     var actResp = await amblGraph.DeleteActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
+        //                     var actResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
 
         //                     if (!actResp.Status)
         //                         success = false;
@@ -428,7 +428,7 @@ namespace AmblOn.State.API.Users.State
 
         //                 if (success)
         //                 {
-        //                     var actGroupResp = await amblGraph.DeleteActivityGroup(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value);
+        //                     var actGroupResp = await amblGraph.DeleteActivityGroup(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value);
 
         //                     if (!actGroupResp.Status)
         //                         success = false;
@@ -437,7 +437,7 @@ namespace AmblOn.State.API.Users.State
 
         //             if (success)
         //             {
-        //                 var itineraryResp = await amblGraph.DeleteItinerary(username, entApiKey, itineraryID);
+        //                 var itineraryResp = await amblGraph.DeleteItinerary(username, entLookup, itineraryID);
 
         //                 if (!itineraryResp.Status)
         //                     success = false;
@@ -463,11 +463,11 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task DeleteLocation(AmblOnGraph amblGraph, string username, string entApiKey, Guid locationID)
+        // public virtual async Task DeleteLocation(AmblOnGraph amblGraph, string username, string entLookup, Guid locationID)
         // {
         //     ensureStateObject();
 
-        //     var locationResp = await amblGraph.DeleteLocation(username, entApiKey, locationID);
+        //     var locationResp = await amblGraph.DeleteLocation(username, entLookup, locationID);
 
         //     if (locationResp.Status)
         //     {
@@ -485,7 +485,7 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task DeleteMap(AmblOnGraph amblGraph, string username, string entApiKey, Guid mapID)
+        // public virtual async Task DeleteMap(AmblOnGraph amblGraph, string username, string entLookup, Guid mapID)
         // {
         //     ensureStateObject();
 
@@ -496,9 +496,9 @@ namespace AmblOn.State.API.Users.State
         //         BaseResponse mapResp = new BaseResponse() { Status = Status.Initialized };
 
         //         if (!userMap.Shared)
-        //             mapResp = await amblGraph.DeleteMap(username, entApiKey, mapID);
+        //             mapResp = await amblGraph.DeleteMap(username, entLookup, mapID);
         //         else
-        //             //mapResp = await amblGraph.DeleteSharedMap(username, entApiKey, mapID);
+        //             //mapResp = await amblGraph.DeleteSharedMap(username, entLookup, mapID);
 
         //         if (mapResp.Status)
         //         {
@@ -530,7 +530,7 @@ namespace AmblOn.State.API.Users.State
 
         //                 State.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
 
-        //                 //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
+        //                 //var visibleLocations = await fetchVisibleUserLocations(username, entLookup, State.SelectedUserLayerIDs);
 
         //                 State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, primaryMap.Coordinates);
 
@@ -542,11 +542,11 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task DeleteMaps(AmblOnGraph amblGraph, string username, string entApiKey, Guid[] mapIDs)
+        // public virtual async Task DeleteMaps(AmblOnGraph amblGraph, string username, string entLookup, Guid[] mapIDs)
         // {
         //     ensureStateObject();
 
-        //     var mapResp = await amblGraph.DeleteMaps(username, entApiKey, mapIDs);
+        //     var mapResp = await amblGraph.DeleteMaps(username, entLookup, mapIDs);
 
         //     if (mapResp.Status)
         //     {
@@ -576,7 +576,7 @@ namespace AmblOn.State.API.Users.State
         //             State.SelectedUserLayerIDs.Add(primaryMap.DefaultLayerID);
 
         //             // TODO: Reload from a local collection instead
-        //             //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
+        //             //var visibleLocations = await fetchVisibleUserLocations(username, entLookup, State.SelectedUserLayerIDs);
 
         //             State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, primaryMap.Coordinates)
         //                                         .Distinct()
@@ -590,11 +590,11 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task DeletePhoto(AmblOnGraph amblGraph, string username, string entApiKey, Guid photoID)
+        public virtual async Task DeletePhoto(AmblOnGraph amblGraph, string username, string entLookup, Guid photoID)
         {
             ensureStateObject();
 
-            var photoResp = await amblGraph.DeletePhoto(username, entApiKey, photoID);
+            var photoResp = await amblGraph.DeletePhoto(username, entLookup, photoID);
 
             if (photoResp.Status)
             {
@@ -613,16 +613,16 @@ namespace AmblOn.State.API.Users.State
                 }
             }
 
-            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entLookup);
 
             State.Loading = false;
         }
 
-        public virtual async Task DeleteTopList(AmblOnGraph amblGraph, string username, string entApiKey, Guid topListID)
+        public virtual async Task DeleteTopList(AmblOnGraph amblGraph, string username, string entLookup, Guid topListID)
         {
             ensureStateObject();
 
-            var topListResp = await amblGraph.DeleteTopList(username, entApiKey, topListID);
+            var topListResp = await amblGraph.DeleteTopList(username, entLookup, topListID);
 
             if (topListResp.Status)
             {
@@ -637,11 +637,11 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        // public virtual async Task DedupLocationsByMap(AmblOnGraph amblGraph, string username, string entApiKey, Guid mapID)
+        // public virtual async Task DedupLocationsByMap(AmblOnGraph amblGraph, string username, string entLookup, Guid mapID)
         // {
         //     ensureStateObject();
 
-        //     var locationResp = await amblGraph.DedupLocationsByMap(username, entApiKey, mapID);
+        //     var locationResp = await amblGraph.DedupLocationsByMap(username, entLookup, mapID);
 
         //     // Do not refresh state for now
 
@@ -651,7 +651,7 @@ namespace AmblOn.State.API.Users.State
         #endregion
 
         #region Edit
-        // public virtual async Task EditAccolade(AmblOnGraph amblGraph, string username, string entApiKey, UserAccolade accolade, Guid locationId)
+        // public virtual async Task EditAccolade(AmblOnGraph amblGraph, string username, string entLookup, UserAccolade accolade, Guid locationId)
         // {
         //     ensureStateObject();
 
@@ -659,7 +659,7 @@ namespace AmblOn.State.API.Users.State
 
         //     if (existing != null)
         //     {
-        //         var accoladeResp = await amblGraph.EditAccolade(username, entApiKey, accolade, locationId);
+        //         var accoladeResp = await amblGraph.EditAccolade(username, entLookup, accolade, locationId);
 
         //         if (accoladeResp.Status)
         //         {
@@ -675,7 +675,7 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task EditAlbum(AmblOnGraph amblGraph, string username, string entApiKey, UserAlbum album)
+        public virtual async Task EditAlbum(AmblOnGraph amblGraph, string username, string entLookup, Album album)
         {
             ensureStateObject();
 
@@ -683,7 +683,7 @@ namespace AmblOn.State.API.Users.State
 
             if (existing != null)
             {
-                var albumResp = await amblGraph.EditAlbum(username, entApiKey, album);
+                var albumResp = await amblGraph.EditAlbum(username, entLookup, album);
 
                 if (albumResp.Status)
                 {
@@ -698,14 +698,14 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        // public virtual async Task EditItinerary(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory, string username, string entApiKey, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
+        // public virtual async Task EditItinerary(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory, string username, string entLookup, Itinerary itinerary, List<ActivityLocationLookup> activityLocations)
         // {
         //     ensureStateObject();
 
         //     var activitiesList = new List<Activity>();
 
         //     if(!activityLocations.IsNullOrEmpty()){       
-        //         activitiesList =  await addLocationFromActivity(amblGraph, username, entApiKey, activityLocations);           
+        //         activitiesList =  await addLocationFromActivity(amblGraph, username, entLookup, activityLocations);           
         //     }
 
         //     var existing = State.UserItineraries.FirstOrDefault(x => x.ID == itinerary.ID);
@@ -716,7 +716,7 @@ namespace AmblOn.State.API.Users.State
         //         {
         //             var success = true;
 
-        //             var itineraryResp = await amblGraph.EditItinerary(username, entApiKey, itinerary);
+        //             var itineraryResp = await amblGraph.EditItinerary(username, entLookup, itinerary);
 
         //             if (!itineraryResp.Status)
         //                 success = false;
@@ -729,7 +729,7 @@ namespace AmblOn.State.API.Users.State
 
         //                     if (agExisting == null)
         //                     {
-        //                         var addActGResp = await amblGraph.AddActivityGroup(username, entApiKey, itinerary.ID.Value, activityGroup);
+        //                         var addActGResp = await amblGraph.AddActivityGroup(username, entLookup, itinerary.ID.Value, activityGroup);
 
         //                         if (addActGResp.Status)
         //                         {
@@ -740,7 +740,7 @@ namespace AmblOn.State.API.Users.State
         //                                 var addActResp = new BaseResponse<Guid>();
                                         
         //                                 if(activity.ID == null){
-        //                                     addActResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity);
+        //                                     addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity);
 
         //                                     activity.ID = addActResp.Model;
 
@@ -749,14 +749,14 @@ namespace AmblOn.State.API.Users.State
         //                                     if(exists != null){
         //                                         exists.ID = activity.ID;
                                          
-        //                                         addActResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists);
+        //                                         addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, exists);
         //                                     }
         //                                 }
 
         //                                 else{
         //                                     var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
 
-        //                                     addActResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists);
+        //                                     addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, exists);
         //                                 }
                                         
         //                                 activity.ID = addActResp.Model;
@@ -778,7 +778,7 @@ namespace AmblOn.State.API.Users.State
         //                             {
         //                                 var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
 
-        //                                 var addActResp = await amblGraph.AddActivityToAG(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, exists ?? activity);
+        //                                 var addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, exists ?? activity);
 
         //                                 activity.ID = addActResp.Model;
 
@@ -789,14 +789,14 @@ namespace AmblOn.State.API.Users.State
         //                             {
         //                                 var exists = activitiesList?.FirstOrDefault(x => x.ID == activity.ID);
 
-        //                                 var editActResp = await amblGraph.EditActivity(username, entApiKey, exists ?? activity);
+        //                                 var editActResp = await amblGraph.EditActivity(username, entLookup, exists ?? activity);
 
         //                                 if (!editActResp.Status)
         //                                     success = false;
         //                             }
         //                         });
 
-        //                         var editActGResp = await amblGraph.EditActivityGroup(username, entApiKey, activityGroup);
+        //                         var editActGResp = await amblGraph.EditActivityGroup(username, entLookup, activityGroup);
 
         //                         if (!editActGResp.Status)
         //                             success = false;
@@ -811,7 +811,7 @@ namespace AmblOn.State.API.Users.State
         //                     {
         //                         await activityGroup.Activities.Each(async (activity) =>
         //                         {
-        //                             var delActResp = await amblGraph.DeleteActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
+        //                             var delActResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
 
         //                             if (!delActResp.Status)
         //                                 success = false;
@@ -819,7 +819,7 @@ namespace AmblOn.State.API.Users.State
 
         //                         if (success)
         //                         {
-        //                             var delActGResp = await amblGraph.DeleteActivityGroup(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value);
+        //                             var delActGResp = await amblGraph.DeleteActivityGroup(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value);
 
         //                             if (!delActGResp.Status)
         //                                 success = false;
@@ -833,7 +833,7 @@ namespace AmblOn.State.API.Users.State
 
         //                             if (aNew == null)
         //                             {
-        //                                 var delActResp = await amblGraph.DeleteActivity(username, entApiKey, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
+        //                                 var delActResp = await amblGraph.DeleteActivity(username, entLookup, itinerary.ID.Value, activityGroup.ID.Value, activity.ID.Value);
 
         //                                 if (!delActResp.Status)
         //                                     success = false;
@@ -844,7 +844,7 @@ namespace AmblOn.State.API.Users.State
         //             }
 
         //             if (success)
-        //                 State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
+        //                 State.UserItineraries = await fetchUserItineraries(amblGraph, username, entLookup);
         //             else
         //                 State.Error = "General Error updating user itinerary.";
         //         }
@@ -857,13 +857,13 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task EditLocation(AmblOnGraph amblGraph, string username, string entApiKey, UserLocation location)
+        // public virtual async Task EditLocation(AmblOnGraph amblGraph, string username, string entLookup, UserLocation location)
         // {
         //     ensureStateObject();
 
         //     if (State.UserLayers.Any(x => x.ID == location.LayerID && !x.Shared))
         //     {
-        //         var locationResp = await amblGraph.EditLocation(username, entApiKey, location);
+        //         var locationResp = await amblGraph.EditLocation(username, entLookup, location);
 
         //         if (locationResp.Status)
         //         {
@@ -893,37 +893,37 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task EditMap(AmblOnGraph amblGraph, string username, string entApiKey, UserMap map)
-        {
-            ensureStateObject();
+        // public virtual async Task EditMap(AmblOnGraph amblGraph, string username, string entLookup, UserMap map)
+        // {
+        //     ensureStateObject();
 
-            var userMap = State.UserMaps.FirstOrDefault(x => x.ID == map.ID);
+        //     var userMap = State.UserMaps.FirstOrDefault(x => x.ID == map.ID);
 
-            BaseResponse mapResp = new BaseResponse() { Status = Status.Initialized };
+        //     BaseResponse mapResp = new BaseResponse() { Status = Status.Initialized };
 
-            if (userMap != null && !userMap.Shared)
-                mapResp = await amblGraph.EditMap(username, entApiKey, map);
-            else if (userMap != null)
-                //mapResp = await amblGraph.EditSharedMap(username, entApiKey, map);
+        //     if (userMap != null && !userMap.Shared)
+        //         mapResp = await amblGraph.EditMap(username, entLookup, map);
+        //     else if (userMap != null)
+        //         //mapResp = await amblGraph.EditSharedMap(username, entLookup, map);
 
-            if (mapResp.Status)
-            {
-                var existingMap = State.UserMaps.FirstOrDefault(x => x.ID == map.ID);
+        //     if (mapResp.Status)
+        //     {
+        //         var existingMap = State.UserMaps.FirstOrDefault(x => x.ID == map.ID);
 
-                if (existingMap != null)
-                {
-                    State.UserMaps.Remove(existingMap);
+        //         if (existingMap != null)
+        //         {
+        //             State.UserMaps.Remove(existingMap);
 
-                    State.UserMaps.Add(map);
+        //             State.UserMaps.Add(map);
 
-                    State.UserMaps = State.UserMaps.Distinct().ToList();
-                }
-            }
+        //             State.UserMaps = State.UserMaps.Distinct().ToList();
+        //         }
+        //     }
 
-            State.Loading = false;
-        }
+        //     State.Loading = false;
+        // }
 
-        public virtual async Task EditPhoto(AmblOnGraph amblGraph, string username, string entApiKey, UserPhoto photo, Guid albumID)
+        public virtual async Task EditPhoto(AmblOnGraph amblGraph, string username, string entLookup, Photo photo, Guid albumID)
         {
             ensureStateObject();
 
@@ -935,7 +935,7 @@ namespace AmblOn.State.API.Users.State
 
                 if (existingPhoto != null)
                 {
-                    var photoResp = await amblGraph.EditPhoto(username, entApiKey, photo, albumID);
+                    var photoResp = await amblGraph.EditPhoto(username, entLookup, photo, albumID);
 
                     if (photoResp.Status)
                     {
@@ -951,7 +951,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task EditTopList(AmblOnGraph amblGraph, string username, string entApiKey, UserTopList topList)
+        public virtual async Task EditTopList(AmblOnGraph amblGraph, string username, string entLookup, UserTopList topList)
         {
             ensureStateObject();
 
@@ -959,7 +959,7 @@ namespace AmblOn.State.API.Users.State
 
             if (existing != null)
             {
-                var topListResp = await amblGraph.EditTopList(username, entApiKey, topList);
+                var topListResp = await amblGraph.EditTopList(username, entLookup, topList);
 
                 if (topListResp.Status)
                 {
@@ -975,7 +975,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task EditUserInfo(AmblOnGraph amblGraph, string username, string entApiKey, UserInfo userInfo)
+        public virtual async Task EditUserInfo(AmblOnGraph amblGraph, string username, string entLookup, UserInfo userInfo)
         {
             ensureStateObject();
 
@@ -983,7 +983,7 @@ namespace AmblOn.State.API.Users.State
 
             if (existing != null)
             {
-                var userInfoResp = await amblGraph.EditUserInfo(username, entApiKey, userInfo);
+                var userInfoResp = await amblGraph.EditUserInfo(username, entLookup, userInfo);
 
                 if (userInfoResp.Status)
                 {
@@ -996,7 +996,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        // public virtual async Task ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, string email, string entApiKey, Itinerary itinerary, Guid activityChanged)
+        // public virtual async Task ItineraryItemOrderAdjusted(AmblOnGraph amblGraph, string email, string entLookup, Itinerary itinerary, Guid activityChanged)
         // {
 
         //     var baseQuery = "g.V(\"" + itinerary.ID.ToString() + "\").Out(\"Contains\").coalesce(";
@@ -1026,29 +1026,29 @@ namespace AmblOn.State.API.Users.State
 
         //     var query = baseQuery + aGquery + ").out(\"Contains\").coalesce(" + aQuery + ")";
 
-        //     var resp = await amblGraph.EditOrder(email, entApiKey, query);
+        //     var resp = await amblGraph.EditOrder(email, entLookup, query);
 
-        //     State.UserItineraries = await fetchUserItineraries(amblGraph, email, entApiKey);
+        //     State.UserItineraries = await fetchUserItineraries(amblGraph, email, entLookup);
         // } 
 
-        // public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string username, string entApiKey, Activity activity)
+        // public virtual async Task QuickEditActivity(AmblOnGraph amblGraph, string username, string entLookup, Activity activity)
         // {
         //     var resp = await amblGraph.QuickEditActivity(activity);
 
-        //     State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
+        //     State.UserItineraries = await fetchUserItineraries(amblGraph, username, entLookup);
 
         //     State.Loading = false;
         // }
         
         #endregion
         // ToDO: "Ensure" would become "Refresh", which contains a call to load
-        // public virtual async Task Ensure(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entApiKey)
+        // public virtual async Task Ensure(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entLookup)
         // {
         //     ensureStateObject();
 
-        //     await Load(amblGraph, amblOnGraphFactory, username, entApiKey);
+        //     await Load(amblGraph, amblOnGraphFactory, username, entLookup);
 
-            // State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entApiKey);
+            // State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entLookup);
 
             // var userMap = State.UserMaps.FirstOrDefault(x => x.ID == State.SelectedUserMapID);
 
@@ -1065,7 +1065,7 @@ namespace AmblOn.State.API.Users.State
             // var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
             
             
-            // State.UserTopLists = await fetchUserTopLists(amblGraph, username, entApiKey, userLayerID);
+            // State.UserTopLists = await fetchUserTopLists(amblGraph, username, entLookup, userLayerID);
 
         //     State.Loading = false;
         // }
@@ -1101,11 +1101,11 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task Load(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string username, string entApiKey)
+        public virtual async Task Load(AmblOnGraph amblGraph, string username, string entLookup)
         {
             // ensureStateObject();
 
-            // var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
+            // var userInfoResp = await amblGraph.GetUserInfo(username, entLookup);
 
             // if (userInfoResp.Status)
             // {
@@ -1113,32 +1113,32 @@ namespace AmblOn.State.API.Users.State
             //     State.UserInfo.Email = username;
             // }
 
-            // State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+            // State.UserAlbums = await fetchUserAlbums(amblGraph, username, entLookup);
 
-            // State.UserItineraries = await fetchUserItineraries(amblGraph, username, entApiKey);
+            // State.UserItineraries = await fetchUserItineraries(amblGraph, username, entLookup);
 
 
             // if(State.AllUserLocations.Count == 0){
 
-            //     State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entApiKey);
+            //     State.AllUserLocations = await amblGraph.PopulateAllLocations(username, entLookup);
             // };
 
             //var userLayer = State.UserLayers.Where(x => x.Title == "User").FirstOrDefault();
 
             //var userLayerID = (userLayer == null) ? Guid.Empty : userLayer.ID;
 
-            //State.UserTopLists = await fetchUserTopLists(amblGraph, username, entApiKey);
+            //State.UserTopLists = await fetchUserTopLists(amblGraph, username, entLookup);
 
-            //State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entApiKey);
+            //State.ExcludedCuratedLocations = await fetchUserExcludedCurations(amblGraph, username, entLookup);
 
             State.Loading = false;
         }
 
-        public virtual async Task RefreshUsers(AmblOnGraph amblGraph, AmblOnGraphFactory amblOnGraphFactory, string entApiKey, string username)
+        public virtual async Task RefreshUsers(AmblOnGraph amblGraph, string entLookup, string username)
         {
             ensureStateObject();
 
-            var userInfoResp = await amblGraph.GetUserInfo(username, entApiKey);
+            var userInfoResp = await amblGraph.GetUserInfo(username, entLookup);
 
             if (userInfoResp.Status)
             {
@@ -1146,12 +1146,12 @@ namespace AmblOn.State.API.Users.State
                 State.UserInfo.Email = username;
             }
 
-            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entApiKey);
+            State.UserAlbums = await fetchUserAlbums(amblGraph, username, entLookup);
 
             State.Loading = false;
         }
 
-        // public virtual async Task LoadCuratedLocationsIntoDB(AmblOnGraph amblGraph, string ownerUsername, string entApiKey, List<dynamic> list, List<string> acclist, Guid layerID)
+        // public virtual async Task LoadCuratedLocationsIntoDB(AmblOnGraph amblGraph, string ownerUsername, string entLookup, List<dynamic> list, List<string> acclist, Guid layerID)
         // {
         //     float testFloat = 0;
 
@@ -1184,7 +1184,7 @@ namespace AmblOn.State.API.Users.State
         //         var jsonProperties = propetiesObj.ToObject<Dictionary<string, object>>();
 
         //         // Create location object if it doesn't already exist in the graph DB
-        //         var resp = await amblGraph.AddLocation(ownerUsername, entApiKey, location);
+        //         var resp = await amblGraph.AddLocation(ownerUsername, entLookup, location);
 
         //         if (resp.Model != null)
         //         {
@@ -1216,7 +1216,7 @@ namespace AmblOn.State.API.Users.State
         //                             Title = accKey
         //                         };
         //                     }
-        //                     var accResp = await amblGraph.AddAccolade(ownerUsername, entApiKey, accolade, resp.Model);
+        //                     var accResp = await amblGraph.AddAccolade(ownerUsername, entLookup, accolade, resp.Model);
         //                 }
         //             });
         //         }
@@ -1234,7 +1234,7 @@ namespace AmblOn.State.API.Users.State
             // State.Loading = false;
         }
 
-        public virtual async Task SendInvites(ApplicationManagerClient appMgr, string entApiKey, List<string> usernames)
+        public virtual async Task SendInvites(ApplicationManagerClient appMgr, string entLookup, List<string> usernames)
         {
             ensureStateObject();
 
@@ -1246,7 +1246,7 @@ namespace AmblOn.State.API.Users.State
                 name = "Ambl_On";
             }
 
-            var subject = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
+            var subject = Environment.GetEnvironmentVariable("INVITE-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
             var message = Environment.GetEnvironmentVariable("INVITE-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
             var from = Environment.GetEnvironmentVariable("FROM-EMAIL");
             var senderDisplayName = Environment.GetEnvironmentVariable("SENDER-DISPLAY-NAME");
@@ -1270,7 +1270,7 @@ namespace AmblOn.State.API.Users.State
 
                 try
                 {
-                    var resp = await appMgr.SendAccessRequestEmail(meta, entApiKey);
+                    var resp = await appMgr.SendAccessRequestEmail(meta, entLookup);
                 }
                 catch (Exception ex)
                 {
@@ -1292,7 +1292,7 @@ namespace AmblOn.State.API.Users.State
         //         State.SelectedUserMapID = mapID;
 
         //         // TODO: Filter results out a local collection of all locations 
-        //         //var visibleLocations = await fetchVisibleUserLocations(username, entApiKey, State.SelectedUserLayerIDs);
+        //         //var visibleLocations = await fetchVisibleUserLocations(username, entLookup, State.SelectedUserLayerIDs);
 
         //         State.VisibleUserLocations = limitUserLocationsGeographically(State.AllUserLocations, userMap.Coordinates)
         //                                     .Distinct()
@@ -1304,7 +1304,7 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task ShareItineraries(ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entApiKey, 
+        // public virtual async Task ShareItineraries(ApplicationManagerClient appMgr, AmblOnGraph amblGraph, string username, string entLookup, 
         //     List<Itinerary> itineraries, List<string> usernames)
         // {
         //     ensureStateObject();
@@ -1327,9 +1327,9 @@ namespace AmblOn.State.API.Users.State
         //         await itineraries.Each(async (itinerary) =>
         //         {
 
-        //             var result = await amblGraph.ShareItinerary(username, entApiKey, itinerary, user);
+        //             var result = await amblGraph.ShareItinerary(username, entLookup, itinerary, user);
 
-        //             await addLocationFromSharedItinerary(amblGraph, user, entApiKey, itinerary);
+        //             await addLocationFromSharedItinerary(amblGraph, user, entLookup, itinerary);
 
         //             State.SharedStatus = result.Status;
                     
@@ -1346,7 +1346,7 @@ namespace AmblOn.State.API.Users.State
 
         //                 meta.Metadata["AccessRequestEmail"] = JToken.FromObject(mail);
 
-        //                 var resp = await appMgr.SendAccessRequestEmail(meta, entApiKey);
+        //                 var resp = await appMgr.SendAccessRequestEmail(meta, entLookup);
 
         //                 State.SharedStatus = resp.Status;
         //             }
@@ -1356,7 +1356,7 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        // public virtual async Task UnshareItineraries(AmblOnGraph amblGraph, string entApiKey, List<Itinerary> itineraries, List<string> usernames)
+        // public virtual async Task UnshareItineraries(AmblOnGraph amblGraph, string entLookup, List<Itinerary> itineraries, List<string> usernames)
         // {
         //     ensureStateObject();
 
@@ -1366,7 +1366,7 @@ namespace AmblOn.State.API.Users.State
         //     {
         //         await itineraries.Each(async (itinerary) =>
         //         {
-        //             var result = await amblGraph.UnshareItinerary(username, entApiKey, itinerary, username);
+        //             var result = await amblGraph.UnshareItinerary(username, entLookup, itinerary, username);
 
         //             if (!result.Status)
         //                 success = false;
@@ -1416,16 +1416,16 @@ namespace AmblOn.State.API.Users.State
                 State.OtherSearchUserLocations = new List<UserLocation>();
 
             if (State.UserAlbums == null)
-                State.UserAlbums = new List<UserAlbum>();
+                State.UserAlbums = new List<Album>();
 
             State.UserTopLists = State.UserTopLists ?? new List<UserTopList>();
         }
 
-        // protected virtual async Task<List<UserAccolade>> fetchUserAccolades(AmblOnGraph amblGraph, string username, string entApiKey, Guid locationId)
+        // protected virtual async Task<List<UserAccolade>> fetchUserAccolades(AmblOnGraph amblGraph, string username, string entLookup, Guid locationId)
         // {
         //     var userAccolades = new List<UserAccolade>();
 
-        //     var accolades = await amblGraph.ListAccolades(username, entApiKey, locationId);
+        //     var accolades = await amblGraph.ListAccolades(username, entLookup, locationId);
 
         //     accolades.Each((accolade) =>
         //     {
@@ -1435,13 +1435,13 @@ namespace AmblOn.State.API.Users.State
         //     return userAccolades;
         // }
 
-        protected virtual async Task<List<UserAlbum>> fetchUserAlbums(AmblOnGraph amblGraph, string username, string entApiKey)
+        protected virtual async Task<List<Album>> fetchUserAlbums(AmblOnGraph amblGraph, string username, string entLookup)
         {
-            var albums = await amblGraph.ListAlbums(username, entApiKey);
+            var albums = await amblGraph.ListAlbums(username, entLookup);
 
             // await albums.Each(async (album) =>
             // {
-            //     var photos = await amblGraph.ListPhotos(username, entApiKey, album.ID);
+            //     var photos = await amblGraph.ListPhotos(username, entLookup, album.ID);
 
             //     userAlbums.Add(mapUserAlbum(album, photos));
             // });
@@ -1449,23 +1449,23 @@ namespace AmblOn.State.API.Users.State
             return albums;
         }
 
-        protected virtual async Task<List<Itinerary>> fetchUserItineraries(AmblOnGraph amblGraph, string username, string entApiKey)
+        protected virtual async Task<List<Itinerary>> fetchUserItineraries(AmblOnGraph amblGraph, string username, string entLookup)
         {
-            var itineraries = await amblGraph.ListItineraries(username, entApiKey);
+            var itineraries = await amblGraph.ListItineraries(username, entLookup);
 
             //await itineraries.Each(async (itinerary) =>
             // await Each(itineraries, async (itinerary) =>
             // {
             //     //var amblGraph = amblGraphFactory.Create();
 
-            //     itinerary.ActivityGroups = await amblGraph.ListActivityGroups(username, entApiKey, itinerary);
+            //     itinerary.ActivityGroups = await amblGraph.ListActivityGroups(username, entLookup, itinerary);
 
             //     //await itinerary.ActivityGroups.Each(async (activityGroup) =>
             //     await Each(itinerary.ActivityGroups, async (activityGroup) =>
             //     {
             //         //var amblGraph = amblGraphFactory.Create();
 
-            //         activityGroup.Activities = await amblGraph.ListActivities(username, entApiKey, activityGroup.ID.Value);
+            //         activityGroup.Activities = await amblGraph.ListActivities(username, entLookup, activityGroup.ID.Value);
 
             //         return false;
 
@@ -1513,11 +1513,11 @@ namespace AmblOn.State.API.Users.State
                 }
             }
         }
-        // protected virtual async Task<List<UserLayer>> fetchUserLayers(AmblOnGraph amblGraph, string username, string entApiKey)
+        // protected virtual async Task<List<UserLayer>> fetchUserLayers(AmblOnGraph amblGraph, string username, string entLookup)
         // {
         //     var userLayers = new List<UserLayer>();
 
-        //     var layers = await amblGraph.ListLayers(username, entApiKey);
+        //     var layers = await amblGraph.ListLayers(username, entLookup);
 
         //     layers.Each(
         //         (layer) =>
@@ -1525,7 +1525,7 @@ namespace AmblOn.State.API.Users.State
         //             userLayers.Add(mapUserLayer(layer));
         //         });
 
-        //     var sharedLayers = await amblGraph.ListSharedLayers(username, entApiKey);
+        //     var sharedLayers = await amblGraph.ListSharedLayers(username, entLookup);
 
         //     sharedLayers.Each(
         //         (layerInfo) =>
@@ -1544,89 +1544,88 @@ namespace AmblOn.State.API.Users.State
         //     return userLayers;
         // }
 
-        protected virtual async Task<List<UserMap>> fetchUserMaps(AmblOnGraph amblGraph, string username, string entApiKey)
-        {
-            var userMaps = new List<UserMap>();
+        // protected virtual async Task<List<UserMap>> fetchUserMaps(AmblOnGraph amblGraph, string username, string entLookup)
+        // {
+        //     var userMaps = new List<UserMap>();
 
-            var maps = await amblGraph.ListMaps(username, entApiKey);
+        //     var maps = await amblGraph.ListMaps(username, entLookup);
 
-            maps.Each(
-                (map) =>
-                {
-                    userMaps.Add(mapUserMap(map));
-                });
+        //     maps.Each(
+        //         (map) =>
+        //         {
+        //             userMaps.Add(mapUserMap(map));
+        //         });
 
-            var sharedMaps = await amblGraph.ListSharedMaps(username, entApiKey);
+        //     var sharedMaps = await amblGraph.ListSharedMaps(username, entLookup);
 
-            sharedMaps.Each(
-                (mapInfo) =>
-                {
-                    userMaps.Add(mapUserMap(mapInfo.Item1, mapInfo.Item2));
-                });
+        //     sharedMaps.Each(
+        //         (mapInfo) =>
+        //         {
+        //             userMaps.Add(mapUserMap(mapInfo.Item1, mapInfo.Item2));
+        //         });
 
-            return userMaps;
-        }
+        //     return userMaps;
+        // }
 
         // Need clarification on the behavior of this - is this supposed to pull back all locations across all layers? 
-        protected virtual async Task<List<UserLocation>> fetchVisibleUserLocations(AmblOnGraph amblGraph, string username, string entApiKey, List<Guid> layerIDs)
-        {
-            var userLocations = new List<UserLocation>();
+        // protected virtual async Task<List<UserLocation>> fetchVisibleUserLocations(AmblOnGraph amblGraph, string username, string entLookup, List<Guid> layerIDs)
+        // {
+        //     var userLocations = new List<UserLocation>();
 
-            // await layerIDs.Each(async (layerID) =>
-            // {
-                var userLayerLocations = new List<UserLocation>();
+        //     // await layerIDs.Each(async (layerID) =>
+        //     // {
+        //         var userLayerLocations = new List<UserLocation>();
 
-                // var layer = State.UserLayers.FirstOrDefault(x => x.ID == layerID);
+        //         // var layer = State.UserLayers.FirstOrDefault(x => x.ID == layerID);
 
-                var locations = await amblGraph.ListLocations(username, entApiKey);
+        //         var locations = await amblGraph.ListLocations(username, entLookup);
 
-                await locations.Each(async (location) =>
-                {
-                    var loc = mapUserLocation(location);
+        //         await locations.Each(async (location) =>
+        //         {
+        //             var loc = mapUserLocation(location);
 
-                    //var accolades = await fetchUserAccolades(amblGraph, username, entApiKey, location.ID);
+        //             //var accolades = await fetchUserAccolades(amblGraph, username, entLookup, location.ID);
                     
-                    //loc.Accolades = accolades;
+        //             //loc.Accolades = accolades;
                     
-                    userLayerLocations.Add(loc);
-                });
+        //             userLayerLocations.Add(loc);
+        //         });
 
-                // if (layer != null && layer.Coordinates != null)
-                //     userLayerLocations = userLayerLocations.Where(x => x.Latitude <= layer.Coordinates[0]
-                //                 && x.Latitude >= layer.Coordinates[2]
-                //                 && x.Longitude <= layer.Coordinates[1]
-                //                 && x.Longitude >= layer.Coordinates[3]).ToList();
+        //         // if (layer != null && layer.Coordinates != null)
+        //         //     userLayerLocations = userLayerLocations.Where(x => x.Latitude <= layer.Coordinates[0]
+        //         //                 && x.Latitude >= layer.Coordinates[2]
+        //         //                 && x.Longitude <= layer.Coordinates[1]
+        //         //                 && x.Longitude >= layer.Coordinates[3]).ToList();
 
-                userLocations.AddRange(userLayerLocations);
-            // });
+        //         userLocations.AddRange(userLayerLocations);
+        //     // });
 
-            return userLocations;
-        }
+        //     return userLocations;
+        // }
 
-        protected virtual async Task<List<UserTopList>> fetchUserTopLists(AmblOnGraph amblGraph, string username, string entApiKey, Guid layerId)
-        {
-            var userTopLists = new List<UserTopList>();
+        // protected virtual async Task<List<TopList>> fetchUserTopLists(AmblOnGraph amblGraph, string username, string entLookup, Guid layerId)
+        // {
+        //     var userTopLists = new List<TopList>();
 
-            var topLists = await amblGraph.ListTopLists(username, entApiKey);
+        //     var topLists = await amblGraph.ListTopLists(username, entLookup);
 
-            await topLists.Each(async (topList) =>
-            {
-                var locations = await amblGraph.ListTopListLocations(username, entApiKey, topList.ID);
+        //     await topLists.Each(async (topList) =>
+        //     {
+        //         var locations = await amblGraph.ListTopListLocations(username, entLookup, topList.ID);
 
-                userTopLists.Add(mapUserTopList(topList, locations, layerId));
-            });
+        //         userTopLists.Add(mapUserTopList(topList, locations, layerId));
+        //     });
 
-            return userTopLists;
+        //     return userTopLists;
+        // }
 
-        }
+        // protected virtual async Task<ExcludedCurations> fetchUserExcludedCurations(AmblOnGraph amblGraph, string username, string entLookup)
+        // {
+        //     var curations = await amblGraph.ListExcludedCurations(username, entLookup);
 
-        protected virtual async Task<ExcludedCurations> fetchUserExcludedCurations(AmblOnGraph amblGraph, string username, string entApiKey)
-        {
-            var curations = await amblGraph.ListExcludedCurations(username, entApiKey);
+        //     return curations;
 
-            return curations;
-
-        }
+        // }
 
         protected virtual List<UserLocation> limitUserLocationsByRadius(List<UserLocation> userLocations, float radius, float centerLat, float centerLong)
         {
@@ -1687,7 +1686,7 @@ namespace AmblOn.State.API.Users.State
                 return userLocations;
         }
 
-        protected virtual List<UserPhoto> mapImageDataToUserPhotos(List<UserPhoto> photos, List<ImageMessage> images)
+        protected virtual List<Photo> mapImageDataToUserPhotos(List<Photo> photos, List<ImageMessage> images)
         {
             //var photoCount = 0;
 
@@ -1880,11 +1879,11 @@ namespace AmblOn.State.API.Users.State
                 ID = photo.ID,
                 Caption = photo.Caption,
                 URL = photo.URL,
-                LocationID = photo.LocationID
+                //LocationID = photo.LocationID
             };
         }
 
-        protected virtual UserTopList mapUserTopList(TopList topList, List<Location> locations, Guid layerId)
+        protected virtual UserTopList mapUserTopList(UserTopList topList, List<Location> locations, Guid layerId)
         {
             var userTopList = new UserTopList()
             {

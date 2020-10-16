@@ -12,7 +12,7 @@ using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using System.Security.Claims;
 using LCU.StateAPI;
 using AmblOn.State.API.Users.State;
-using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.Azure.Storage.Blob;
 using LCU.StateAPI.Utilities;
 using AmblOn.State.API.AmblOn.State;
 using AmblOn.State.API.Itineraries.State;
@@ -27,7 +27,7 @@ namespace AmblOn.State.API.Users.Host
             ClaimsPrincipal claimsPrincipal, //[LCUStateDetails]StateDetails stateDetails,
             [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
             [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRGroupAction> signalRGroupActions,
-            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
             var stateDetails = StateUtils.LoadStateDetails(req);
 

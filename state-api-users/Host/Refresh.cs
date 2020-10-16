@@ -12,7 +12,7 @@ using Microsoft.WindowsAzure.Storage;
 using Fathym;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using AmblOn.State.API.Users.State;
-using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.Azure.Storage.Blob;
 using Fathym.API;
 using System.Runtime.Serialization;
 using LCU.StateAPI.Utilities;
@@ -33,23 +33,19 @@ namespace AmblOn.State.API.Users
     {
         #region Fields
         protected AmblOnGraph amblGraph;
-
-        protected AmblOnGraphFactory amblGraphFactory;
         #endregion
 
         #region Constructors
-        public Refresh(AmblOnGraph amblGraph, AmblOnGraphFactory amblGraphFactory)
+        public Refresh(AmblOnGraph amblGraph)
         {
             this.amblGraph = amblGraph;
-
-            this.amblGraphFactory = amblGraphFactory;
         }
         #endregion
 
         [FunctionName("Refresh")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
             [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
-            [Blob("state-api/{headers.lcu-ent-api-key}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
+            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
         {
             var stateDetails = StateUtils.LoadStateDetails(req);
 
@@ -84,24 +80,25 @@ namespace AmblOn.State.API.Users
         #region Helpers
         protected virtual async Task<Status> refreshUsers(UsersStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshUsers(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
+            await harness.RefreshUsers(amblGraph, stateDetails.EnterpriseLookup, stateDetails.Username);
 
             return Status.Success;
         }
 
         protected virtual async Task<Status> refreshItineraries(ItinerariesStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshItineraries(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
+            await harness.RefreshItineraries(amblGraph, stateDetails.EnterpriseLookup, stateDetails.Username);
 
             return Status.Success;
         }
 
         protected virtual async Task<Status> refreshLocations(LocationsStateHarness harness, ILogger log, StateDetails stateDetails)
         {
-            await harness.RefreshLocations(amblGraph, amblGraphFactory, stateDetails.EnterpriseAPIKey, stateDetails.Username);
+            await harness.RefreshLocations(amblGraph, stateDetails.EnterpriseLookup, stateDetails.Username);
 
             return Status.Success;
         }
         #endregion
     }
 }
+ 
