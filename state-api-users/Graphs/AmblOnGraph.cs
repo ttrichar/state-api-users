@@ -2614,6 +2614,7 @@ namespace AmblOn.State.API.Users.Graphs
                     Address =location.Address ?? "",
                     Country = location.Country ?? "",
                     GoogleLocationName = location.GoogleLocationName ?? "",
+                    ID = Guid.NewGuid(),
                     Icon =  location.Icon ?? "",
                     Instagram = location.Instagram ?? "",
                     IsHidden = location.IsHidden ?? "",
