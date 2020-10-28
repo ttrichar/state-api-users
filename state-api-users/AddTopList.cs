@@ -21,7 +21,7 @@ namespace AmblOn.State.API.Users
     public class AddTopListRequest
     {
         [DataMember]
-        public virtual UserTopList TopList { get; set; }
+        public virtual TopList TopList { get; set; }
     }
 
     public class AddTopList
