@@ -302,7 +302,7 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entLookup, UserTopList topList)
+        public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entLookup, TopList topList)
         {
             ensureStateObject();
 
@@ -951,7 +951,7 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task EditTopList(AmblOnGraph amblGraph, string username, string entLookup, UserTopList topList)
+        public virtual async Task EditTopList(AmblOnGraph amblGraph, string username, string entLookup, TopList topList)
         {
             ensureStateObject();
 
@@ -1418,7 +1418,7 @@ namespace AmblOn.State.API.Users.State
             if (State.UserAlbums == null)
                 State.UserAlbums = new List<Album>();
 
-            State.UserTopLists = State.UserTopLists ?? new List<UserTopList>();
+            State.UserTopLists = State.UserTopLists ?? new List<TopList>();
         }
 
         // protected virtual async Task<List<UserAccolade>> fetchUserAccolades(AmblOnGraph amblGraph, string username, string entLookup, Guid locationId)

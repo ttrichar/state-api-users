@@ -22,7 +22,7 @@ namespace AmblOn.State.API.Users
     {
 
         [DataMember]
-        public virtual UserTopList TopList { get; set; }
+        public virtual TopList TopList { get; set; }
     }
 
     public class EditTopList

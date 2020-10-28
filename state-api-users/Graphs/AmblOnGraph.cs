@@ -279,7 +279,7 @@ namespace AmblOn.State.API.Users.Graphs
 
             var lookup = userId.ToString() + "|" + album.Title.Replace(" ","");
 
-            var existingAlbum = await g.V<Album>(userId)
+            var existingAlbum = await g.V(userId)
                 .Out<Owns>()
                 .OfType<Album>()
                 .Where(e => e.Lookup == lookup)
@@ -735,7 +735,7 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        public virtual async Task<BaseResponse<Guid>> AddTopList(string email, string entLookup, UserTopList topList)
+        public virtual async Task<BaseResponse<Guid>> AddTopList(string email, string entLookup, TopList topList)
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
@@ -766,7 +766,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .FirstOrDefaultAsync();;
 
                 // Add edges to each location - locations are presumed to already exist in the graph
-                foreach (UserLocation loc in topList.LocationList) {
+                foreach (Location loc in topList.LocationList) {
                     if (loc.ID!=null) {
                         await g.V(createdTopList.ID)
                             .AddE<Contains>()
@@ -937,7 +937,7 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
             
-            var existingItinerary = await g.V<Itinerary>(userId)
+            var existingItinerary = await g.V(userId)
                 .Out<Owns>()
                 .OfType<Itinerary>()
                 .Where(x => x.ID == itineraryID)
@@ -945,11 +945,8 @@ namespace AmblOn.State.API.Users.Graphs
 
             if (existingItinerary != null)
             {
-                await g.V<Itinerary>(userId)
-                .Out<Owns>()
-                .OfType<Itinerary>()
-                .Where(x => x.ID == itineraryID)
-                .Drop();
+                await g.V(itineraryID)
+                    .Drop();
 
                 return new BaseResponse()
                 {
@@ -1105,10 +1102,7 @@ namespace AmblOn.State.API.Users.Graphs
 
             if (existingTopList != null)
             {
-                await g.V(userId)
-                    .Out<Owns>()
-                    .OfType<TopList>()
-                    .Where(x => x.ID == topListID)
+                await g.V(topListID)
                     .Drop();
 
                 return new BaseResponse()
@@ -1575,7 +1569,7 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        public virtual async Task<BaseResponse> EditTopList(string email, string entLookup, UserTopList topList)
+        public virtual async Task<BaseResponse> EditTopList(string email, string entLookup, TopList topList)
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
@@ -1604,7 +1598,7 @@ namespace AmblOn.State.API.Users.Graphs
                     .Drop();
 
                 // Add new edges from ordered list 
-                foreach (UserLocation loc in topList.LocationList) {
+                foreach (Location loc in topList.LocationList) {
                     await g.V(existingTopList.ID)
                         .AddE<Contains>()
                         .To(x => x.V(loc.ID))
