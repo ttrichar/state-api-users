@@ -14,6 +14,8 @@ using System.Runtime.Serialization;
 using System.Collections.Generic;
 using AmblOn.State.API.Users.Graphs;
 using AmblOn.State.API.AmblOn.State;
+using LCU.Presentation.State.ReqRes;
+using AmblOn.State.API.Locations.State;
 
 namespace AmblOn.State.API.Users
 {
@@ -22,6 +24,9 @@ namespace AmblOn.State.API.Users
     {
         [DataMember]
         public virtual TopList TopList { get; set; }
+
+        [DataMember]
+        public virtual List<ActivityLocationLookup> ActivityLocationLookups { get; set; }
     }
 
     public class AddTopList
@@ -40,19 +45,38 @@ namespace AmblOn.State.API.Users
         [FunctionName("AddTopList")]
         public virtual async Task<Status> Run([HttpTrigger(AuthorizationLevel.Admin)] HttpRequest req, ILogger log,
             [SignalR(HubName = AmblOnState.HUB_NAME)]IAsyncCollector<SignalRMessage> signalRMessages,
-            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob)
-        {
-            return await stateBlob.WithStateHarness<UsersState, AddTopListRequest, UsersStateHarness>(req, signalRMessages, log,
+            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/{headers.lcu-state-key}", FileAccess.ReadWrite)] CloudBlockBlob stateBlob,
+            [Blob("state-api/{headers.lcu-ent-lookup}/{headers.lcu-hub-name}/{headers.x-ms-client-principal-id}/locations", FileAccess.ReadWrite)] CloudBlockBlob locationStateBlob)
+            {
+            var status = await stateBlob.WithStateHarness<UsersState, AddTopListRequest, UsersStateHarness>(req, signalRMessages, log,
                 async (harness, reqData, actReq) =>
             {
                 log.LogInformation($"AddTopList");
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                await harness.AddTopList(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.TopList);
+                var username = stateDetails.Username;
 
-                return Status.Success;
+                await harness.AddTopList(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.TopList, reqData.ActivityLocationLookups);
+
+                var locationStateDetails = StateUtils.LoadStateDetails(req);
+
+                locationStateDetails.StateKey = "locations";
+
+                var exActReq = await req.LoadBody<ExecuteActionRequest>();
+
+                return await locationStateBlob.WithStateHarness<LocationsState, AddTopListRequest, LocationsStateHarness>(locationStateDetails, exActReq, signalRMessages, log,
+                    async (newharness, reqData, actReq) =>
+                {
+                    log.LogInformation($"AddTopList Location Refresh");
+
+                    await newharness.RefreshLocations(amblGraph, locationStateDetails.EnterpriseLookup, username);
+
+                    return Status.Success;
+                });                 
             });
+
+            return status;
         }
     }
 }

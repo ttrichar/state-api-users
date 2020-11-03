@@ -251,6 +251,8 @@ namespace AmblOn.State.API.Itineraries.State
 
                                         var addActResp = await amblGraph.AddActivityToAG(username, entLookup, itinerary.ID, activityGroup.ID, exists ?? activity);
 
+                                        activitiesList.Remove(exists);
+
                                         activity.ID = addActResp.Model;
 
                                         if (!addActResp.Status)

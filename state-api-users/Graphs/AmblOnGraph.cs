@@ -126,8 +126,7 @@ namespace AmblOn.State.API.Users.Graphs
             
             var lookup = userId.ToString() + "|" + itineraryId.ToString() + "|" + activityGroupId.ToString() + "|" + activity.Title.Replace(" ", "_") + "|" + 
             (activity.LocationID.HasValue ? activity.LocationID.Value.ToString() : Guid.Empty.ToString()) + "|" + activity.Order.ToString();
-
-            
+        
             var activityID = activity.ID;
 
             var existingActivity = await g.V(userId)
@@ -220,6 +219,99 @@ namespace AmblOn.State.API.Users.Graphs
             }
         }
 
+        public virtual async Task<BaseResponse<Guid>> AddActivityToTopList(string email, string entLookup, Guid topListId, Activity activity)
+        {
+            var userId = await ensureAmblOnUser(email, entLookup);
+            
+            var lookup = userId.ToString() + "|" + topListId.ToString() + "|" + activity.Title.Replace(" ", "_") + "|" + 
+            (activity.LocationID.HasValue ? activity.LocationID.Value.ToString() : Guid.Empty.ToString()) + "|" + activity.Order.ToString();
+            
+            var activityID = activity.ID;
+
+            var existingActivity = await g.V(userId)
+                .Out<Owns>()
+                .OfType<TopList>()
+                .Where(e => e.ID == topListId)
+                .Out<Contains>()
+                .OfType<Activity>()
+                .Where(e => e.Lookup == lookup)
+                .FirstOrDefaultAsync();            
+
+            if (existingActivity == null)
+            {            
+                var existingActivityByID = await g.V(userId)
+                    .Out<Owns>()
+                    .OfType<TopList>()
+                    .Where(e => e.ID == topListId)
+                    .Out<Contains>()
+                    .OfType<Activity>()
+                    .Where(e => e.ID == activityID)
+                    .FirstOrDefaultAsync();     
+
+                if(existingActivityByID == null)
+                {
+                    var createdActivity = await g.AddV<Activity>(new Activity(){
+                        PartitionKey = "Activity|" + activity.Title ?? lookup,
+                        Lookup = lookup, 
+                        CreatedDateTime = activity.CreatedDateTime,
+                        LocationID = activity.LocationID ?? Guid.Empty,
+                        Order = activity.Order,
+                        Notes = activity.Notes ?? "",
+                        Checked = activity.Checked,
+                        Favorited = activity.Favorited,
+                        Title = activity.Title ?? "",
+                        TransportIcon = activity.TransportIcon ?? "",
+                        WidgetIcon = activity.WidgetIcon ?? "",
+                        ID = Guid.NewGuid()
+                    })
+                    .FirstOrDefaultAsync();
+
+                    await g.V(userId)
+                        .AddE<Owns>()
+                        .To(x => x.V(createdActivity.ID))
+                        .FirstOrDefaultAsync();
+
+                    await g.V(topListId)
+                        .AddE<Contains>()
+                        .To(x => x.V(createdActivity.ID))
+                        .FirstOrDefaultAsync();
+
+                    if (activity.LocationID != null && activity.LocationID != Guid.Empty)
+                    {
+                        await g.V(createdActivity.ID)
+                            .AddE<OccursAt>()
+                            .To(x => x.V(activity.LocationID))
+                            .FirstOrDefaultAsync();
+                    }
+
+                    return new BaseResponse<Guid>()
+                    {
+                        Model = createdActivity.ID,
+                        Status = Status.Success
+                    };
+                }
+                else{
+                    var editResp = await EditActivity(email, entLookup, activity);
+
+                    return new BaseResponse<Guid>() { 
+                        Model = existingActivityByID.ID,
+                        //Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
+                        Status = Status.Success
+                    };
+                }
+
+            }
+            else{
+                var editResp = await EditActivity(email, entLookup, activity);
+            
+                return new BaseResponse<Guid>() { 
+                    Model = existingActivity.ID,
+                    //Status = Status.Conflict.Clone("An activity with that title already exists for this user's itinerary and activity group.")
+                    Status = Status.Success
+                };
+            }
+        }
+        
         public virtual async Task<BaseResponse<Guid>> AddActivityGroup(string email, string entLookup, Guid itineraryId, ActivityGroup activityGroup)
         {
             var userId = await ensureAmblOnUser(email, entLookup);
@@ -735,7 +827,7 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        public virtual async Task<BaseResponse<Guid>> AddTopList(string email, string entLookup, TopList topList)
+        public virtual async Task<BaseResponse<Guid>> AddTopList(string email, string entLookup, TopList topList, List<Activity> activities)
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
@@ -758,6 +850,10 @@ namespace AmblOn.State.API.Users.Graphs
                     ID = Guid.NewGuid()
                 })
                 .FirstOrDefaultAsync();
+
+                foreach (Activity activity in activities) {
+                    await AddActivityToTopList(email, entLookup, createdTopList.ID, activity);
+                };
 
                 // Add edge to from user vertex to newly created top list vertex
                 await g.V(userId)
