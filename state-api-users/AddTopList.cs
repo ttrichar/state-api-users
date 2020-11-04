@@ -57,7 +57,7 @@ namespace AmblOn.State.API.Users
 
                 var username = stateDetails.Username;
 
-                await harness.AddTopList(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.TopList, reqData.ActivityLocationLookups);
+                await harness.AddTopList(amblGraph, stateDetails.Username, stateDetails.EnterpriseLookup, reqData.TopList);
 
                 var locationStateDetails = StateUtils.LoadStateDetails(req);
 

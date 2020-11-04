@@ -302,18 +302,25 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entLookup, TopList topList, List<ActivityLocationLookup> activityLocations)
+        public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entLookup, TopList topList)
         {
             ensureStateObject();
 
             var activitiesList = new List<Activity>();
 
-            if(!activityLocations.IsNullOrEmpty()){       
-                activitiesList =  await addLocationFromActivity(amblGraph, username, entLookup, activityLocations);           
-            }
+            var newLocationList = new List<Location>();
 
+            await topList.LocationList.Each(async (location) => {
+                var addedLocation = await amblGraph.ensureLocation(username, entLookup, location);
 
-            var topListResp = await amblGraph.AddTopList(username, entLookup, topList, activitiesList);
+                newLocationList.Add(addedLocation);
+            });
+
+            topList.LocationList.Clear();
+
+            topList.LocationList.AddRange(newLocationList);
+
+            var topListResp = await amblGraph.AddTopList(username, entLookup, topList);
 
             if (topListResp.Status)
             {
@@ -964,13 +971,24 @@ namespace AmblOn.State.API.Users.State
 
             var existing = State.UserTopLists.FirstOrDefault(x => x.ID == topList.ID);
 
+            var newLocationList = new List<Location>();
+
             if (existing != null)
             {
+                await topList.LocationList.Each(async (location) => {
+                    var addedLocation = await amblGraph.ensureLocation(username, entLookup, location);
+
+                    newLocationList.Add(addedLocation);
+                });
+
+                topList.LocationList.Clear();
+
+                topList.LocationList.AddRange(newLocationList);
+
                 var topListResp = await amblGraph.EditTopList(username, entLookup, topList);
 
                 if (topListResp.Status)
                 {
-
                     State.UserTopLists.Remove(existing);
 
                     State.UserTopLists.Add(topList);

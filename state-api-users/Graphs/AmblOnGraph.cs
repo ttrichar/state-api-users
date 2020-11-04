@@ -827,7 +827,7 @@ namespace AmblOn.State.API.Users.Graphs
         //     });
         // }
 
-        public virtual async Task<BaseResponse<Guid>> AddTopList(string email, string entLookup, TopList topList, List<Activity> activities)
+        public virtual async Task<BaseResponse<Guid>> AddTopList(string email, string entLookup, TopList topList)
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
@@ -844,16 +844,13 @@ namespace AmblOn.State.API.Users.Graphs
                 // Add the Top List
                 var createdTopList = await g.AddV<TopList>(new TopList(){
                     PartitionKey = entLookup.ToString(),
+                    //LocationList = topList.LocationList,
                     Lookup = lookup, 
                     Title = topList.Title ?? "",
                     OrderedValue = topList.OrderedValue ?? "",
                     ID = Guid.NewGuid()
                 })
                 .FirstOrDefaultAsync();
-
-                foreach (Activity activity in activities) {
-                    await AddActivityToTopList(email, entLookup, createdTopList.ID, activity);
-                };
 
                 // Add edge to from user vertex to newly created top list vertex
                 await g.V(userId)
@@ -1673,7 +1670,7 @@ namespace AmblOn.State.API.Users.Graphs
 
             var existingTopList = await g.V(userId)
                 .Out<Owns>()
-                .OfType<UserInfo>()
+                .OfType<TopList>()
                 .Where(x => x.Lookup == lookup)
                 .FirstOrDefaultAsync();
             
@@ -2679,7 +2676,6 @@ namespace AmblOn.State.API.Users.Graphs
 
             if (existingLocation != null){
                 await g.V<Location>(existingLocation.ID)
-                    .Update(location)
                     .Property("Address", location.Address ?? "")
                     .Property("Country", location.Country ?? "")
                     .Property("Icon", location.Icon ?? "")
