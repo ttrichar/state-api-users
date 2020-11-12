@@ -59,7 +59,7 @@ namespace AmblOn.State.API.Users.State
         public virtual List<UserMap> UserMaps {get; set;}
 
         [DataMember]
-        public virtual List<UserTopList> UserTopLists {get; set; }
+        public virtual List<TopList> UserTopLists {get; set; }
         
     }
 }

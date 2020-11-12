@@ -302,9 +302,23 @@ namespace AmblOn.State.API.Users.State
         //     State.Loading = false;
         // }
 
-        public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entLookup, UserTopList topList)
+        public virtual async Task AddTopList(AmblOnGraph amblGraph, string username, string entLookup, TopList topList)
         {
             ensureStateObject();
+
+            var activitiesList = new List<Activity>();
+
+            var newLocationList = new List<Location>();
+
+            await topList.LocationList.Each(async (location) => {
+                var addedLocation = await amblGraph.ensureLocation(username, entLookup, location);
+
+                newLocationList.Add(addedLocation);
+            });
+
+            topList.LocationList.Clear();
+
+            topList.LocationList.AddRange(newLocationList);
 
             var topListResp = await amblGraph.AddTopList(username, entLookup, topList);
 
@@ -951,19 +965,30 @@ namespace AmblOn.State.API.Users.State
             State.Loading = false;
         }
 
-        public virtual async Task EditTopList(AmblOnGraph amblGraph, string username, string entLookup, UserTopList topList)
+        public virtual async Task EditTopList(AmblOnGraph amblGraph, string username, string entLookup, TopList topList)
         {
             ensureStateObject();
 
             var existing = State.UserTopLists.FirstOrDefault(x => x.ID == topList.ID);
 
+            var newLocationList = new List<Location>();
+
             if (existing != null)
             {
+                await topList.LocationList.Each(async (location) => {
+                    var addedLocation = await amblGraph.ensureLocation(username, entLookup, location);
+
+                    newLocationList.Add(addedLocation);
+                });
+
+                topList.LocationList.Clear();
+
+                topList.LocationList.AddRange(newLocationList);
+
                 var topListResp = await amblGraph.EditTopList(username, entLookup, topList);
 
                 if (topListResp.Status)
                 {
-
                     State.UserTopLists.Remove(existing);
 
                     State.UserTopLists.Add(topList);
@@ -1381,6 +1406,25 @@ namespace AmblOn.State.API.Users.State
         #endregion
 
         #region Helpers
+        protected virtual async Task<List<Activity>> addLocationFromActivity(AmblOnGraph amblGraph, string email, string entLookup, List<ActivityLocationLookup> activityLocations)
+        {
+            var activities = new List<Activity>();
+
+            foreach (ActivityLocationLookup acLoc in activityLocations){
+                var location = await amblGraph.ensureLocation(email, entLookup, acLoc.Location);
+
+                acLoc.Activity.LocationID = location.ID;
+                
+                activities.Add(acLoc.Activity); 
+
+                // var existing = State.AllUserLocations.FirstOrDefault(x => x.ID == location.ID);
+
+                // if (existing == null){
+                //     State.AllUserLocations.Add(location);
+                // }                   
+            }
+            return activities;                              
+        }
 
         // Returns the radius and center of a circle inscribed within the bounded box
         protected virtual Tuple<float, float, float> computeCircle(float lat1, float long1, float lat2, float long2)
@@ -1418,7 +1462,7 @@ namespace AmblOn.State.API.Users.State
             if (State.UserAlbums == null)
                 State.UserAlbums = new List<Album>();
 
-            State.UserTopLists = State.UserTopLists ?? new List<UserTopList>();
+            State.UserTopLists = State.UserTopLists ?? new List<TopList>();
         }
 
         // protected virtual async Task<List<UserAccolade>> fetchUserAccolades(AmblOnGraph amblGraph, string username, string entLookup, Guid locationId)
