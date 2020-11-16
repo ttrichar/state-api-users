@@ -898,6 +898,7 @@ namespace AmblOn.State.API.Users.Graphs
                 var partKey = email?.Split('@')[1];
 
                 var createdUserInfo = await g.AddV<UserInfo>(new UserInfo(){
+                    PartitionKey = partKey ?? lookup,
                     Lookup = lookup, 
                     Email = email,
                     Country = userInfo.Country ?? "",
