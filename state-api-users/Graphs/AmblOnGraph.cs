@@ -2584,7 +2584,7 @@ namespace AmblOn.State.API.Users.Graphs
                 };
             };
 
-            var existingItinerary = await g.V<Itinerary>(shareUserId)
+            var existingItinerary = await g.V(shareUserId)
                 .Out<CanView>()
                 .OfType<Itinerary>()
                 .Where(x => x.ID == itinerary.ID)
@@ -2592,7 +2592,7 @@ namespace AmblOn.State.API.Users.Graphs
 
             if (existingItinerary == null)
             {
-                var originalItinerary = await g.V<Itinerary>(userId)
+                var originalItinerary = await g.V(userId)
                     .Out<Owns>()
                     .OfType<Itinerary>()
                     .Where(x => x.ID == itinerary.ID)
@@ -2600,11 +2600,11 @@ namespace AmblOn.State.API.Users.Graphs
 
                 if (originalItinerary != null)
                 {
-                    await g.V(userId)
+                    await g.V(shareUserId)
                         .AddE<CanView>()
                         .To(x => x.V(originalItinerary.ID))
                         .FirstOrDefaultAsync();
-
+                    
                     return new BaseResponse()
                     {
                         Status = Status.Success
@@ -2625,7 +2625,7 @@ namespace AmblOn.State.API.Users.Graphs
         {
             var userId = await ensureAmblOnUser(email, entLookup);
 
-            var existingItinerary = await g.V<Itinerary>(userId)
+            var existingItinerary = await g.V(userId)
                 .Out<CanView>()
                 .OfType<Itinerary>()
                 .Where(x => x.ID == itinerary.ID)
