@@ -405,6 +405,7 @@ namespace AmblOn.State.API.Itineraries.State
             var subject = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
             var message = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
             var from = Environment.GetEnvironmentVariable("SHARED-FROM-EMAIL");
+            var senderDisplayName = Environment.GetEnvironmentVariable("SENDER-DISPLAY-NAME");
 
             Dictionary<string, string> results = new Dictionary<string, string>();
 
@@ -427,7 +428,8 @@ namespace AmblOn.State.API.Itineraries.State
                             EmailTo = user,
                             EmailFrom = from,
                             Subject = subject,
-                            Content = message
+                            Content = message,
+                            SenderDisplayName = senderDisplayName
                         };
 
                         var meta = new MetadataModel();
