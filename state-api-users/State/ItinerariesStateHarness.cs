@@ -404,7 +404,7 @@ namespace AmblOn.State.API.Itineraries.State
 
             var subject = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL-SUBJECT").Replace("%%USER-NAME%%", name);
             var message = Environment.GetEnvironmentVariable("SHARED-ITINERARY-EMAIL").Replace("%%BASE-URL%%", Environment.GetEnvironmentVariable("BASE-URL"));
-            var from = Environment.GetEnvironmentVariable("FROM-EMAIL");
+            var from = Environment.GetEnvironmentVariable("SHARED-FROM-EMAIL");
 
             Dictionary<string, string> results = new Dictionary<string, string>();
 
