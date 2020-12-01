@@ -2885,7 +2885,8 @@ namespace AmblOn.State.API.Users.Graphs
 
             var user = await g.AddV<AmblOnUser>(new AmblOnUser(){
                 PartitionKey = partKey, 
-                Email = email
+                Email = email,
+                ID = Guid.NewGuid()
             })
             .FirstOrDefaultAsync();
 
